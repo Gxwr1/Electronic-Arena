@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IPL Auction - Admin Panel 🔐</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Exo 2', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+    }
+
+    .auth-container {
+      background: white;
+      padding: 40px;
+      border-radius: 15px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+      animation: slideUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .auth-head {
+      margin-bottom: 30px;
+    }
+
+    .lock-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+      display: block;
+      animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    h1 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+
+    .subtitle {
+      color: #888;
+      font-size: 14px;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #444;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      font-family: 'Rajdhani', monospace;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 10px;
+    }
+
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-login:active {
+      transform: translateY(0);
+    }
+
+    .error {
+      color: #e74c3c;
+      font-size: 14px;
+      margin-top: 15px;
+      padding: 10px;
+      background: #fadbd8;
+      border-left: 4px solid #e74c3c;
+      border-radius: 4px;
+      display: none;
+    }
+
+    .error.show {
+      display: block;
+      animation: shake 0.5s;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
+
+    .back-link {
+      margin-top: 20px;
+    }
+
+    .back-link a {
+      color: #667eea;
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.3s ease;
+    }
+
+    .back-link a:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+<div class="auth-container">
+  <div class="auth-head">
+    <span class="lock-icon">🔐</span>
+    <h1>ADMIN PANEL</h1>
+    <p class="subtitle">IPL Auction Control Center</p>
+  </div>
+
+  <div class="input-group">
+    <label>ADMIN PASSWORD</label>
+    <input type="password" id="adminPassword" placeholder="Enter password" />
+  </div>
+
+  <button class="btn-login" onclick="authenticate()">🔓 LOGIN</button>
+
+  <div class="error" id="errorMsg"></div>
+
+  <div class="back-link">
+    <a href="/">← Back to Auction</a>
+  </div>
+</div>
+
+<script>
+  async function authenticate() {
+    const password = document.getElementById('adminPassword').value;
+    const errorEl = document.getElementById('errorMsg');
+
+    if (!password) {
+      errorEl.textContent = 'Enter admin password';
+      errorEl.classList.add('show');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Invalid password');
+      }
+
+      localStorage.setItem('adminAuth', '1');
+      localStorage.setItem('adminPass', password);
+      window.location.href = '/admin-panel.html';
+    } catch (error) {
+      errorEl.textContent = '❌ Incorrect password!';
+      errorEl.classList.add('show');
+      setTimeout(() => {
+        errorEl.classList.remove('show');
+      }, 4000);
+    }
+  }
+
+  // Handle Enter key
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('adminPassword').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') authenticate();
+    });
+  });
+</script>
+
+</body>
+</html>

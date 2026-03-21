@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin 3 - Results Validation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold: #ffd700;
+      --bg: #101826;
+      --bg-soft: #182338;
+      --line: rgba(255, 215, 0, 0.2);
+      --text: #e8eefb;
+      --muted: #9ea8bf;
+      --green: #2ecc71;
+      --red: #e74c3c;
+      --blue: #3498db;
+      --orange: #f39c12;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Exo 2', sans-serif;
+      background: radial-gradient(circle at 20% 10%, #1f2942 0%, #101826 58%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .unauthorized {
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      text-align: center;
+    }
+
+    .unauthorized a {
+      color: #fff;
+      text-decoration: none;
+      background: var(--blue);
+      padding: 8px 14px;
+      border-radius: 8px;
+    }
+
+    .shell {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(10, 16, 28, 0.9);
+    }
+
+    .title {
+      font-family: 'Bebas Neue', sans-serif;
+      color: var(--gold);
+      font-size: clamp(24px, 2.5vw, 36px);
+      letter-spacing: 2px;
+      line-height: 1;
+    }
+
+    .top-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .link-btn,
+    .logout-btn {
+      text-decoration: none;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      color: #fff;
+      background: var(--blue);
+    }
+
+    .logout-btn {
+      background: #d64545;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+      gap: 14px;
+      min-height: calc(100vh - 130px);
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(10, 16, 28, 0.9);
+      min-height: 0;
+    }
+
+    .card-head {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      letter-spacing: 1.4px;
+      color: var(--gold);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .control-body {
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #fff;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-validate { background: linear-gradient(135deg, #27ae60, #1f8b4d); }
+    .btn-reveal { background: linear-gradient(135deg, #f39c12, #c7810e); }
+    .btn-refresh { background: linear-gradient(135deg, #3498db, #2877ac); }
+    .btn-override { background: linear-gradient(135deg, #8e44ad, #6f3492); }
+
+    .manual-override {
+      margin-top: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .manual-title {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .manual-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+
+    .manual-row label {
+      font-size: 12px;
+      color: var(--muted);
+      font-family: 'Rajdhani', sans-serif;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .manual-row select {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: var(--bg-soft);
+      color: #fff;
+      border-radius: 8px;
+      padding: 8px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+    }
+
+    .manual-note {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .status {
+      margin-top: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .status-row span:first-child { color: var(--muted); }
+    .status-row strong { color: var(--gold); }
+
+    .reveal-board {
+      display: grid;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .reveal-item {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: rgba(255, 255, 255, 0.03);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .reveal-item.revealed {
+      border-color: rgba(46, 204, 113, 0.6);
+      background: rgba(46, 204, 113, 0.17);
+    }
+
+    .main-pane {
+      display: grid;
+      grid-template-rows: minmax(260px, auto) minmax(220px, 1fr);
+      gap: 14px;
+      min-height: 0;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      padding: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      min-width: 980px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 8px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--gold);
+      font-family: 'Rajdhani', sans-serif;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 11px;
+      position: sticky;
+      top: 0;
+      background: #111a2c;
+      z-index: 1;
+    }
+
+    .place {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 1px;
+    }
+
+    .score {
+      color: var(--green);
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .breakdown {
+      color: var(--muted);
+      line-height: 1.35;
+      max-width: 260px;
+    }
+
+    .teams-panel {
+      padding: 10px;
+      overflow: auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 10px;
+      align-content: start;
+    }
+
+    .team-card {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px;
+      display: grid;
+      gap: 7px;
+      min-height: 160px;
+    }
+
+    .team-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    .team-sub {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .team-players {
+      color: #d8e2f6;
+      font-size: 12px;
+      line-height: 1.4;
+      max-height: 94px;
+      overflow: auto;
+    }
+
+    .empty {
+      color: var(--muted);
+      padding: 12px;
+      font-size: 13px;
+    }
+
+    .flash {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      background: rgba(15, 24, 38, 0.96);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: #fff;
+      font-family: 'Rajdhani', sans-serif;
+      display: none;
+    }
+
+    .flash.show {
+      display: block;
+    }
+
+    .flash.error {
+      border-color: rgba(231, 76, 60, 0.7);
+    }
+
+    .flash.ok {
+      border-color: rgba(46, 204, 113, 0.7);
+    }
+
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .main-pane {
+        grid-template-rows: auto auto;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 10px;
+      }
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .top-actions {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell" id="appShell" style="display:none;">
+    <header class="topbar">
+      <div class="title">Admin 3 - Result Validation</div>
+      <div class="top-actions">
+        <a class="link-btn" href="/admin-panel.html">Admin 1 Control</a>
+        <a class="link-btn" href="/admin-player.html">Admin 2 Players</a>
+        <a class="link-btn" href="/admin-report.html">Admin 4 Report</a>
+        <a class="link-btn" href="/audience.html">Audience</a>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="card">
+        <div class="card-head">Reveal Controls</div>
+        <div class="control-body">
+          <button class="btn btn-refresh" onclick="loadResults()">Refresh Result Data</button>
+          <button class="btn btn-validate" id="btnValidate" onclick="validateResults()">Validate Standings</button>
+          <button class="btn btn-reveal" id="btnReveal3" onclick="revealPlace(3)">Reveal 3rd Prize</button>
+          <button class="btn btn-reveal" id="btnReveal2" onclick="revealPlace(2)">Reveal 2nd Runner</button>
+          <button class="btn btn-reveal" id="btnReveal1" onclick="revealPlace(1)">Reveal 1st Winner</button>
+
+          <div class="status">
+            <div class="status-row"><span>Auction Phase</span><strong id="phaseText">--</strong></div>
+            <div class="status-row"><span>Validated</span><strong id="validatedText">NO</strong></div>
+            <div class="status-row"><span>Teams Scored</span><strong id="teamsText">0</strong></div>
+          </div>
+
+          <div class="reveal-board" id="revealBoard"></div>
+
+          <div class="manual-override">
+            <div class="manual-title">Admin Winner Override (Before Reveal)</div>
+            <div class="manual-row">
+              <label for="firstWinnerSelect">1st Winner</label>
+              <select id="firstWinnerSelect"></select>
+            </div>
+            <div class="manual-row">
+              <label for="secondWinnerSelect">2nd Runner</label>
+              <select id="secondWinnerSelect"></select>
+            </div>
+            <div class="manual-row">
+              <label for="thirdWinnerSelect">3rd Prize</label>
+              <select id="thirdWinnerSelect"></select>
+            </div>
+            <button class="btn btn-override" id="btnApplyOverride" onclick="applyWinnerOverride()">Apply Winner List</button>
+            <div class="manual-note" id="manualOverrideNote">Validate standings first, then set manual top 3 if needed.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="main-pane">
+        <article class="card">
+          <div class="card-head">Standings (Team Formation Efficiency)</div>
+          <div class="table-wrap">
+            <table id="standingsTable">
+              <thead>
+                <tr>
+                  <th>Place</th>
+                  <th>Team</th>
+                  <th>Owner</th>
+                  <th>Score</th>
+                  <th>XI / Squad</th>
+                  <th>Openers</th>
+                  <th>Fast</th>
+                  <th>Spin</th>
+                  <th>WK</th>
+                  <th>AR</th>
+                  <th>Skill / Perf</th>
+                  <th>Breakdown</th>
+                </tr>
+              </thead>
+              <tbody id="standingsBody"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">Team Squads Coordination View</div>
+          <div class="teams-panel" id="teamsPanel"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <div class="flash" id="flashMsg"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const adminPass = localStorage.getItem('adminPass');
+
+    function showUnauthorized() {
+      document.body.innerHTML = `
+        <div class="unauthorized">
+          <h2>Access denied</h2>
+          <p>Please login as admin first.</p>
+          <a href="/admin.html">Go to Login</a>
+        </div>
+      `;
+    }
+
+    if (!localStorage.getItem('adminAuth') || !adminPass) {
+      showUnauthorized();
+      throw new Error('Unauthorized admin access');
+    }
+
+    const socket = io({ auth: { adminPass } });
+    let resultsState = {
+      phase: null,
+      teams: {},
+      resultReview: null,
+      publicResult: null,
+    };
+    let autoRefreshTimer = null;
+    let refreshDebounceTimer = null;
+    let loadInFlight = false;
+    let queuedRefresh = false;
+
+    fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPass })
+    }).then((res) => {
+      if (!res.ok) {
+        logout();
+      } else {
+        document.getElementById('appShell').style.display = '';
+        loadResults(true);
+        startAutoRefresh();
+      }
+    }).catch(() => logout());
+
+    function showFlash(message, type = 'ok') {
+      const el = document.getElementById('flashMsg');
+      el.textContent = message;
+      el.className = `flash show ${type}`;
+      clearTimeout(showFlash.timer);
+      showFlash.timer = setTimeout(() => {
+        el.className = 'flash';
+      }, 2600);
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    async function loadResults(force = false) {
+      if (loadInFlight && !force) {
+        queuedRefresh = true;
+        return;
+      }
+
+      loadInFlight = true;
+      try {
+        const response = await fetch('/api/admin/results', {
+          headers: { 'x-admin-pass': adminPass }
+        });
+        const json = await response.json();
+        if (response.status === 401) {
+          logout();
+          return;
+        }
+        if (!response.ok || !json.success) {
+          showFlash(json && json.error ? json.error : 'Failed to load result data.', 'error');
+          return;
+        }
+
+        resultsState = {
+          phase: json.phase,
+          teams: json.teams || {},
+          resultReview: json.resultReview || null,
+          publicResult: json.publicResult || null,
+        };
+        render();
+      } catch (error) {
+        showFlash(error.message || 'Failed to load result data.', 'error');
+      } finally {
+        loadInFlight = false;
+        if (queuedRefresh) {
+          queuedRefresh = false;
+          setTimeout(() => loadResults(), 80);
+        }
+      }
+    }
+
+    function scheduleResultsRefresh(delayMs = 120) {
+      clearTimeout(refreshDebounceTimer);
+      refreshDebounceTimer = setTimeout(() => {
+        loadResults();
+      }, delayMs);
+    }
+
+    function startAutoRefresh() {
+      if (autoRefreshTimer) return;
+      autoRefreshTimer = setInterval(() => {
+        if (document.hidden) return;
+        loadResults();
+      }, 900);
+    }
+
+    function findStanding(place) {
+      const standings = (resultsState.resultReview && resultsState.resultReview.standings) || [];
+      return standings.find((entry) => entry.place === place);
+    }
+
+    function renderControls() {
+      const phase = String(resultsState.phase || '--').toUpperCase();
+      const review = resultsState.resultReview || {};
+      const revealed = review.revealedPlaces || { 1: false, 2: false, 3: false };
+      const standings = review.standings || [];
+      const validated = Boolean(review.validated);
+
+      document.getElementById('phaseText').textContent = phase;
+      document.getElementById('validatedText').textContent = validated ? 'YES' : 'NO';
+      document.getElementById('teamsText').textContent = standings.length;
+
+      const canWork = resultsState.phase === 'finished';
+      document.getElementById('btnValidate').disabled = !canWork;
+      document.getElementById('btnReveal3').disabled = !canWork || !validated || revealed[3] || !findStanding(3);
+      document.getElementById('btnReveal2').disabled = !canWork || !validated || !revealed[3] || revealed[2] || !findStanding(2);
+      document.getElementById('btnReveal1').disabled = !canWork || !validated || !revealed[3] || !revealed[2] || revealed[1] || !findStanding(1);
+
+      const board = document.getElementById('revealBoard');
+      board.innerHTML = '';
+      [3, 2, 1].forEach((place) => {
+        const isShown = Boolean(revealed[place]);
+        const standing = findStanding(place);
+        const item = document.createElement('div');
+        item.className = `reveal-item${isShown ? ' revealed' : ''}`;
+        item.innerHTML = `
+          <span>${place === 1 ? '1st Winner' : (place === 2 ? '2nd Runner' : '3rd Prize')}</span>
+          <strong>${isShown && standing ? `${escapeHtml(standing.teamShort)} (${standing.score})` : 'Hidden'}</strong>
+        `;
+        board.appendChild(item);
+      });
+
+      renderWinnerOverrideControls({
+        canWork,
+        validated,
+        revealed,
+        standings,
+        review,
+      });
+    }
+
+    function renderWinnerOverrideControls({ canWork, validated, revealed, standings, review }) {
+      const firstSelect = document.getElementById('firstWinnerSelect');
+      const secondSelect = document.getElementById('secondWinnerSelect');
+      const thirdSelect = document.getElementById('thirdWinnerSelect');
+      const applyBtn = document.getElementById('btnApplyOverride');
+      const note = document.getElementById('manualOverrideNote');
+      if (!firstSelect || !secondSelect || !thirdSelect || !applyBtn || !note) return;
+
+      const revealStarted = Boolean(revealed[1] || revealed[2] || revealed[3]);
+      const canEdit = canWork && validated && !revealStarted && standings.length >= 3;
+      applyBtn.disabled = !canEdit;
+
+      if (!canWork) {
+        note.textContent = 'Manual winner override is available after auction finish.';
+      } else if (!validated) {
+        note.textContent = 'Validate standings first, then set manual top 3 if needed.';
+      } else if (revealStarted) {
+        note.textContent = 'Reveal already started. Winner list editing is locked.';
+      } else {
+        note.textContent = 'You can override top 3 winners before reveal.';
+      }
+
+      const options = standings.map((entry) => ({
+        teamId: String(entry.teamId || ''),
+        label: `${entry.teamShort || entry.teamName} (Score ${entry.score})`,
+      }));
+
+      const defaults = {
+        1: String((review && review.manualOverride && review.manualOverride.places && review.manualOverride.places[1]) || (findStanding(1) && findStanding(1).teamId) || ''),
+        2: String((review && review.manualOverride && review.manualOverride.places && review.manualOverride.places[2]) || (findStanding(2) && findStanding(2).teamId) || ''),
+        3: String((review && review.manualOverride && review.manualOverride.places && review.manualOverride.places[3]) || (findStanding(3) && findStanding(3).teamId) || ''),
+      };
+
+      function fillSelect(selectEl, selectedValue) {
+        selectEl.innerHTML = options.map((option) => (
+          `<option value="${escapeHtml(option.teamId)}">${escapeHtml(option.label)}</option>`
+        )).join('');
+        if (selectedValue) {
+          selectEl.value = selectedValue;
+        }
+      }
+
+      fillSelect(firstSelect, defaults[1]);
+      fillSelect(secondSelect, defaults[2]);
+      fillSelect(thirdSelect, defaults[3]);
+    }
+
+    function renderStandingsTable() {
+      const body = document.getElementById('standingsBody');
+      body.innerHTML = '';
+      const standings = (resultsState.resultReview && resultsState.resultReview.standings) || [];
+
+      if (!standings.length) {
+        body.innerHTML = '<tr><td colspan="12" class="empty">No standings available yet. Validate after auction completion.</td></tr>';
+        return;
+      }
+
+      standings.forEach((entry) => {
+        const composition = entry.composition || {};
+        const financials = entry.financials || {};
+        const breakdown = (entry.scoreBreakdown || [])
+          .map((item) => `${escapeHtml(item.label)}: ${item.points}`)
+          .join(' | ');
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td class="place">${entry.place}</td>
+          <td><span style="color:${entry.teamColor || '#ffd700'};font-weight:700;">${escapeHtml(entry.teamShort || entry.teamName)}</span></td>
+          <td>${escapeHtml(entry.ownerName || '--')}</td>
+          <td class="score">${entry.score}</td>
+          <td>${composition.players || 0} / ${composition.squadPlayers || 0}</td>
+          <td>${composition.openers || 0}</td>
+          <td>${composition.fastBowlers || 0}</td>
+          <td>${composition.spinners || 0}</td>
+          <td>${composition.wicketkeepers || 0}</td>
+          <td>${composition.allRounders || 0}</td>
+          <td>${Number(financials.averageSkill || 0).toFixed(1)} / ${Number(financials.averagePerformance || 0).toFixed(1)}</td>
+          <td class="breakdown">${breakdown}</td>
+        `;
+        body.appendChild(row);
+      });
+    }
+
+    function renderTeamsPanel() {
+      const panel = document.getElementById('teamsPanel');
+      panel.innerHTML = '';
+      const teams = Object.values(resultsState.teams || {});
+      const standings = (resultsState.resultReview && resultsState.resultReview.standings) || [];
+      const standingByTeam = new Map(standings.map((entry) => [String(entry.teamId), entry]));
+
+      if (!teams.length) {
+        panel.innerHTML = '<div class="empty">No team data available.</div>';
+        return;
+      }
+
+      teams.forEach((team) => {
+        const players = Array.isArray(team.players) ? team.players : [];
+        const names = players.map((player) => `${player.name} (${player.role})`).join(', ');
+        const standing = standingByTeam.get(String(team.id));
+        const playingXI = standing && standing.selection && Array.isArray(standing.selection.playingXI)
+          ? standing.selection.playingXI.map((player) => `${player.name} (${player.role})`).join(', ')
+          : '';
+        const substitutes = standing && standing.selection && Array.isArray(standing.selection.substitutes)
+          ? standing.selection.substitutes.map((player) => `${player.name} (${player.role})`).join(', ')
+          : '';
+        const card = document.createElement('div');
+        card.className = 'team-card';
+        card.innerHTML = `
+          <div class="team-head">
+            <span style="color:${team.color || '#ffd700'}">${escapeHtml(team.short || team.name || 'TEAM')}</span>
+            <span>Rs${Number(team.budget) || 0}L</span>
+          </div>
+          <div class="team-sub">Owner: ${escapeHtml(team.ownerName || '--')}</div>
+          <div class="team-sub">Players: ${players.length}</div>
+          <div class="team-sub"><strong>Selected XI:</strong> ${escapeHtml(playingXI || 'Generate via validation')}</div>
+          <div class="team-sub"><strong>Subs:</strong> ${escapeHtml(substitutes || 'Generate via validation')}</div>
+          <div class="team-players">${names || 'No players obtained.'}</div>
+        `;
+        panel.appendChild(card);
+      });
+    }
+
+    function render() {
+      renderControls();
+      renderStandingsTable();
+      renderTeamsPanel();
+    }
+
+    async function validateResults() {
+      const response = await fetch('/api/admin/results/validate', {
+        method: 'POST',
+        headers: { 'x-admin-pass': adminPass },
+      });
+      const json = await response.json();
+      if (!response.ok || !json.success) {
+        showFlash(json && json.error ? json.error : 'Validation failed.', 'error');
+        return;
+      }
+      showFlash('Standings validated.', 'ok');
+      await loadResults();
+    }
+
+    async function revealPlace(place) {
+      const response = await fetch('/api/admin/results/reveal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': adminPass,
+        },
+        body: JSON.stringify({ place }),
+      });
+      const json = await response.json();
+      if (!response.ok || !json.success) {
+        showFlash(json && json.error ? json.error : 'Reveal failed.', 'error');
+        return;
+      }
+      showFlash(`Place ${place} revealed.`, 'ok');
+      await loadResults();
+    }
+
+    async function applyWinnerOverride() {
+      const firstTeamId = String(document.getElementById('firstWinnerSelect').value || '').trim();
+      const secondTeamId = String(document.getElementById('secondWinnerSelect').value || '').trim();
+      const thirdTeamId = String(document.getElementById('thirdWinnerSelect').value || '').trim();
+
+      if (!firstTeamId || !secondTeamId || !thirdTeamId) {
+        showFlash('Select all top 3 teams before applying override.', 'error');
+        return;
+      }
+
+      const unique = new Set([firstTeamId, secondTeamId, thirdTeamId]);
+      if (unique.size !== 3) {
+        showFlash('Top 3 teams must be different.', 'error');
+        return;
+      }
+
+      const response = await fetch('/api/admin/results/override', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': adminPass,
+        },
+        body: JSON.stringify({
+          firstTeamId,
+          secondTeamId,
+          thirdTeamId,
+        }),
+      });
+
+      const json = await response.json();
+      if (!response.ok || !json.success) {
+        showFlash(json && json.error ? json.error : 'Winner override failed.', 'error');
+        return;
+      }
+
+      showFlash('Manual winner list applied.', 'ok');
+      await loadResults();
+    }
+
+    [
+      'auctionStarted',
+      'auctionPaused',
+      'auctionResumed',
+      'auctionFinished',
+      'newPlayer',
+      'bidPlaced',
+      'playerSold',
+      'playerUnsold',
+      'teamsUpdate',
+      'resultUpdate',
+      'stateUpdate'
+    ].forEach((eventName) => {
+      socket.on(eventName, () => scheduleResultsRefresh(40));
+    });
+
+    window.addEventListener('beforeunload', () => {
+      clearInterval(autoRefreshTimer);
+      clearTimeout(refreshDebounceTimer);
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        scheduleResultsRefresh(20);
+      }
+    });
+
+    function logout() {
+      localStorage.removeItem('adminAuth');
+      localStorage.removeItem('adminPass');
+      window.location.href = '/admin.html';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+node_modules/
+public/images/*
+!public/images/.gitkeep
+.env
+npm-debug.log*

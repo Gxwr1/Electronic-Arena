@@ -1,0 +1,688 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin 4 - Reports</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold: #ffd700;
+      --bg: #0f1628;
+      --panel: rgba(10, 16, 28, 0.9);
+      --line: rgba(255, 215, 0, 0.2);
+      --text: #e8eefb;
+      --muted: #9ea8bf;
+      --blue: #3498db;
+      --green: #27ae60;
+      --orange: #f39c12;
+      --red: #e74c3c;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Exo 2', sans-serif;
+      background: radial-gradient(circle at 20% 10%, #1f2a45 0%, #0f1628 58%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .unauthorized {
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      text-align: center;
+    }
+
+    .unauthorized a {
+      color: #fff;
+      text-decoration: none;
+      background: var(--blue);
+      padding: 8px 14px;
+      border-radius: 8px;
+    }
+
+    .shell {
+      max-width: 1650px;
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+
+    .title {
+      font-family: 'Bebas Neue', sans-serif;
+      color: var(--gold);
+      font-size: clamp(24px, 2.5vw, 36px);
+      letter-spacing: 2px;
+      line-height: 1;
+    }
+
+    .top-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .link-btn,
+    .logout-btn,
+    .btn {
+      text-decoration: none;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      color: #fff;
+      background: var(--blue);
+    }
+
+    .logout-btn {
+      background: #d64545;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn-refresh { background: linear-gradient(135deg, #3498db, #2877ac); }
+    .btn-csv { background: linear-gradient(135deg, #27ae60, #1f8b4d); }
+    .btn-pdf { background: linear-gradient(135deg, #f39c12, #c7810e); }
+
+    .layout {
+      display: grid;
+      gap: 14px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--panel);
+      min-height: 0;
+    }
+
+    .card-head {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      letter-spacing: 1.4px;
+      color: var(--gold);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .card-body {
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .meta-row {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(140px, 1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px;
+      display: grid;
+      gap: 4px;
+      min-height: 64px;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      font-family: 'Rajdhani', sans-serif;
+      letter-spacing: 1px;
+      font-weight: 700;
+    }
+
+    .metric .value {
+      font-size: 20px;
+      font-weight: 700;
+      font-family: 'Rajdhani', sans-serif;
+      color: #fff;
+      line-height: 1.1;
+    }
+
+    .metric .sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(260px, 1fr));
+      gap: 10px;
+    }
+
+    .mini-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .mini-table th,
+    .mini-table td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 7px 6px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .mini-table th {
+      color: var(--muted);
+      font-family: 'Rajdhani', sans-serif;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.8px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 58vh;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1120px;
+      font-size: 12px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 8px 7px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-family: 'Rajdhani', sans-serif;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 3px 6px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      color: #fff;
+      background: #4a627e;
+    }
+
+    .pill.ok { background: var(--green); }
+    .pill.warn { background: var(--orange); color: #111; }
+
+    .readonly {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .flash {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      background: rgba(39, 174, 96, 0.96);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.2s ease;
+      z-index: 30;
+    }
+
+    .flash.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .flash.error {
+      background: rgba(231, 76, 60, 0.96);
+    }
+
+    @media (max-width: 1280px) {
+      .meta-row {
+        grid-template-columns: repeat(3, minmax(150px, 1fr));
+      }
+    }
+
+    @media (max-width: 900px) {
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .top-actions {
+        justify-content: flex-start;
+      }
+
+      .meta-row {
+        grid-template-columns: repeat(2, minmax(140px, 1fr));
+      }
+
+      .split {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        color: #111;
+        padding: 0;
+      }
+
+      .topbar,
+      .actions,
+      .flash {
+        display: none !important;
+      }
+
+      .card {
+        border: 1px solid #ccc;
+        background: #fff;
+        break-inside: avoid;
+      }
+
+      th {
+        background: #f1f1f1 !important;
+        color: #222;
+      }
+
+      .table-wrap {
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell" id="appShell" style="display:none;">
+    <header class="topbar">
+      <div>
+        <div class="title">Admin 4 - Reports</div>
+        <div class="readonly">Read-only reporting view. Export to CSV or Print/Save as PDF.</div>
+      </div>
+      <div class="top-actions">
+        <a class="link-btn" href="/admin-panel.html">Admin 1</a>
+        <a class="link-btn" href="/admin-player.html">Admin 2</a>
+        <a class="link-btn" href="/admin-result.html">Admin 3</a>
+        <a class="link-btn" href="/admin-data.html">Admin Data</a>
+        <a class="link-btn" href="/audience.html">Audience</a>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <div class="actions">
+      <button class="btn btn-refresh" onclick="loadReport(true)">Refresh</button>
+      <button class="btn btn-csv" onclick="downloadCsv()">Download CSV</button>
+      <button class="btn btn-pdf" onclick="window.print()">Print / Save PDF</button>
+      <span class="readonly" id="reportStamp">Last update: --</span>
+    </div>
+
+    <main class="layout">
+      <section class="card">
+        <div class="card-head">Auction and Budget Summary</div>
+        <div class="card-body">
+          <div class="meta-row" id="summaryCards"></div>
+          <div class="split">
+            <div>
+              <table class="mini-table" id="roleCatalogTable"></table>
+            </div>
+            <div>
+              <table class="mini-table" id="roleSoldTable"></table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">Team Technical Report (Read-only)</div>
+        <div class="card-body">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Team</th>
+                  <th>Owner</th>
+                  <th>Connected</th>
+                  <th>Players</th>
+                  <th>Squad</th>
+                  <th>Budget Used</th>
+                  <th>Budget Left</th>
+                  <th>Total Spent</th>
+                  <th>Avg Spend</th>
+                  <th>Capped</th>
+                  <th>Uncapped</th>
+                  <th>Batter</th>
+                  <th>Batter/WK</th>
+                  <th>WK-Batter</th>
+                  <th>AR</th>
+                  <th>Fast</th>
+                  <th>Spin</th>
+                  <th>Other</th>
+                  <th>Event Sold</th>
+                </tr>
+              </thead>
+              <tbody id="teamsReportBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="flash" id="flashMsg"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const adminPass = localStorage.getItem('adminPass');
+    const ROLE_ORDER = ['Batter', 'Batter/WK', 'WK-Batter', 'All-Rounder', 'Fast Bowler', 'Spinner', 'Other'];
+    const socket = localStorage.getItem('adminAuth') && adminPass ? io({ auth: { adminPass } }) : null;
+    let reportState = null;
+    let pollTimer = null;
+    let refreshTimer = null;
+
+    function showUnauthorized() {
+      document.body.innerHTML = `
+        <div class="unauthorized">
+          <h2>Access denied</h2>
+          <p>Please login as admin first.</p>
+          <a href="/admin.html">Go to Login</a>
+        </div>
+      `;
+    }
+
+    if (!localStorage.getItem('adminAuth') || !adminPass) {
+      showUnauthorized();
+      throw new Error('Unauthorized admin access');
+    }
+
+    function showFlash(message, type) {
+      const el = document.getElementById('flashMsg');
+      el.textContent = message;
+      el.className = `flash show${type ? ` ${type}` : ''}`;
+      clearTimeout(showFlash.timer);
+      showFlash.timer = setTimeout(() => {
+        el.className = 'flash';
+      }, 2400);
+    }
+
+    async function parseJsonSafe(response) {
+      try {
+        return await response.json();
+      } catch (error) {
+        return null;
+      }
+    }
+
+    async function fetchWithAdmin(url, options = {}) {
+      const headers = {
+        ...(options.headers || {}),
+        'x-admin-pass': adminPass,
+      };
+      return fetch(url, { ...options, headers });
+    }
+
+    function formatLakh(value) {
+      const num = Number(value) || 0;
+      return `${num.toLocaleString('en-IN')}L`;
+    }
+
+    function renderRoleTable(targetId, title, counts) {
+      const table = document.getElementById(targetId);
+      const rows = ROLE_ORDER.map((roleId) => `
+        <tr>
+          <th>${roleId}</th>
+          <td>${Number(counts && counts[roleId]) || 0}</td>
+        </tr>
+      `).join('');
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th colspan="2">${title}</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      `;
+    }
+
+    function renderSummary(report) {
+      const summaryCards = document.getElementById('summaryCards');
+      const currentPlayerText = report.auctionFlow.currentPlayer
+        ? `${report.auctionFlow.currentPlayer.name} (${report.auctionFlow.currentPlayer.role})`
+        : 'None';
+      const cards = [
+        ['Phase', String(report.phase || 'lobby').toUpperCase(), `Current bid: ${formatLakh(report.auctionFlow.currentBidL)}`],
+        ['Teams', report.summary.teamsJoined, `Connected ${report.summary.teamsWithOwners} / ${report.summary.teamsJoined}`],
+        ['Players', report.playerCatalog.totalPlayers, `Sold ${report.auctionFlow.soldPlayers} | Unsold ${report.auctionFlow.unsoldPlayers}`],
+        ['Queue', report.auctionFlow.remainingPlayers, `Current: ${currentPlayerText}`],
+        ['Sold Amount', formatLakh(report.auctionFlow.soldAmountL), `Avg ${formatLakh(report.auctionFlow.averageSoldPriceL)}`],
+        ['Budget Left', formatLakh(report.financials.totalBudgetRemainingL), `Used ${formatLakh(report.financials.totalBudgetUsedL)}`],
+        ['Alerts', report.alerts.active, `Critical ${report.alerts.criticalActive} | Total ${report.alerts.total}`],
+        ['Full Squads', report.summary.fullSquads, `Incomplete ${report.summary.incompleteSquads}`],
+        ['Catalog Base', formatLakh(report.playerCatalog.totalBaseAmountL), `Capped ${report.playerCatalog.cappedPlayers} | Uncapped ${report.playerCatalog.uncappedPlayers}`],
+        ['Unsold Base', formatLakh(report.auctionFlow.unsoldBaseAmountL), `Remaining base ${formatLakh(report.auctionFlow.remainingBaseAmountL)}`],
+        ['Budget Pool', formatLakh(report.financials.totalBudgetPoolL), `Per team ${formatLakh(report.financials.initialBudgetPerTeamL)}`],
+        ['Generated', new Date(report.generatedAt).toLocaleTimeString(), new Date(report.generatedAt).toLocaleDateString()],
+      ];
+
+      summaryCards.innerHTML = cards.map((card) => `
+        <div class="metric">
+          <div class="label">${card[0]}</div>
+          <div class="value">${card[1]}</div>
+          <div class="sub">${card[2]}</div>
+        </div>
+      `).join('');
+
+      renderRoleTable('roleCatalogTable', 'Catalog Role Counts', report.playerCatalog.roleCounts || {});
+      renderRoleTable('roleSoldTable', 'Sold Role Counts', report.auctionFlow.soldRoleCounts || {});
+      document.getElementById('reportStamp').textContent = `Last update: ${new Date(report.generatedAt).toLocaleString()}`;
+    }
+
+    function renderTeams(report) {
+      const tbody = document.getElementById('teamsReportBody');
+      const teams = Array.isArray(report.teams) ? report.teams : [];
+      if (!teams.length) {
+        tbody.innerHTML = '<tr><td colspan="19">No teams joined yet.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = teams.map((team) => `
+        <tr>
+          <td><strong>${escapeHtml(team.short || 'TEAM')}</strong><br>${escapeHtml(team.name || '')}</td>
+          <td>${escapeHtml(team.ownerName || '--')}</td>
+          <td>${team.isConnected ? '<span class="pill ok">Connected</span>' : '<span class="pill warn">Offline</span>'}</td>
+          <td>${Number(team.playersCount) || 0}</td>
+          <td>${team.squadComplete ? '<span class="pill ok">Complete</span>' : '<span class="pill warn">Pending</span>'}</td>
+          <td>${formatLakh(team.budgetUsedL)}</td>
+          <td>${formatLakh(team.budgetRemainingL)}</td>
+          <td>${formatLakh(team.totalSpentL)}</td>
+          <td>${formatLakh(team.avgSpendL)}</td>
+          <td>${Number(team.cappedPlayers) || 0}</td>
+          <td>${Number(team.uncappedPlayers) || 0}</td>
+          <td>${Number(team.roleCounts && team.roleCounts['Batter']) || 0}</td>
+          <td>${Number(team.roleCounts && team.roleCounts['Batter/WK']) || 0}</td>
+          <td>${Number(team.roleCounts && team.roleCounts['WK-Batter']) || 0}</td>
+          <td>${Number(team.roleCounts && team.roleCounts['All-Rounder']) || 0}</td>
+          <td>${Number(team.roleCounts && team.roleCounts['Fast Bowler']) || 0}</td>
+          <td>${Number(team.roleCounts && team.roleCounts['Spinner']) || 0}</td>
+          <td>${Number(team.roleCounts && team.roleCounts['Other']) || 0}</td>
+          <td>${Number(team.soldEvents) || 0}</td>
+        </tr>
+      `).join('');
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    async function loadReport(showOk) {
+      try {
+        const response = await fetchWithAdmin('/api/admin/report');
+        const json = await parseJsonSafe(response);
+        if (!response.ok || !json || !json.success) {
+          showFlash(json && json.error ? json.error : 'Failed to load report', 'error');
+          return;
+        }
+
+        reportState = json.report || null;
+        if (!reportState) {
+          showFlash('No report data found', 'error');
+          return;
+        }
+
+        renderSummary(reportState);
+        renderTeams(reportState);
+        if (showOk) showFlash('Report refreshed');
+      } catch (error) {
+        showFlash(error && error.message ? error.message : 'Report request failed', 'error');
+      }
+    }
+
+    function scheduleReportRefresh(delay = 80) {
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        loadReport(false);
+      }, delay);
+    }
+
+    async function downloadCsv() {
+      try {
+        const response = await fetchWithAdmin('/api/admin/report.csv');
+        if (!response.ok) {
+          const text = await response.text().catch(() => 'Download failed');
+          showFlash(text || 'CSV download failed', 'error');
+          return;
+        }
+
+        const blob = await response.blob();
+        const disposition = response.headers.get('content-disposition') || '';
+        const filenameMatch = disposition.match(/filename="?([^\"]+)"?/i);
+        const filename = filenameMatch && filenameMatch[1] ? filenameMatch[1] : 'ipl-auction-report.csv';
+
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(objectUrl);
+
+        showFlash('CSV downloaded');
+      } catch (error) {
+        showFlash(error && error.message ? error.message : 'CSV download failed', 'error');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('adminAuth');
+      localStorage.removeItem('adminPass');
+      window.location.href = '/admin.html';
+    }
+
+    fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPass })
+    }).then((res) => {
+      if (!res.ok) {
+        logout();
+      } else {
+        document.getElementById('appShell').style.display = '';
+        loadReport(false);
+        pollTimer = setInterval(() => {
+          if (!document.hidden) loadReport(false);
+        }, 2200);
+      }
+    }).catch(() => logout());
+
+    if (socket) {
+      const refreshEvents = [
+        'stateUpdate',
+        'auctionStarted',
+        'auctionPaused',
+        'auctionResumed',
+        'auctionFinished',
+        'newPlayer',
+        'bidPlaced',
+        'playerSold',
+        'playerUnsold',
+        'teamsUpdate',
+        'queueUpdated',
+        'alertsUpdated',
+      ];
+
+      refreshEvents.forEach((eventName) => {
+        socket.on(eventName, () => scheduleReportRefresh(60));
+      });
+
+      socket.on('connect', () => scheduleReportRefresh(40));
+      socket.on('disconnect', () => showFlash('Socket disconnected', 'error'));
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) loadReport(false);
+    });
+
+    window.addEventListener('beforeunload', () => {
+      clearInterval(pollTimer);
+      clearTimeout(refreshTimer);
+    });
+  </script>
+</body>
+</html>

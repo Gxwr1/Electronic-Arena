@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Data</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <style>
+    /* reuse a subset of styles from other admin pages */
+    :root {
+      --gold: #ffd700;
+      --bg: #101826;
+      --bg-soft: #182338;
+      --line: rgba(255, 215, 0, 0.2);
+      --text: #e8eefb;
+      --muted: #9ea8bf;
+      --blue: #3498db;
+    }
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body { font-family: 'Exo 2', sans-serif; background: radial-gradient(circle at 20% 10%, #1f2942 0%, #101826 58%); color: var(--text); min-height:100vh; padding:16px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:14px 16px; border:1px solid var(--line); border-radius:12px; background:rgba(10,16,28,0.9); }
+    .title { font-family:'Bebas Neue',sans-serif; color:var(--gold); font-size:clamp(24px,2.5vw,36px); letter-spacing:2px; line-height:1; }
+    .top-actions { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+    .link-btn, .logout-btn { text-decoration:none; border:none; border-radius:8px; padding:8px 12px; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:13px; cursor:pointer; color:#fff; background:var(--blue); }
+    .logout-btn { background:#d64545; }
+    .shell { max-width:1200px; margin:0 auto; }
+    .card { border:1px solid var(--line); border-radius:12px; background:rgba(10,16,28,0.9); margin-top:14px; }
+    .card-head { padding:12px 14px; border-bottom:1px solid rgba(255,255,255,0.08); font-family:'Rajdhani',sans-serif; font-size:13px; letter-spacing:1.4px; color:var(--gold); text-transform:uppercase; font-weight:700; }
+    .card-body { padding:14px; }
+    .team-logo { width:80px; height:80px; object-fit:contain; border-radius:50%; border:3px solid currentColor; background:#000; transition:transform 0.2s; }
+    .team-tile { display:inline-block; text-align:center; margin:8px; cursor:pointer; transition:transform 0.2s; }
+    .team-tile:hover { transform:scale(1.1); }
+    .team-name { margin-top:4px; font-size:12px; }
+    /* player card styling reuse */
+    .gallery-card { width:120px; background:var(--bg-soft); border:1px solid var(--line); border-radius:8px; overflow:hidden; padding:6px; display:flex; flex-direction:column; gap:6px; align-items:center; margin:4px; transition:transform 0.15s; }
+    .gallery-card:hover { transform:translateY(-4px); }
+    .gallery-card-img img { width:100px; height:120px; object-fit:cover; border-radius:6px; }
+    .gallery-card-meta { text-align:center; font-size:12px; color:var(--text); }
+    .player-list { margin-top:10px; }
+    .player-item { padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.1); font-size:14px; }
+    .unauthorized { min-height:80vh; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; text-align:center; }
+    .unauthorized a { color:#fff; text-decoration:none; background:var(--blue); padding:8px 14px; border-radius:8px; }
+  </style>
+</head>
+<body>
+  <div class="shell" id="appShell" style="display:none;">
+    <header class="topbar">
+      <div>
+        <div class="title">Admin Data</div>
+      </div>
+      <div class="top-actions">
+        <a class="link-btn" href="/admin-panel.html">Admin 1</a>
+        <a class="link-btn" href="/admin-player.html">Admin 2</a>
+        <a class="link-btn" href="/admin-result.html">Admin 3</a>
+        <a class="link-btn" href="/admin-report.html">Admin 4</a>
+        <a class="link-btn" href="/audience.html">Audience</a>
+        <button class="link-btn" onclick="openPasswordModal()">Reset Codes</button>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="card">
+        <div class="card-head">Teams
+          <button class="link-btn btn-reset-pass" style="margin-left:16px;font-size:12px;" onclick="openPasswordModal()">Reset Codes</button>
+          <button class="link-btn btn-skip-auction" style="margin-left:8px;font-size:12px;" onclick="skipAuction()">Skip Auction View</button>
+        </div>
+        <div class="card-body" id="teamsGrid"></div>
+      </section>
+
+      <section class="card" id="teamPlayersCard" style="display:none;">
+        <div class="card-head" id="teamPlayersHead">Players</div>
+        <div class="card-body" id="teamPlayersBody" style="display:flex; flex-wrap:wrap; gap:4px;"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="unauthorized" id="unauth" style="display:none;">
+    <h2>Access denied</h2>
+    <p>Please login as admin first.</p>
+    <a href="/admin.html">Go to Login</a>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- password modal -->
+  <div id="passwordModal" class="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;align-items:center;justify-content:center;">
+    <div style="background:var(--bg-soft);padding:24px;border-radius:12px;max-width:600px;width:90%;color:var(--text);">
+      <h3>Reset Team Codes</h3>
+      <form id="passwordForm" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <!-- inputs inserted dynamically -->
+      </form>
+      <div style="margin-top:16px;text-align:right;">
+        <button class="link-btn" onclick="submitPasswords(event)">Save</button>
+        <button class="link-btn" style="background:#d64545;" onclick="closePasswordModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const adminPass = localStorage.getItem('adminPass');
+    let socket = null;
+    let availableTeams = [];
+
+    function logout() {
+      localStorage.removeItem('adminAuth');
+      window.location.href = '/admin.html';
+    }
+
+    function showUnauthorized() {
+      document.getElementById('appShell').style.display = 'none';
+      document.getElementById('unauth').style.display = 'flex';
+    }
+
+    if (!localStorage.getItem('adminAuth') || !adminPass) {
+      showUnauthorized();
+      throw new Error('Unauthorized admin access');
+    }
+
+    async function loadData() {
+      try {
+        const res = await fetch('/api/admin/report', { headers: { 'x-admin-pass': adminPass } });
+        const data = await res.json();
+        if (!data.success) throw new Error('failed');
+        // use teamData if provided (new endpoint enhancement)
+        const joinedTeams = Array.isArray(data.teamData) ? data.teamData : (data.report && data.report.teams) || [];
+        // merge with availableTeams so we always show all logos
+        const teamsList = (availableTeams && availableTeams.length)
+          ? availableTeams.map(t => {
+              const found = joinedTeams.find(j => j.id === t.id);
+              return found || {
+                id: t.id,
+                short: t.short,
+                name: t.name,
+                ownerName: '',
+                logo: t.logo || '',
+                playersCount: 0,
+                playingXI: {},
+                color: t.color,
+              };
+            })
+          : joinedTeams;
+        renderTeams(teamsList);
+      } catch (err) {
+        console.error('failed to fetch teams', err);
+      }
+    }
+
+    function renderTeams(teams) {
+      const grid = document.getElementById('teamsGrid');
+      grid.innerHTML = '';
+      teams.forEach(team => {
+        const el = document.createElement('div');
+        el.className = 'team-tile';
+        if (team.color) el.style.color = team.color;
+        const logo = team.logo ? `<img src="${team.logo}" class="team-logo" alt="${team.short}">` : '';
+        el.innerHTML = `${logo}<div class="team-name">${team.short}</div>`;
+        el.onclick = () => showTeamPlayers(team);
+        grid.appendChild(el);
+      });
+    }
+
+    function showTeamPlayers(team) {
+      const card = document.getElementById('teamPlayersCard');
+      const head = document.getElementById('teamPlayersHead');
+      const body = document.getElementById('teamPlayersBody');
+      head.textContent = `${team.short} - ${team.ownerName} (${team.playersCount} players)`;
+      body.innerHTML = '';
+      const list = team.playingXI && typeof team.playingXI === 'object'
+        ? Object.values(team.playingXI).filter(p => p)
+        : [];
+      if (!list.length) {
+        body.innerHTML = '<div style="color:var(--muted)">No playing XI set</div>';
+      } else {
+        list.forEach((p, idx) => {
+          const div = document.createElement('div');
+          div.className = 'gallery-card';
+          const imgSrc = p.image || '';
+          div.innerHTML = `
+            <div class="gallery-card-img"><img src="${imgSrc}" alt="${p.name}" /></div>
+            <div class="gallery-card-meta">${idx+1}. ${p.name} (${p.role})</div>
+          `;
+          body.appendChild(div);
+        });
+      }
+      card.style.display = 'block';
+    }
+
+    // wait for server to verify admin credentials before showing shell
+    fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPass })
+    }).then((res) => {
+      if (!res.ok) {
+        logout();
+      } else {
+        // create socket now that admin is verified
+        socket = io({ auth: { adminPass } });
+        document.getElementById('appShell').style.display = '';
+        // now start data synchronization
+        if (socket) {
+          socket.on('init', (payload) => {
+            if (Array.isArray(payload.availableTeams)) {
+              availableTeams = payload.availableTeams;
+            }
+            loadData();
+          });
+          socket.on('auctionStarted', loadData);
+          socket.on('playerSold', loadData);
+          socket.on('teamsUpdate', loadData);
+          socket.on('auctionFinished', loadData);
+        } else {
+          loadData();
+        }
+      }
+    }).catch(() => logout());
+
+    // modal for manual code reset
+    function openPasswordModal() {
+      const form = document.getElementById('passwordForm');
+      form.innerHTML = '';
+      (availableTeams || []).forEach(team => {
+        const wrapper = document.createElement('div');
+        wrapper.style.display = 'flex';
+        wrapper.style.alignItems = 'center';
+        wrapper.innerHTML = `
+          <label style="flex:1;color:${team.color || '#fff'}">${team.short}</label>
+          <input type="text" name="${team.id}" placeholder="new code" style="flex:2;padding:4px" />
+        `;
+        form.appendChild(wrapper);
+      });
+      document.getElementById('passwordModal').style.display = 'flex';
+    }
+
+    function closePasswordModal() {
+      document.getElementById('passwordModal').style.display = 'none';
+    }
+
+    async function submitPasswords(evt) {
+      evt.preventDefault();
+      const form = document.getElementById('passwordForm');
+      const data = {};
+      Array.from(form.elements).forEach(el => {
+        if (el.name) {
+          const val = el.value.trim();
+          if (val) data[el.name] = val;
+        }
+      });
+      if (Object.keys(data).length === 0) {
+        alert('No codes entered');
+        return;
+      }
+      try {
+        const res = await fetch('/api/admin/reset-passwords', {
+          method: 'POST',
+          headers: { 'x-admin-pass': adminPass, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ passwords: data })
+        });
+        const result = await res.json();
+        if (result.success) {
+          alert('Codes updated');
+          closePasswordModal();
+        } else {
+          alert('Update failed');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error');
+      }
+    }
+
+    // legacy random reset (unused)
+    async function resetPasswords() {
+      try {
+        const res = await fetch('/api/admin/reset-passwords', { method: 'POST', headers: { 'x-admin-pass': adminPass } });
+        const data = await res.json();
+        if (data.success) {
+          alert('Random codes applied');
+        } else {
+          alert('Failed to reset passwords');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error resetting passwords');
+      }
+    }
+  </script>
+</body>
+</html>

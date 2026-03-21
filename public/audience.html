@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Audience View</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="audience-container">
+    <h1>Live Auction — Audience</h1>
+    
+    <div id="currentPlayerArea"></div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+      <div>
+        <h2 style="margin-bottom: 12px; color: #FFD700;">CURRENT BID</h2>
+        <div style="font-size: 28px; font-weight: bold; color: #4CAF50;">₹<span id="bidAmount">0</span>L</div>
+        <div style="font-size: 14px; color: #aaa; margin-top: 4px;">Leading: <span id="leadingTeam">--</span></div>
+      </div>
+      <div>
+        <h2 style="margin-bottom: 12px; color: #FFD700;">REMAINING</h2>
+        <div style="font-size: 28px; font-weight: bold; color: #FF9800;" id="timerDisplay">--</div>
+      </div>
+    </div>
+
+    <div style="margin: 20px 0; border-top: 1px solid #555; padding-top: 20px;">
+      <h2 style="margin-bottom: 15px; color: #FFD700;">TEAM SQUADS & BALANCE</h2>
+      <div id="teamsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px;"></div>
+    </div>
+
+    <div style="margin: 20px 0;">
+      <h2 style="margin-bottom: 12px; color: #FFD700;">AUCTION LOG</h2>
+      <div id="auctionFeed" class="feed-list"></div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const current = document.getElementById('currentPlayerArea');
+    const feed = document.getElementById('auctionFeed');
+    const teamsGrid = document.getElementById('teamsGrid');
+    let gameState = {};
+
+    socket.on('init', ({ gameState: gs }) => {
+      gameState = gs;
+      renderState(gameState);
+      renderTeamsGrid(gameState.teams);
+    });
+
+    socket.on('newPlayer', ({ player, startingBid }) => {
+      current.innerHTML = `<div class="player-card-inner small">
+        <img src="${player.image}" style="width:160px;height:220px;object-fit:cover;border-radius:6px;"/>
+        <h3>${player.name}</h3>
+        <p>${player.role} — Starting at ₹${startingBid}L</p>
+      </div>`;
+      document.getElementById('bidAmount').textContent = startingBid;
+      document.getElementById('leadingTeam').textContent = '--';
+    });
+
+    socket.on('bidPlaced', ({ bid, bidderName, teamName }) => {
+      document.getElementById('bidAmount').textContent = bid;
+      document.getElementById('leadingTeam').textContent = teamName;
+    });
+
+    socket.on('timerTick', ({ seconds }) => {
+      document.getElementById('timerDisplay').textContent = seconds + 's';
+    });
+
+    socket.on('playerSold', (data) => {
+      const el = document.createElement('div');
+      el.textContent = `✅ ${data.player.name} sold to ${data.teamName} for ₹${data.soldPrice}L`;
+      el.style.color = '#4CAF50';
+      feed.prepend(el);
+      renderTeamsGrid(gameState.teams);
+    });
+
+    socket.on('playerUnsold', ({ player }) => {
+      const el = document.createElement('div');
+      el.textContent = `❌ ${player.name} - UNSOLD`;
+      el.style.color = '#FF6B6B';
+      feed.prepend(el);
+    });
+
+    socket.on('teamsUpdate', ({ teams }) => {
+      gameState.teams = teams;
+      renderTeamsGrid(teams);
+    });
+
+    socket.on('myTeam', ({ team }) => {
+      if (team) {
+        gameState.myTeamFull = team;
+        renderTeamsGrid(gameState.teams);
+      }
+    });
+
+    function renderState(gs) {
+      if (!gs) return;
+      if (gs.currentPlayer) {
+        current.innerHTML = `<div class="player-card-inner small">
+          <img src="${gs.currentPlayer.image}" style="width:160px;height:220px;object-fit:cover;border-radius:6px;"/>
+          <h3>${gs.currentPlayer.name}</h3>
+          <p>${gs.currentPlayer.role} — Starting at ₹${gs.currentPlayer.basePrice || gs.currentBid}L</p>
+        </div>`;
+      }
+      if (gs.currentBid) {
+        document.getElementById('bidAmount').textContent = gs.currentBid;
+      }
+      if (gs.timerSeconds) {
+        document.getElementById('timerDisplay').textContent = gs.timerSeconds + 's';
+      }
+    }
+
+    function renderTeamsGrid(teams) {
+      if (!teams) return;
+      teamsGrid.innerHTML = '';
+      Object.values(teams).forEach((team) => {
+        const fullTeam = team.id === (gameState.myTeamFull && gameState.myTeamFull.id) ? gameState.myTeamFull : team;
+        const playerCount = (fullTeam.players || []).length;
+        const budget = fullTeam.budget || 0;
+        const players = (fullTeam.players || []).slice(0, 3);
+
+        const card = document.createElement('div');
+        card.style.cssText = `
+          background: rgba(255, 255, 255, 0.08);
+          border: 2px solid ${team.color}88;
+          border-radius: 8px;
+          padding: 15px;
+          color: #e0e0e0;
+          font-family: 'Rajdhani', sans-serif;
+        `;
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="font-size: 18px; font-weight: bold; color: ${team.color};">${team.short}</div>
+            <div style="font-size: 12px; background: rgba(255, 215, 0, 0.2); padding: 4px 10px; border-radius: 12px;">
+              Remaining: <strong style="color: ${team.color};">₹${budget}L</strong>
+            </div>
+          </div>
+          <div style="font-size: 13px; margin-bottom: 10px; color: #aaa;">Players: <strong>${playerCount}</strong></div>
+          <div style="font-size: 12px; color: #999;">
+            ${players.length > 0 ? `Latest: ${players.map(p => p.name).join(', ')}` : 'No players yet'}
+          </div>
+        `;
+        teamsGrid.appendChild(card);
+      });
+    }
+  </script>
+</body>
+</html>

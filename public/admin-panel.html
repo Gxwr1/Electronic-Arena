@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin 1 - Auction Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold: #ffd700;
+      --bg: #0f1526;
+      --bg-soft: #1a2338;
+      --line: rgba(255, 215, 0, 0.2);
+      --text: #e9edf6;
+      --muted: #9ea8bf;
+      --green: #00c853;
+      --red: #ff4d4f;
+      --blue: #3498db;
+      --orange: #f39c12;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Exo 2', sans-serif;
+      background: radial-gradient(circle at 20% 10%, #1e2a47 0%, #0f1526 55%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .unauthorized {
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      text-align: center;
+    }
+
+    .unauthorized a {
+      color: #fff;
+      text-decoration: none;
+      background: var(--blue);
+      padding: 8px 14px;
+      border-radius: 8px;
+    }
+
+    .shell {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: rgba(10, 15, 28, 0.9);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+
+    .title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(24px, 2.5vw, 36px);
+      letter-spacing: 2px;
+      color: var(--gold);
+      line-height: 1;
+    }
+
+    .top-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .link-btn,
+    .logout-btn {
+      text-decoration: none;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      color: #fff;
+      background: var(--blue);
+    }
+
+    .logout-btn {
+      background: #d64545;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 370px) minmax(0, 1fr);
+      gap: 14px;
+      min-height: calc(100vh - 130px);
+    }
+
+    .card {
+      background: rgba(10, 15, 28, 0.9);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+    }
+
+    .card-head {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      letter-spacing: 1.4px;
+      color: var(--gold);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .controls {
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+      align-content: start;
+      overflow: auto;
+    }
+
+    .control-group {
+      display: grid;
+      gap: 6px;
+    }
+
+    .control-group h3 {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .btn {
+      width: 100%;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #fff;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-start { background: linear-gradient(135deg, #27ae60, #1f8b4d); }
+    .btn-action { background: linear-gradient(135deg, #3498db, #2877ac); }
+    .btn-warn { background: linear-gradient(135deg, #f39c12, #c7810e); }
+    .btn-danger { background: linear-gradient(135deg, #e74c3c, #bd3a2d); }
+
+    .status {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .status-row span:first-child { color: var(--muted); }
+    .status-row strong { color: var(--gold); }
+
+    .monitor {
+      display: grid;
+      grid-template-rows: minmax(280px, 0.95fr) minmax(160px, auto) minmax(180px, 0.85fr);
+      gap: 14px;
+      min-height: 0;
+    }
+
+    .spotlight-body {
+      height: calc(100% - 44px);
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+    }
+
+    .spotlight-empty {
+      color: var(--muted);
+      font-family: 'Rajdhani', sans-serif;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    .player-card-inner {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .player-image-section,
+    .player-info-section {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      min-height: 0;
+      padding: 8px;
+    }
+
+    .player-info-section {
+      flex-direction: column;
+      gap: 10px;
+      text-align: center;
+    }
+
+    .player-image-wrapper {
+      width: min(100%, 330px);
+      aspect-ratio: 3 / 4;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 2px solid var(--gold);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.18);
+      background: #0f1526;
+    }
+
+    .player-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .player-name-display {
+      font-family: 'Bebas Neue', sans-serif;
+      color: var(--gold);
+      font-size: clamp(24px, 2.4vw, 34px);
+      letter-spacing: 1px;
+      line-height: 1;
+    }
+
+    .price-display {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(24px, 2.4vw, 34px);
+      color: var(--green);
+      line-height: 1;
+    }
+
+    .role-display,
+    .leader-display {
+      color: var(--muted);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .teams-body {
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      max-height: 210px;
+      overflow: auto;
+    }
+
+    .team-row {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      display: grid;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    .team-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    .team-sub {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .feed {
+      padding: 10px;
+      max-height: 220px;
+      overflow: auto;
+      display: grid;
+      gap: 6px;
+    }
+
+    .feed-item {
+      border-left: 3px solid var(--blue);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      line-height: 1.35;
+      color: #dce4f3;
+    }
+
+    .feed-item.sold {
+      border-left-color: var(--green);
+    }
+
+    .feed-item.unsold {
+      border-left-color: var(--red);
+    }
+
+    .feed-item.info {
+      border-left-color: var(--orange);
+    }
+
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: 1fr;
+        min-height: 0;
+      }
+
+      .monitor {
+        grid-template-rows: auto auto auto;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 10px;
+      }
+
+      .player-card-inner {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .top-actions {
+        justify-content: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell" id="appShell" style="display:none;">
+    <header class="topbar">
+      <div>
+        <div class="title">Admin 1 - Auction Control</div>
+      </div>
+      <div class="top-actions">
+        <a class="link-btn" href="/admin-player.html">Admin 2 Players</a>
+        <a class="link-btn" href="/admin-result.html">Admin 3 Results</a>
+        <a class="link-btn" href="/admin-report.html">Admin 4 Report</a>
+        <a class="link-btn" href="/admin-data.html">Admin Data</a>
+        <a class="link-btn" href="/audience.html">Audience</a>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="card">
+        <div class="card-head">Control Panel</div>
+        <div class="controls">
+          <div class="control-group">
+            <h3>Start</h3>
+            <button class="btn btn-start" id="btnStart" onclick="startGame()">Start Auction</button>
+          </div>
+
+          <div class="control-group">
+            <h3>Player Flow</h3>
+            <button class="btn btn-action" id="btnNextPlayer" onclick="nextPlayer()" disabled>Next Player</button>
+            <button class="btn btn-action" id="btnSellPlayer" onclick="sellPlayer()" disabled>Sell Current</button>
+            <button class="btn btn-action" id="btnMarkUnsold" onclick="markUnsold()" disabled>Mark Unsold</button>
+          </div>
+
+          <div class="control-group">
+            <h3>Auction State</h3>
+            <button class="btn btn-warn" id="btnPause" onclick="pauseAuction()" disabled>Pause</button>
+            <button class="btn btn-warn" id="btnResume" onclick="resumeAuction()" style="display:none;" disabled>Resume</button>
+          </div>
+
+          <div class="control-group">
+            <h3>Danger Zone</h3>
+            <button class="btn btn-danger" onclick="endAuction()">End Auction</button>
+            <button class="btn btn-danger" onclick="resetAuction()">Reset Game</button>
+          </div>
+
+          <div class="status">
+            <div class="status-row"><span>Phase</span><strong id="statusPhase">LOBBY</strong></div>
+            <div class="status-row"><span>Current Bid</span><strong id="statusBid">Rs0L</strong></div>
+            <div class="status-row"><span>Teams</span><strong id="statusTeams">0</strong></div>
+            <div class="status-row"><span>Remaining</span><strong id="statusRemaining">0</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="monitor">
+        <article class="card">
+          <div class="card-head">Current Player Spotlight</div>
+          <div class="spotlight-body" id="currentPlayerArea">
+            <div class="spotlight-empty">Waiting for next player...</div>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">Teams Snapshot</div>
+          <div class="teams-body" id="teamsGrid"></div>
+        </article>
+
+        <article class="card">
+          <div class="card-head">Live Updates (Compact)</div>
+          <div class="feed" id="feedContent"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const adminPass = localStorage.getItem('adminPass');
+
+    function showUnauthorized() {
+      document.body.innerHTML = `
+        <div class="unauthorized">
+          <h2>Access denied</h2>
+          <p>Please login as admin first.</p>
+          <a href="/admin.html">Go to Login</a>
+        </div>
+      `;
+    }
+
+    if (!localStorage.getItem('adminAuth') || !adminPass) {
+      showUnauthorized();
+      throw new Error('Unauthorized admin access');
+    }
+
+    const socket = io({ auth: { adminPass } });
+    let gameState = null;
+    let statePollTimer = null;
+
+    fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPass })
+    }).then((res) => {
+      if (!res.ok) {
+        logout();
+      } else {
+        document.getElementById('appShell').style.display = '';
+        startLiveStatePolling();
+        socket.emit('getState');
+      }
+    }).catch(() => logout());
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function fallbackImage(name) {
+      const safe = encodeURIComponent(String(name || 'Player').slice(0, 18));
+      return `https://via.placeholder.com/300x400?text=${safe}`;
+    }
+
+    function imageSource(player) {
+      const raw = String((player && player.image) || '').trim();
+      if (!raw) return fallbackImage(player && player.name);
+      if (/^https?:\/\//i.test(raw) || raw.startsWith('/') || /^data:image\//i.test(raw)) {
+        return raw;
+      }
+      return `/${raw.replace(/^\/+/, '')}`;
+    }
+
+    function addFeed(message, type = 'info') {
+      const feed = document.getElementById('feedContent');
+      const item = document.createElement('div');
+      item.className = `feed-item ${type}`;
+      item.textContent = message;
+      feed.prepend(item);
+      while (feed.children.length > 30) {
+        feed.removeChild(feed.lastChild);
+      }
+    }
+
+    function renderSpotlight() {
+      const area = document.getElementById('currentPlayerArea');
+      const player = gameState && gameState.currentPlayer;
+      if (!player) {
+        area.innerHTML = '<div class="spotlight-empty">Waiting for next player...</div>';
+        return;
+      }
+
+      const leaderTeam = gameState.currentBidder && gameState.teams && gameState.teams[gameState.currentBidder]
+        ? gameState.teams[gameState.currentBidder].short
+        : 'No bids yet';
+      const currentBid = Number(gameState.currentBid) || Number(player.basePrice) || 0;
+
+      area.innerHTML = `
+        <div class="player-card-inner">
+          <div class="player-image-section">
+            <div class="player-image-wrapper">
+              <img class="player-image" src="${imageSource(player)}" alt="${escapeHtml(player.name)}"
+                onerror="this.src='${fallbackImage(player.name)}'" />
+            </div>
+          </div>
+          <div class="player-info-section">
+            <div class="player-name-display">${escapeHtml(player.name)}</div>
+            <div class="price-display">Rs${currentBid}L</div>
+            <div class="role-display">${escapeHtml(player.role || 'Unknown')}</div>
+            <div class="leader-display">Leader: ${escapeHtml(leaderTeam)}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTeams() {
+      const teamsGrid = document.getElementById('teamsGrid');
+      const teams = Object.values((gameState && gameState.teams) || {});
+      teamsGrid.innerHTML = '';
+
+      if (!teams.length) {
+        teamsGrid.innerHTML = '<div class="team-sub">No teams joined yet.</div>';
+        return;
+      }
+
+      teams.forEach((team) => {
+        const players = Array.isArray(team.players) ? team.players.length : 0;
+        const budget = Number(team.budget);
+        const budgetText = Number.isFinite(budget) ? `Rs${budget}L` : 'Hidden';
+        const el = document.createElement('div');
+        el.className = 'team-row';
+        el.innerHTML = `
+          <div class="team-head">
+            <span style="color:${team.color || '#ffd700'}">${escapeHtml(team.short || team.name || 'TEAM')}</span>
+            <span>${budgetText}</span>
+          </div>
+          <div class="team-sub">Owner: ${escapeHtml(team.ownerName || '--')}</div>
+          <div class="team-sub">Players: ${players}</div>
+        `;
+        teamsGrid.appendChild(el);
+      });
+    }
+
+    function syncControls() {
+      const phase = gameState && gameState.phase;
+      const isLobby = phase === 'lobby';
+      const isAuction = phase === 'auction';
+      const isPaused = phase === 'paused';
+      const canManagePlayers = isAuction || isPaused;
+
+      document.getElementById('btnStart').disabled = !isLobby;
+      document.getElementById('btnNextPlayer').disabled = !canManagePlayers;
+      document.getElementById('btnSellPlayer').disabled = !isAuction;
+      document.getElementById('btnMarkUnsold').disabled = !isAuction;
+      document.getElementById('btnPause').disabled = !isAuction;
+      document.getElementById('btnResume').disabled = !isPaused;
+      document.getElementById('btnPause').style.display = isPaused ? 'none' : 'block';
+      document.getElementById('btnResume').style.display = isPaused ? 'block' : 'none';
+    }
+
+    function updateUI() {
+      if (!gameState) return;
+      document.getElementById('statusPhase').textContent = String(gameState.phase || 'lobby').toUpperCase();
+      document.getElementById('statusBid').textContent = `Rs${Number(gameState.currentBid) || 0}L`;
+      document.getElementById('statusTeams').textContent = Object.keys(gameState.teams || {}).length;
+      document.getElementById('statusRemaining').textContent = gameState.remainingInQueue ?? 0;
+      syncControls();
+      renderSpotlight();
+      renderTeams();
+    }
+
+    function startLiveStatePolling() {
+      if (statePollTimer) return;
+      statePollTimer = setInterval(() => {
+        if (document.hidden) return;
+        socket.emit('getState');
+      }, 700);
+    }
+
+    socket.on('init', ({ gameState: gs }) => {
+      gameState = gs || {};
+      updateUI();
+      addFeed('Admin 1 connected.', 'info');
+      startLiveStatePolling();
+    });
+
+    socket.on('teamJoined', ({ teams, user }) => {
+      if (!gameState) gameState = {};
+      gameState.teams = teams;
+      updateUI();
+      if (user && user.teamId) addFeed(`${user.teamId.toUpperCase()} joined.`, 'info');
+    });
+
+    socket.on('teamLeft', ({ teams, name }) => {
+      if (!gameState) gameState = {};
+      gameState.teams = teams;
+      updateUI();
+      addFeed(`${name || ''} left lobby.`, 'info');
+    });
+
+    socket.on('teamsUpdate', ({ teams }) => {
+      if (!gameState) gameState = {};
+      gameState.teams = teams;
+      updateUI();
+    });
+
+    socket.on('stateUpdate', (gs) => {
+      gameState = gs || {};
+      updateUI();
+    });
+
+    socket.on('auctionStarted', ({ gameState: gs }) => {
+      gameState = gs || {};
+      updateUI();
+      addFeed('Auction started.', 'info');
+    });
+
+    socket.on('newPlayer', ({ player, startingBid, remaining }) => {
+      if (!gameState) gameState = {};
+      gameState.currentPlayer = player;
+      gameState.currentBid = startingBid;
+      gameState.currentBidder = null;
+      gameState.remainingInQueue = remaining;
+      updateUI();
+      addFeed(`New player: ${player.name} (${player.role})`, 'info');
+    });
+
+    socket.on('bidPlaced', ({ bid, bidderTeamId, teamName }) => {
+      if (!gameState) gameState = {};
+      gameState.currentBid = bid;
+      gameState.currentBidder = bidderTeamId;
+      updateUI();
+      addFeed(`${teamName} bid Rs${bid}L`, 'sold');
+    });
+
+    socket.on('playerSold', ({ player, teamName, soldPrice }) => {
+      addFeed(`${player.name} sold to ${teamName} for Rs${soldPrice}L`, 'sold');
+      socket.emit('getState');
+    });
+
+    socket.on('playerUnsold', ({ player }) => {
+      addFeed(`${player.name} marked unsold`, 'unsold');
+      socket.emit('getState');
+    });
+
+    socket.on('playerUpdated', ({ player }) => {
+      if (gameState && gameState.currentPlayer && gameState.currentPlayer.id === player.id) {
+        gameState.currentPlayer = player;
+        updateUI();
+      }
+    });
+
+    socket.on('auctionPaused', ({ gameState: gs }) => {
+      gameState = gs || {};
+      updateUI();
+      addFeed('Auction paused.', 'info');
+    });
+
+    socket.on('auctionResumed', ({ gameState: gs }) => {
+      gameState = gs || {};
+      updateUI();
+      addFeed('Auction resumed.', 'info');
+    });
+
+    socket.on('auctionFinished', ({ teams }) => {
+      if (!gameState) gameState = {};
+      gameState.phase = 'finished';
+      if (teams) gameState.teams = teams;
+      updateUI();
+      addFeed('Auction finished. Move to Admin 3 for result validation.', 'info');
+    });
+
+    socket.on('error', (msg) => {
+      addFeed(msg, 'unsold');
+    });
+
+    function startGame() { socket.emit('startAuction'); }
+    function nextPlayer() { socket.emit('nextPlayer'); }
+    function sellPlayer() { socket.emit('sellPlayer'); }
+    function markUnsold() { socket.emit('markUnsold'); }
+    function pauseAuction() { socket.emit('pauseAuction'); }
+    function resumeAuction() { socket.emit('resumeAuction'); }
+
+    function endAuction() {
+      if (window.confirm('End auction now?')) {
+        socket.emit('stopAuction');
+      }
+    }
+
+    function resetAuction() {
+      if (!window.confirm('Reset full game state?')) return;
+      fetch('/api/reset', {
+        method: 'POST',
+        headers: { 'x-admin-pass': adminPass }
+      })
+        .then((res) => res.json())
+        .then((json) => {
+          if (json && json.success) {
+            location.reload();
+          } else {
+            alert(json && json.error ? json.error : 'Reset failed');
+          }
+        });
+    }
+
+    function logout() {
+      localStorage.removeItem('adminAuth');
+      localStorage.removeItem('adminPass');
+      window.location.href = '/admin.html';
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        socket.emit('getState');
+      }
+    });
+
+    window.addEventListener('beforeunload', () => {
+      clearInterval(statePollTimer);
+    });
+  </script>
+</body>
+</html>

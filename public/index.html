@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IPL Auction 🏏</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<!-- ═══════════════ TEAM REVEAL SCREEN (overlays everything) ═══════════════ -->
+<div id="revealScreen" class="screen" style="display:none; align-items:center; justify-content:center; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9999;">
+  <div class="joined-card" style="text-align:center;">
+    <img id="revealLogo" src="" alt="Team Logo" style="max-width:160px; max-height:160px; margin-bottom:16px;" />
+    <h2 id="revealTeamName" style="font-size:28px; color:var(--gold);"></h2>
+  </div>
+</div>
+
+<!-- ═══════════════ LOBBY SCREEN ═══════════════ -->
+<div id="lobbyScreen" class="screen active">
+  <div class="lobby-bg"></div>
+  <div class="lobby-container">
+    <div class="logo-area">
+      <div class="trophy-icon">🏆</div>
+      <h1 class="title">AUCTION BATTLE</h1>
+      <p class="subtitle">2020 – 2026 EDITION</p>
+    </div>
+
+    <div class="join-card">
+      <div class="join-form">
+        <div class="input-group">
+          <label>ENTER CODE</label>
+          <input type="text" id="teamCode" placeholder="Enter your unique code" maxlength="20" onkeypress="if(event.key==='Enter') joinGame();" />
+        </div>
+        <button class="btn-join" id="joinBtn" onclick="joinGame()">SUBMIT</button>
+      </div>
+    </div>
+
+    <div class="teams-joined-area">
+      <h3>TEAMS REGISTERED</h3>
+      <div id="joinedTeamsList" class="joined-teams"></div>
+      <p style="color:var(--text-dim);font-family:'Rajdhani',sans-serif;">Auction starts from the admin control panel.</p>
+    </div>
+    
+    <div class="players-list-area" style="display:none;">
+      <h3>PLAYERS</h3>
+      <div id="allPlayersList" class="all-players-list"></div>
+    </div>
+  </div>
+
+  <!-- JOINED WAITING SCREEN (after user joins, before auction starts) -->
+  <div id="joinedScreen" class="screen" style="display:none; align-items:center; justify-content:center;">
+    <div class="joined-card">
+      <h2 class="joined-title">You Are Ready For Auction</h2>
+
+      <div class="joined-meta-grid">
+        <div class="joined-meta-box">
+          <span class="joined-meta-label">Team</span>
+          <strong id="joinedTeam">--</strong>
+        </div>
+      </div>
+
+      <p id="joinedMessage" class="joined-message">Waiting for host to start the auction. Be prepared!</p>
+
+      <div class="players-gallery-wrap joined-preview-wrap">
+        <div id="playersGallery" class="players-gallery"></div>
+      </div>
+
+      <div class="joined-actions">
+        <button class="btn-join" id="leaveBtn" onclick="leaveGame()">Leave</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ AUCTION SCREEN ═══════════════ -->
+<div id="auctionScreen" class="screen">
+  <header class="auction-header">
+    <div class="header-left">
+      <span class="header-logo">🏏 IPL AUCTION</span>
+      <div style="margin-left: 20px; display: flex; align-items: center; gap: 8px; font-weight: bold; color: #FFD700;">
+        <span>MY BALANCE:</span>
+        <span style="font-size: 18px; color: #4CAF50;" id="myBalance">₹0L</span>
+      </div>
+    </div>
+    <div class="header-center">
+      <div class="player-counter">
+        <span id="remainingCount">--</span> players remaining
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="my-team-badge" id="myTeamBadge"></div>
+      <div class="host-badge" id="hostBadge"></div>
+    </div>
+  </header>
+
+  <!-- HOST CONTROL PANEL (only admin via password has controls - not visible here) -->
+  <div class="host-control-panel" id="hostControlPanel" style="display: none;">
+    <!-- No controls shown to regular users -->
+  </div>
+
+  <!-- WAITING SCREEN (For non-host) -->
+  <div class="waiting-screen" id="waitingScreen" style="display: none;">
+    <div class="waiting-content">
+      <div class="waiting-icon">⏳</div>
+      <h2>Waiting for Host...</h2>
+      <p id="hostNameDisplay">Host: --</p>
+      <p>The auction will start when the host is ready</p>
+    </div>
+  </div>
+
+  <div class="auction-main-shell">
+    <!-- SESSION RECOVERY OVERLAY -->
+    <div id="sessionRecoveryOverlay" class="modal" style="display: none; background: rgba(0,0,0,0.9); z-index: 5000;">
+      <div class="modal-content" style="max-width: 500px; padding: 40px; text-align: center;">
+        <h2 style="color: var(--gold); margin-bottom: 20px;">RECOVER SESSION</h2>
+        <p style="color: var(--text-dim); margin-bottom: 30px;">Your session was lost. Enter your code to continue.</p>
+        <div class="input-group">
+        <label>ENTER CODE</label>
+        <input type="text" id="recoveryCode" placeholder="Enter your unique code" maxlength="20" onkeypress="if(event.key==='Enter') recoverSession();" />
+        </div>
+        <button class="btn-join" onclick="recoverSession()">RECOVER & JOIN</button>
+      </div>
+    </div>
+
+    <div class="auction-layout" id="auctionLayout">
+      <!-- Left: My players + teams + feed -->
+      <aside class="left-panel">
+        <section class="my-squad-panel">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 class="feed-title" style="margin-bottom: 0;">MY WON PLAYERS</h3>
+            <button class="btn-bid" style="padding: 4px 12px; font-size: 10px;" onclick="openSetTeamModal()">SET TEAM</button>
+          </div>
+          <div id="myPlayersList" class="my-players-list"></div>
+        </section>
+
+        <section class="teams-overview-shell">
+          <h3 class="feed-title">TEAMS</h3>
+          <div class="teams-overview" id="teamsOverview"></div>
+        </section>
+
+        <section class="sold-feed">
+          <h3 class="feed-title">AUCTION LOG</h3>
+          <div id="auctionFeed" class="feed-list"></div>
+        </section>
+      </aside>
+
+      <!-- Right: Active player -->
+      <section class="right-panel">
+        <div class="player-spotlight" id="playerSpotlight">
+          <div class="spotlight-wait">
+            <div class="waiting-anim">⏳</div>
+            <p>Waiting for next player...</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Bottom: Bidding controls -->
+    <footer class="bid-panel bid-footer" id="bidPanel">
+      <div class="current-bid-display">
+        <span class="bid-label">CURRENT BID</span>
+        <span class="bid-amount" id="currentBidDisplay">₹0L</span>
+        <span class="bid-leader" id="bidLeaderDisplay">No bids yet</span>
+      </div>
+
+      <div class="timer-ring">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="timer-bg" cx="50" cy="50" r="45"></circle>
+          <circle id="timerCircle" class="timer-fill" cx="50" cy="50" r="45"></circle>
+        </svg>
+        <div id="timerText" class="timer-text">30</div>
+      </div>
+
+      <div class="bid-controls" id="bidControls">
+        <div class="quick-bids">
+          <button class="btn-quick-bid" onclick="placeBid('+10')">+₹10L</button>
+          <button class="btn-quick-bid" onclick="placeBid('+25')">+₹25L</button>
+          <button class="btn-quick-bid" onclick="placeBid('+50')">+₹50L</button>
+          <button class="btn-quick-bid" onclick="placeBid('+100')">+₹100L</button>
+        </div>
+        <div class="custom-bid-row">
+          <input type="number" id="customBidInput" placeholder="Custom amount (₹L)" min="1" />
+          <button class="btn-bid" onclick="placeCustomBid()">BID NOW</button>
+        </div>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<!-- ═══════════════ FINISHED SCREEN ═══════════════ -->
+<div id="finishedScreen" class="screen">
+  <div class="finished-container">
+    <div class="finished-header">
+      <h1>🏆 AUCTION COMPLETE!</h1>
+      <p>Here are the final squads</p>
+    </div>
+    <div id="finalTeams" class="final-teams-grid"></div>
+    <button class="btn-reset" onclick="resetGame()">🔄 NEW AUCTION</button>
+  </div>
+</div>
+
+<!-- ═══════════════ TOAST ═══════════════ -->
+<!-- ═══════════════ SET TEAM MODAL ═══════════════ -->
+<div id="setTeamModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>SET YOUR PLAYING XI</h2>
+      <button class="close-btn" onclick="closeSetTeamModal()">✖</button>
+    </div>
+    
+    <div class="set-team-layout">
+      <div class="slots-container">
+        <h3 class="slot-title">PLAYING XI SLOTS</h3>
+        <div class="slot-grid">
+          <div class="slot-box" data-slot="p1">
+            <span class="slot-label">PLAYER 1</span>
+            <div class="slot-drop-zone" ondragover="allowDrop(event)" ondrop="handleDrop(event)"></div>
+          </div>
+          <div class="slot-box" data-slot="p2">
+            <span class="slot-label">PLAYER 2</span>
+            <div class="slot-drop-zone" ondragover="allowDrop(event)" ondrop="handleDrop(event)"></div>
+          </div>
+          <div class="slot-box" data-slot="p3">
+            <span class="slot-label">PLAYER 3</span>
+            <div class="slot-drop-zone" ondragover="allowDrop(event)" ondrop="handleDrop(event)"></div>
+          </div>
+          <div class="slot-box" data-slot="p4">
+            <span class="slot-label">PLAYER 4</span>
+            <div class="slot-drop-zone" ondragover="allowDrop(event)" ondrop="handleDrop(event)"></div>
+          </div>
+          <div class="slot-box" data-slot="p5">
+            <span class="slot-label">PLAYER 5</span>
+            <div class="slot-drop-zone" ondragover="allowDrop(event)" ondrop="handleDrop(event)"></div>
+          </div>
+          <div class="slot-box" data-slot="p6">
+            <span class="slot-label">PLAYER 6</span>
+            <div class="slot-drop-zone" ondragover="allowDrop(event)" ondrop="handleDrop(event)"></div>
+          </div>
+          <div class="slot-box" data-slot="p7">
+            <span class="slot-label">PLAYER 7</span>
+            <div class="slot-drop-zone" ondragover="allowDrop(event)" ondrop="handleDrop(event)"></div>
+          </div>
+          <div class="slot-box" data-slot="p8">
+            <span class="slot-label">PLAYER 8</span>
+            <div class="slot-drop-zone" ondragover="allowDrop(event)" ondrop="handleDrop(event)"></div>
+          </div>
+          <div class="slot-box" data-slot="p9">
+            <span class="slot-label">PLAYER 9</span>
+            <div class="slot-drop-zone" ondragover="allowDrop(event)" ondrop="handleDrop(event)"></div>
+          </div>
+          <div class="slot-box" data-slot="p10">
+            <span class="slot-label">PLAYER 10</span>
+            <div class="slot-drop-zone" ondragover="allowDrop(event)" ondrop="handleDrop(event)"></div>
+          </div>
+          <div class="slot-box" data-slot="p11">
+            <span class="slot-label">PLAYER 11</span>
+            <div class="slot-drop-zone" ondragover="allowDrop(event)" ondrop="handleDrop(event)"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pool-container">
+        <h3 class="slot-title">YOUR SQUAD (Drag to slots)</h3>
+        <div id="playerPool" class="player-pool" ondragover="allowDrop(event)" ondrop="handleDrop(event)"></div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-join" onclick="savePlayingXI()">SAVE PLAYING XI</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin 2 - Player Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold: #ffd700;
+      --bg: #101826;
+      --bg-soft: #182338;
+      --line: rgba(255, 215, 0, 0.2);
+      --text: #e8eefb;
+      --muted: #9ea8bf;
+      --green: #2ecc71;
+      --red: #e74c3c;
+      --blue: #3498db;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Exo 2', sans-serif;
+      background: radial-gradient(circle at 20% 10%, #1f2942 0%, #101826 58%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .unauthorized {
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 12px;
+      text-align: center;
+    }
+
+    .unauthorized a {
+      color: #fff;
+      text-decoration: none;
+      background: var(--blue);
+      padding: 8px 14px;
+      border-radius: 8px;
+    }
+
+    .shell {
+      max-width: 1500px;
+      margin: 0 auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(10, 16, 28, 0.9);
+    }
+
+    .title {
+      font-family: 'Bebas Neue', sans-serif;
+      color: var(--gold);
+      font-size: clamp(24px, 2.5vw, 36px);
+      letter-spacing: 2px;
+      line-height: 1;
+    }
+
+    .top-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .link-btn,
+    .logout-btn {
+      text-decoration: none;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      color: #fff;
+      background: var(--blue);
+    }
+
+    .logout-btn {
+      background: #d64545;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+      gap: 14px;
+      min-height: calc(100vh - 130px);
+    }
+
+    .layout.queue-focus {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .layout.queue-focus .editor-card,
+    .layout.queue-focus .players-panel {
+      display: none;
+    }
+
+    .layout.queue-focus .left-stack {
+      max-width: 980px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .left-stack {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+      min-height: 0;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(10, 16, 28, 0.9);
+    }
+
+    .card-head {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      letter-spacing: 1.4px;
+      color: var(--gold);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .manage-body {
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    label {
+      font-family: 'Rajdhani', sans-serif;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 3px;
+      display: block;
+    }
+
+    input,
+    select {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: var(--bg-soft);
+      color: #fff;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px;
+    }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .form-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      color: #fff;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .btn-primary { background: linear-gradient(135deg, #27ae60, #1f8b4d); }
+    .btn-secondary { background: linear-gradient(135deg, #f39c12, #c7810e); }
+
+    .small-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .queue-next {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.45;
+    }
+
+    .queue-preview {
+      display: grid;
+      gap: 6px;
+      max-height: 250px;
+      overflow: auto;
+    }
+
+    .deck-panel {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .deck-title {
+      font-family: 'Rajdhani', sans-serif;
+      color: var(--gold);
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .deck-selected {
+      display: grid;
+      gap: 6px;
+      max-height: 130px;
+      overflow: auto;
+    }
+
+    .deck-chip {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 7px 8px;
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.35;
+    }
+
+    .deck-candidates {
+      display: grid;
+      gap: 6px;
+      max-height: 240px;
+      overflow: auto;
+      border-top: 1px dashed rgba(255, 255, 255, 0.12);
+      padding-top: 8px;
+    }
+
+    .queue-mode-note {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .queue-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 8px;
+    }
+
+    .queue-item-main {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .queue-item-name {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gold);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .queue-item-sub {
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .queue-move-btn {
+      border: none;
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 11px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      color: #fff;
+      background: #2c7be5;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .queue-move-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .players-panel {
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      min-height: 0;
+    }
+
+    .filter-box {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .meta-line {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .players-grid {
+      padding: 12px;
+      overflow: auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 10px;
+      align-content: start;
+    }
+
+    .player-card {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      min-height: 128px;
+    }
+
+    .player-card img {
+      width: 92px;
+      height: 128px;
+      object-fit: cover;
+      background: #101826;
+    }
+
+    .player-meta {
+      padding: 8px;
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .player-name {
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 0.9px;
+      color: var(--gold);
+      font-size: 20px;
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .player-sub {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .player-actions {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 4px;
+      margin-top: 3px;
+    }
+
+    .mini-btn {
+      border: none;
+      border-radius: 6px;
+      padding: 6px 4px;
+      font-size: 11px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .mini-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .mini-edit { background: #2980b9; }
+    .mini-delete { background: #c0392b; }
+    .mini-upload { background: #16a085; }
+    .mini-image { background: #8e44ad; }
+
+    .flash {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      background: rgba(15, 24, 38, 0.96);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: #fff;
+      font-family: 'Rajdhani', sans-serif;
+      display: none;
+    }
+
+    .flash.show {
+      display: block;
+    }
+
+    .flash.error {
+      border-color: rgba(231, 76, 60, 0.7);
+    }
+
+    .flash.ok {
+      border-color: rgba(46, 204, 113, 0.7);
+    }
+
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 10px;
+      }
+
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .top-actions {
+        justify-content: flex-start;
+      }
+
+      .row-2,
+      .form-actions {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell" id="appShell" style="display:none;">
+    <header class="topbar">
+      <div class="title">Admin 2 - Player Management</div>
+      <div class="top-actions">
+        <a class="link-btn" href="/admin-panel.html">Admin 1 Control</a>
+        <a class="link-btn" href="/admin-result.html">Admin 3 Results</a>
+        <a class="link-btn" href="/admin-report.html">Admin 4 Report</a>
+        <a class="link-btn" href="/audience.html">Audience</a>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <main class="layout" id="adminLayout">
+      <div class="left-stack">
+        <section class="card editor-card" id="editorCard">
+          <div class="card-head">Add / Edit Player</div>
+          <div class="manage-body">
+            <div>
+              <label for="p_name">Player Name</label>
+              <input type="text" id="p_name" maxlength="40" />
+            </div>
+
+            <div class="row-2">
+              <div>
+                <label for="p_role">Role</label>
+                <select id="p_role">
+                  <option value="Batter">Batter</option>
+                  <option value="Batter/WK">Batter/WK</option>
+                  <option value="WK-Batter">WK-Batter</option>
+                  <option value="All-Rounder">All-Rounder</option>
+                  <option value="Fast Bowler">Fast Bowler</option>
+                  <option value="Spinner">Spinner</option>
+                </select>
+              </div>
+              <div>
+                <label for="p_country">Country</label>
+                <input type="text" id="p_country" value="India" maxlength="32" />
+              </div>
+            </div>
+
+            <div class="row-2">
+              <div>
+                <label for="p_price">Base Price (RsL)</label>
+                <input type="number" id="p_price" min="1" value="10" />
+              </div>
+              <div>
+                <label for="p_image">Image URL</label>
+                <input type="text" id="p_image" placeholder="https://..." />
+              </div>
+            </div>
+
+            <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;text-transform:none;letter-spacing:0;">
+              <input type="checkbox" id="p_capped" style="width:auto;" /> Capped player
+            </label>
+
+            <div class="form-actions">
+              <button class="btn btn-primary" id="saveBtn" onclick="savePlayer()">Add Player</button>
+              <button class="btn btn-secondary" onclick="resetForm()">Clear / Cancel</button>
+            </div>
+
+            <p class="small-note" id="modeLabel">Mode: Add new player.</p>
+            <p class="small-note">Note: Player list is locked during active auction.</p>
+          </div>
+        </section>
+
+        <section class="card queue-card" id="queueCard">
+          <div class="card-head">Live Queue Manager</div>
+          <div class="manage-body">
+            <div>
+              <label for="q_search">Queue Search</label>
+              <input type="text" id="q_search" placeholder="Search queue by player / role / country" />
+            </div>
+
+            <div class="row-2">
+              <div>
+                <label for="q_roleGroup">Player Type</label>
+                <select id="q_roleGroup">
+                  <option value="all">All Types</option>
+                  <option value="batsman">Batsman</option>
+                  <option value="wicketkeeper">Wicketkeeper</option>
+                  <option value="bowler">Bowler</option>
+                  <option value="allrounder">All-Rounder</option>
+                </select>
+              </div>
+              <div>
+                <label for="q_capped">Capped Status</label>
+                <select id="q_capped">
+                  <option value="all">All</option>
+                  <option value="capped">Capped</option>
+                  <option value="uncapped">Uncapped</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-primary" id="queueApplyBtn" onclick="prioritizeQueue()">Prioritize Queue</button>
+              <button class="btn btn-secondary" id="queueClearBtn" onclick="clearQueueFilter()">Clear Filter</button>
+            </div>
+
+            <p class="small-note" id="queueMeta">Queue summary unavailable.</p>
+            <div class="queue-next" id="queueNext">Current and next player preview will appear here.</div>
+            <div class="queue-preview" id="queuePreview"></div>
+            <p class="small-note">Use "Set Next" to bring a remaining player to the top of upcoming queue.</p>
+
+            <div class="deck-panel">
+              <div class="deck-title">Deck 2 - Custom Queue Injection</div>
+              <div class="queue-mode-note" id="queueModeNote">
+                Auction mode: hide catalog, focus queue. Deck supports only unsold + remaining players (not sold).
+              </div>
+
+              <div class="row-2">
+                <div>
+                  <label for="deckRoleGroup">Deck Type</label>
+                  <select id="deckRoleGroup">
+                    <option value="all">All Types</option>
+                    <option value="batsman">Batsman</option>
+                    <option value="wicketkeeper">Wicketkeeper</option>
+                    <option value="bowler">Bowler</option>
+                    <option value="allrounder">All-Rounder</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="deckCapped">Deck Capped</label>
+                  <select id="deckCapped">
+                    <option value="all">All</option>
+                    <option value="capped">Capped</option>
+                    <option value="uncapped">Uncapped</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row-2">
+                <div>
+                  <label for="deckSource">Deck Source</label>
+                  <select id="deckSource">
+                    <option value="all">Remaining + Unsold</option>
+                    <option value="remaining">Remaining Queue Only</option>
+                    <option value="unsold">Unsold Only</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="deckSearch">Deck Search</label>
+                  <input type="text" id="deckSearch" placeholder="Find particular player" />
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button class="btn btn-primary" id="deckSelectBtn" onclick="selectDeckVisible()">Select Visible</button>
+                <button class="btn btn-secondary" id="deckClearBtn" onclick="clearDeckSelection()">Clear Deck</button>
+              </div>
+
+              <p class="small-note" id="deckMeta">Deck 2 is empty.</p>
+              <div class="deck-selected" id="deckSelected"></div>
+              <div class="deck-candidates" id="deckCandidates"></div>
+
+              <div class="form-actions">
+                <button class="btn btn-primary" id="deckPushBtn" onclick="pushDeckToQueue('ordered')">Deck -> Queue (Ordered)</button>
+                <button class="btn btn-secondary" id="deckPushRandomBtn" onclick="pushDeckToQueue('random')">Deck -> Queue (Random)</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="card players-panel" id="playersPanel">
+        <div class="card-head">Player Catalog</div>
+        <div class="filter-box">
+          <input type="text" id="searchInput" placeholder="Search by name / role / country" />
+          <div class="row-2">
+            <div>
+              <label for="catalogRoleFilter">Role</label>
+              <select id="catalogRoleFilter">
+                <option value="all">All Roles</option>
+                <option value="Batter">Batter</option>
+                <option value="Batter/WK">Batter/WK</option>
+                <option value="WK-Batter">WK-Batter</option>
+                <option value="All-Rounder">All-Rounder</option>
+                <option value="Fast Bowler">Fast Bowler</option>
+                <option value="Spinner">Spinner</option>
+              </select>
+            </div>
+            <div>
+              <label for="catalogCappedFilter">Capped</label>
+              <select id="catalogCappedFilter">
+                <option value="all">All</option>
+                <option value="capped">Capped</option>
+                <option value="uncapped">Uncapped</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="meta-line">
+          <span id="playerCount">0 players</span>
+          <span id="lockStatus">Catalog editable</span>
+        </div>
+        <div class="players-grid" id="playersGrid"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="flash" id="flashMsg"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const adminPass = localStorage.getItem('adminPass');
+
+    function showUnauthorized() {
+      document.body.innerHTML = `
+        <div class="unauthorized">
+          <h2>Access denied</h2>
+          <p>Please login as admin first.</p>
+          <a href="/admin.html">Go to Login</a>
+        </div>
+      `;
+    }
+
+    if (!localStorage.getItem('adminAuth') || !adminPass) {
+      showUnauthorized();
+      throw new Error('Unauthorized admin access');
+    }
+
+    const socket = io({ auth: { adminPass } });
+    let players = [];
+    let gameState = null;
+    let editingPlayerId = null;
+    let queueState = null;
+    let queueRefreshTimer = null;
+    const deckSelectedIds = new Set();
+    let deckVisibleIds = [];
+
+    fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: adminPass })
+    }).then((res) => {
+      if (!res.ok) {
+        logout();
+      } else {
+        document.getElementById('appShell').style.display = '';
+        loadPlayers();
+        loadQueueState();
+      }
+    }).catch(() => logout());
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    async function parseJsonSafe(response) {
+      try {
+        return await response.json();
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function showFlash(message, type = 'ok') {
+      const el = document.getElementById('flashMsg');
+      el.textContent = message;
+      el.className = `flash show ${type}`;
+      clearTimeout(showFlash.timer);
+      showFlash.timer = setTimeout(() => {
+        el.className = 'flash';
+      }, 2500);
+    }
+
+    function fallbackImage(name) {
+      return `https://via.placeholder.com/300x400?text=${encodeURIComponent(String(name || 'Player').slice(0, 18))}`;
+    }
+
+    function getImageSource(player) {
+      const raw = String((player && player.image) || '').trim();
+      if (!raw) return fallbackImage(player && player.name);
+      if (/^https?:\/\//i.test(raw) || raw.startsWith('/') || /^data:image\//i.test(raw)) return raw;
+      return `/${raw.replace(/^\/+/, '')}`;
+    }
+
+    function isCatalogLocked() {
+      const phase = gameState && gameState.phase;
+      return phase === 'auction' || phase === 'paused';
+    }
+
+    function updateLockLabel() {
+      const locked = isCatalogLocked();
+      const lockEl = document.getElementById('lockStatus');
+      if (lockEl) {
+        lockEl.textContent = locked
+          ? `Catalog locked (${String(gameState.phase || '').toUpperCase()})`
+          : 'Catalog editable';
+      }
+      updateAuctionLayout();
+      renderQueueState();
+    }
+
+    function canManageQueue() {
+      const phase = String(gameState && gameState.phase || '');
+      return phase === 'auction' || phase === 'paused';
+    }
+
+    function getRoleGroupFromPlayer(player) {
+      const role = String(player && player.role || '').toLowerCase();
+      if (role.includes('all-rounder') || role.includes('all rounder')) return 'allrounder';
+      if (role.includes('wk') || role.includes('wicket')) return 'wicketkeeper';
+      if (role.includes('bowler') || role.includes('spinner')) return 'bowler';
+      if (role.includes('batter') || role.includes('batsman') || role.includes('bat')) return 'batsman';
+      return 'other';
+    }
+
+    function matchesQueueSearch(player, query) {
+      const q = String(query || '').trim().toLowerCase();
+      if (!q) return true;
+      return [player && player.name, player && player.role, player && player.country]
+        .join(' ')
+        .toLowerCase()
+        .includes(q);
+    }
+
+    function matchesQueueFilters(player, roleGroup, capped) {
+      const role = String(roleGroup || 'all').trim().toLowerCase();
+      const cappedFilter = String(capped || 'all').trim().toLowerCase();
+      const playerRoleGroup = String(player && player.roleGroup ? player.roleGroup : getRoleGroupFromPlayer(player));
+      if (role !== 'all' && playerRoleGroup !== role) return false;
+      if (cappedFilter === 'capped' && !Boolean(player && player.isCapped)) return false;
+      if (cappedFilter === 'uncapped' && Boolean(player && player.isCapped)) return false;
+      return true;
+    }
+
+    function getQueueSearchPool() {
+      const pool = queueState && Array.isArray(queueState.searchPool) ? queueState.searchPool : [];
+      return pool.map((player) => ({
+        ...player,
+        roleGroup: String(player && player.roleGroup ? player.roleGroup : getRoleGroupFromPlayer(player)),
+        source: String(player && player.source || 'remaining'),
+      }));
+    }
+
+    function updateAuctionLayout() {
+      const layoutEl = document.getElementById('adminLayout');
+      if (!layoutEl) return;
+      const locked = isCatalogLocked();
+      layoutEl.classList.toggle('queue-focus', locked);
+
+      const noteEl = document.getElementById('queueModeNote');
+      if (noteEl) {
+        noteEl.textContent = locked
+          ? 'Auction started: catalog/edit is hidden. Queue manager is centered. Deck accepts only unsold + remaining players.'
+          : 'Lobby mode: you can edit catalog. Deck preview works, but queue injection is enabled only during auction/pause.';
+      }
+    }
+
+    function scheduleQueueRefresh(delay = 120) {
+      clearTimeout(queueRefreshTimer);
+      queueRefreshTimer = setTimeout(() => {
+        loadQueueState();
+      }, delay);
+    }
+
+    async function loadQueueState(showError = false) {
+      try {
+        const response = await fetch('/api/admin/queue', {
+          headers: { 'x-admin-pass': adminPass }
+        });
+        const json = await parseJsonSafe(response);
+        if (!response.ok || !json || !json.success) {
+          if (showError) {
+            showFlash(json && json.error ? json.error : 'Failed to load queue state.', 'error');
+          }
+          return;
+        }
+        queueState = json.queueState || null;
+        renderQueueState();
+      } catch (error) {
+        if (showError) {
+          showFlash(error.message || 'Failed to load queue state.', 'error');
+        }
+      }
+    }
+
+    function renderQueueState() {
+      const applyBtn = document.getElementById('queueApplyBtn');
+      const clearBtn = document.getElementById('queueClearBtn');
+      const metaEl = document.getElementById('queueMeta');
+      const nextEl = document.getElementById('queueNext');
+      const previewEl = document.getElementById('queuePreview');
+      if (!applyBtn || !clearBtn || !metaEl || !nextEl || !previewEl) return;
+
+      const editable = canManageQueue();
+      applyBtn.disabled = !editable;
+      clearBtn.disabled = !editable;
+
+      if (!queueState) {
+        metaEl.textContent = 'Queue summary unavailable.';
+        nextEl.textContent = 'Current and next player preview will appear here.';
+        previewEl.innerHTML = '';
+        renderDeckBuilder();
+        return;
+      }
+
+      const counts = queueState.counts || {};
+      const poolCounts = queueState.poolCounts || {};
+      const roleCounts = counts.byRoleGroup || {};
+      const activeFilter = queueState.activeFilter || { roleGroup: 'all', capped: null };
+      const roleSelect = document.getElementById('q_roleGroup');
+      const cappedSelect = document.getElementById('q_capped');
+      const searchInput = document.getElementById('q_search');
+      const searchQuery = String(searchInput && searchInput.value || '').trim();
+      if (roleSelect) {
+        roleSelect.value = activeFilter.roleGroup || 'all';
+      }
+      if (cappedSelect) {
+        if (activeFilter.capped === true) cappedSelect.value = 'capped';
+        else if (activeFilter.capped === false) cappedSelect.value = 'uncapped';
+        else cappedSelect.value = 'all';
+      }
+      metaEl.textContent = `Remaining ${Number(queueState.remaining) || 0} | Unsold ${Number(poolCounts && poolCounts.source && poolCounts.source.unsold) || 0} | Capped ${Number(counts.capped) || 0} | Uncapped ${Number(counts.uncapped) || 0} | Bat ${Number(roleCounts.batsman) || 0} | WK ${Number(roleCounts.wicketkeeper) || 0} | Bowl ${Number(roleCounts.bowler) || 0} | AR ${Number(roleCounts.allrounder) || 0}`;
+
+      const current = queueState.currentPlayer;
+      const next = queueState.nextPlayer;
+      nextEl.innerHTML = `
+        <div><strong>Current:</strong> ${current ? `${escapeHtml(current.name)} (${escapeHtml(current.role || 'Unknown')})` : 'None'}</div>
+        <div><strong>Next:</strong> ${next ? `${escapeHtml(next.name)} (${escapeHtml(next.role || 'Unknown')})` : 'Queue empty'}</div>
+      `;
+
+      const basePreview = Array.isArray(queueState.preview) ? queueState.preview : [];
+      const pool = getQueueSearchPool().filter((player) => player.source === 'remaining');
+      const preview = searchQuery
+        ? pool.filter((player) => matchesQueueSearch(player, searchQuery)).slice(0, 18)
+        : basePreview;
+
+      if (!preview.length) {
+        previewEl.innerHTML = searchQuery
+          ? '<div class="small-note">No queue players match your search.</div>'
+          : '<div class="small-note">No remaining players in queue.</div>';
+        renderDeckBuilder();
+        return;
+      }
+
+      previewEl.innerHTML = preview.map((player, index) => {
+        const cappedText = player && player.isCapped ? 'Capped' : 'Uncapped';
+        const disabled = !editable || Number(player && player.id) === Number(queueState && queueState.nextPlayer && queueState.nextPlayer.id) ? 'disabled' : '';
+        return `
+          <div class="queue-item">
+            <div class="queue-item-main">
+              <div class="queue-item-name">${escapeHtml(player.name || 'Unknown')}</div>
+              <div class="queue-item-sub">${escapeHtml(player.role || 'Unknown')} | ${cappedText}</div>
+            </div>
+            <button class="queue-move-btn" onclick="movePlayerNext(${Number(player.id) || 0})" ${disabled}>Set Next</button>
+          </div>
+        `;
+      }).join('');
+
+      renderDeckBuilder();
+    }
+
+    function renderDeckBuilder() {
+      const deckMetaEl = document.getElementById('deckMeta');
+      const deckSelectedEl = document.getElementById('deckSelected');
+      const deckCandidatesEl = document.getElementById('deckCandidates');
+      const deckSelectBtn = document.getElementById('deckSelectBtn');
+      const deckClearBtn = document.getElementById('deckClearBtn');
+      const deckPushBtn = document.getElementById('deckPushBtn');
+      const deckPushRandomBtn = document.getElementById('deckPushRandomBtn');
+      const deckSearchEl = document.getElementById('deckSearch');
+      const deckRoleEl = document.getElementById('deckRoleGroup');
+      const deckCappedEl = document.getElementById('deckCapped');
+      const deckSourceEl = document.getElementById('deckSource');
+
+      if (!deckMetaEl || !deckSelectedEl || !deckCandidatesEl) return;
+
+      const editable = canManageQueue();
+      if (deckSelectBtn) deckSelectBtn.disabled = !editable;
+      if (deckClearBtn) deckClearBtn.disabled = !editable;
+      if (deckPushBtn) deckPushBtn.disabled = !editable;
+      if (deckPushRandomBtn) deckPushRandomBtn.disabled = !editable;
+
+      const pool = getQueueSearchPool();
+      const availableIds = new Set(pool.map((player) => Number(player.id)));
+      [...deckSelectedIds].forEach((id) => {
+        if (!availableIds.has(Number(id))) deckSelectedIds.delete(id);
+      });
+
+      const roleGroup = String(deckRoleEl && deckRoleEl.value || 'all').trim().toLowerCase();
+      const capped = String(deckCappedEl && deckCappedEl.value || 'all').trim().toLowerCase();
+      const source = String(deckSourceEl && deckSourceEl.value || 'all').trim().toLowerCase();
+      const search = String(deckSearchEl && deckSearchEl.value || '').trim();
+
+      const filtered = pool.filter((player) => {
+        if (source !== 'all' && String(player && player.source || 'remaining') !== source) return false;
+        if (!matchesQueueFilters(player, roleGroup, capped)) return false;
+        if (!matchesQueueSearch(player, search)) return false;
+        return true;
+      });
+
+      deckVisibleIds = filtered.map((player) => Number(player.id));
+
+      const selectedPlayers = [...deckSelectedIds]
+        .map((id) => pool.find((player) => Number(player.id) === Number(id)))
+        .filter(Boolean)
+        .slice(0, 120);
+
+      deckMetaEl.textContent = `Visible ${filtered.length} | Selected ${deckSelectedIds.size} | Pool ${pool.length} (Remaining ${pool.filter((item) => item.source === 'remaining').length}, Unsold ${pool.filter((item) => item.source === 'unsold').length})`;
+
+      if (!selectedPlayers.length) {
+        deckSelectedEl.innerHTML = '<div class="small-note">Deck 2 has no selected players.</div>';
+      } else {
+        deckSelectedEl.innerHTML = selectedPlayers.map((player) => `
+          <div class="deck-chip">
+            ${escapeHtml(player.name)} | ${escapeHtml(player.role || 'Unknown')} | ${player.isCapped ? 'Capped' : 'Uncapped'} | ${escapeHtml(player.source || 'remaining')}
+          </div>
+        `).join('');
+      }
+
+      const visibleCards = filtered.slice(0, 140);
+      if (!visibleCards.length) {
+        deckCandidatesEl.innerHTML = '<div class="small-note">No deck candidates match your filters.</div>';
+      } else {
+        deckCandidatesEl.innerHTML = visibleCards.map((player) => {
+          const selected = deckSelectedIds.has(Number(player.id));
+          return `
+            <div class="queue-item">
+              <div class="queue-item-main">
+                <div class="queue-item-name">${escapeHtml(player.name || 'Unknown')}</div>
+                <div class="queue-item-sub">${escapeHtml(player.role || 'Unknown')} | ${player.isCapped ? 'Capped' : 'Uncapped'} | ${escapeHtml(player.source || 'remaining')}</div>
+              </div>
+              <button class="queue-move-btn" onclick="toggleDeckPlayer(${Number(player.id) || 0})" ${!editable ? 'disabled' : ''}>${selected ? 'Remove' : 'Add Deck'}</button>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function toggleDeckPlayer(playerId) {
+      const id = Number(playerId);
+      if (!Number.isFinite(id) || id <= 0) return;
+      if (deckSelectedIds.has(id)) deckSelectedIds.delete(id);
+      else deckSelectedIds.add(id);
+      renderDeckBuilder();
+    }
+
+    function selectDeckVisible() {
+      if (!canManageQueue()) {
+        showFlash('Deck queueing is available only during auction or pause.', 'error');
+        return;
+      }
+      if (!Array.isArray(deckVisibleIds) || !deckVisibleIds.length) {
+        showFlash('No visible deck candidates to select.', 'error');
+        return;
+      }
+      deckVisibleIds.slice(0, 60).forEach((id) => deckSelectedIds.add(Number(id)));
+      renderDeckBuilder();
+      showFlash('Visible candidates added to Deck 2.', 'ok');
+    }
+
+    function clearDeckSelection() {
+      deckSelectedIds.clear();
+      renderDeckBuilder();
+      showFlash('Deck 2 cleared.', 'ok');
+    }
+
+    async function pushDeckToQueue(mode) {
+      if (!canManageQueue()) {
+        showFlash('Deck queueing is available only during auction or pause.', 'error');
+        return;
+      }
+
+      const playerIds = [...deckSelectedIds];
+      if (!playerIds.length) {
+        showFlash('Select at least one player in Deck 2.', 'error');
+        return;
+      }
+
+      const normalizedMode = String(mode || 'ordered').trim().toLowerCase() === 'random' ? 'random' : 'ordered';
+      const response = await fetch('/api/admin/queue/deck', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': adminPass,
+        },
+        body: JSON.stringify({
+          playerIds,
+          mode: normalizedMode,
+        }),
+      });
+
+      const json = await parseJsonSafe(response);
+      if (!response.ok || !json || !json.success) {
+        showFlash(json && json.error ? json.error : 'Deck queue update failed.', 'error');
+        return;
+      }
+
+      deckSelectedIds.clear();
+      queueState = json.queueState || queueState;
+      renderQueueState();
+
+      const moved = Number(json.moved) || 0;
+      const fromUnsold = Number(json.movedFromUnsold) || 0;
+      const fromRemaining = Number(json.movedFromRemaining) || 0;
+      showFlash(`Deck queued: ${moved} player(s) [remaining ${fromRemaining}, unsold ${fromUnsold}] (${normalizedMode}).`, 'ok');
+    }
+
+    async function prioritizeQueue() {
+      if (!canManageQueue()) {
+        showFlash('Queue management is available only during auction or pause.', 'error');
+        return;
+      }
+
+      const roleGroup = String(document.getElementById('q_roleGroup').value || 'all').trim().toLowerCase();
+      const cappedRaw = String(document.getElementById('q_capped').value || 'all').trim().toLowerCase();
+      const payload = {};
+      if (roleGroup !== 'all') payload.roleGroup = roleGroup;
+      if (cappedRaw === 'capped') payload.capped = true;
+      else if (cappedRaw === 'uncapped') payload.capped = false;
+
+      const response = await fetch('/api/admin/queue/prioritize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': adminPass,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await parseJsonSafe(response);
+      if (!response.ok || !json || !json.success) {
+        showFlash(json && json.error ? json.error : 'Queue prioritization failed.', 'error');
+        return;
+      }
+
+      queueState = json.queueState || queueState;
+      renderQueueState();
+      showFlash(`Queue updated. Matched ${Number(json.matched) || 0} player(s).`, 'ok');
+    }
+
+    async function clearQueueFilter() {
+      document.getElementById('q_roleGroup').value = 'all';
+      document.getElementById('q_capped').value = 'all';
+      await prioritizeQueue();
+    }
+
+    async function movePlayerNext(playerId) {
+      if (!canManageQueue()) {
+        showFlash('Queue editing is available only during auction or pause.', 'error');
+        return;
+      }
+      const numericPlayerId = Number(playerId);
+      if (!Number.isFinite(numericPlayerId) || numericPlayerId <= 0) {
+        return;
+      }
+
+      const response = await fetch('/api/admin/queue/move-next', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': adminPass,
+        },
+        body: JSON.stringify({ playerId: numericPlayerId }),
+      });
+
+      const json = await parseJsonSafe(response);
+      if (!response.ok || !json || !json.success) {
+        showFlash(json && json.error ? json.error : 'Failed to move player to next.', 'error');
+        return;
+      }
+
+      queueState = json.queueState || queueState;
+      renderQueueState();
+      showFlash('Queue updated: next player changed.', 'ok');
+    }
+
+    function resetForm() {
+      editingPlayerId = null;
+      document.getElementById('p_name').value = '';
+      document.getElementById('p_role').value = 'Batter';
+      document.getElementById('p_country').value = 'India';
+      document.getElementById('p_price').value = 10;
+      document.getElementById('p_image').value = '';
+      document.getElementById('p_capped').checked = false;
+      document.getElementById('saveBtn').textContent = 'Add Player';
+      document.getElementById('modeLabel').textContent = 'Mode: Add new player.';
+    }
+
+    function fillForm(player) {
+      editingPlayerId = player.id;
+      document.getElementById('p_name').value = player.name || '';
+      document.getElementById('p_role').value = player.role || 'Batter';
+      document.getElementById('p_country').value = player.country || 'India';
+      document.getElementById('p_price').value = Number(player.basePrice) || 10;
+      document.getElementById('p_image').value = player.image || '';
+      document.getElementById('p_capped').checked = Boolean(player.isCapped);
+      document.getElementById('saveBtn').textContent = 'Update Player';
+      document.getElementById('modeLabel').textContent = `Mode: Editing #${player.id} ${player.name}`;
+    }
+
+    function getPayload() {
+      return {
+        name: document.getElementById('p_name').value.trim(),
+        role: document.getElementById('p_role').value.trim(),
+        country: document.getElementById('p_country').value.trim(),
+        basePrice: Number.parseInt(document.getElementById('p_price').value, 10),
+        image: document.getElementById('p_image').value.trim(),
+        isCapped: document.getElementById('p_capped').checked,
+      };
+    }
+
+    async function savePlayer() {
+      if (isCatalogLocked()) {
+        showFlash('Catalog is locked while auction is active.', 'error');
+        return;
+      }
+
+      const payload = getPayload();
+      if (!payload.name || !payload.role || !Number.isFinite(payload.basePrice)) {
+        showFlash('Name, role and base price are required.', 'error');
+        return;
+      }
+
+      const method = editingPlayerId ? 'PUT' : 'POST';
+      const url = editingPlayerId ? `/api/players/${editingPlayerId}` : '/api/players';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': adminPass,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const json = await parseJsonSafe(response);
+      if (!response.ok || !json || !json.success) {
+        showFlash(json && json.error ? json.error : 'Save failed.', 'error');
+        return;
+      }
+
+      showFlash(editingPlayerId ? 'Player updated.' : 'Player added.', 'ok');
+      resetForm();
+      loadPlayers();
+    }
+
+    async function deletePlayer(playerId) {
+      if (isCatalogLocked()) {
+        showFlash('Catalog is locked while auction is active.', 'error');
+        return;
+      }
+
+      const target = players.find((item) => item.id === playerId);
+      if (!window.confirm(`Delete ${target ? target.name : 'this player'}?`)) return;
+
+      let response = await fetch(`/api/players/${playerId}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-pass': adminPass }
+      });
+
+      // Compatibility fallback for environments where DELETE is blocked/intercepted.
+      if (response.status === 404 || response.status === 405) {
+        response = await fetch(`/api/players/${playerId}/delete`, {
+          method: 'POST',
+          headers: { 'x-admin-pass': adminPass }
+        });
+      }
+
+      const json = await parseJsonSafe(response);
+      if (!response.ok || !json || !json.success) {
+        showFlash(json && json.error ? json.error : 'Delete failed.', 'error');
+        return;
+      }
+
+      if (editingPlayerId === playerId) {
+        resetForm();
+      }
+      showFlash('Player deleted.', 'ok');
+      loadPlayers();
+    }
+
+    function promptImageUrl(playerId) {
+      const target = players.find((item) => item.id === playerId);
+      if (!target) return;
+      const url = window.prompt('Enter image URL', target.image || '');
+      if (!url) return;
+
+      fetch('/api/admin/update-player-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': adminPass,
+        },
+        body: JSON.stringify({ playerId, imageUrl: url.trim() })
+      }).then((res) => res.json()).then((json) => {
+        if (json && json.success) {
+          showFlash('Image URL updated.', 'ok');
+          loadPlayers();
+        } else {
+          showFlash(json && json.error ? json.error : 'Image update failed.', 'error');
+        }
+      }).catch((error) => {
+        showFlash(error.message || 'Image update failed.', 'error');
+      });
+    }
+
+    function uploadImage(playerId) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = async () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+
+        const form = new FormData();
+        form.append('image', file);
+        form.append('playerId', String(playerId));
+
+        const response = await fetch('/api/admin/upload-player-image', {
+          method: 'POST',
+          headers: { 'x-admin-pass': adminPass },
+          body: form,
+        });
+
+        const json = await parseJsonSafe(response);
+        if (!response.ok || !json || !json.success) {
+          showFlash(json && json.error ? json.error : 'Image upload failed.', 'error');
+          return;
+        }
+
+        showFlash('Image uploaded.', 'ok');
+        loadPlayers();
+      };
+      input.click();
+    }
+
+    function renderPlayers() {
+      const locked = isCatalogLocked();
+      const query = String(document.getElementById('searchInput').value || '').trim().toLowerCase();
+      const roleFilter = String(document.getElementById('catalogRoleFilter').value || 'all').trim().toLowerCase();
+      const cappedFilter = String(document.getElementById('catalogCappedFilter').value || 'all').trim().toLowerCase();
+      const grid = document.getElementById('playersGrid');
+      grid.innerHTML = '';
+
+      const filtered = players.filter((player) => {
+        if (roleFilter !== 'all' && String(player && player.role || '').trim().toLowerCase() !== roleFilter) {
+          return false;
+        }
+        if (cappedFilter === 'capped' && !Boolean(player && player.isCapped)) return false;
+        if (cappedFilter === 'uncapped' && Boolean(player && player.isCapped)) return false;
+        if (!query) return true;
+        return [player && player.name, player && player.role, player && player.country]
+          .join(' ')
+          .toLowerCase()
+          .includes(query);
+      });
+
+      document.getElementById('playerCount').textContent = `${filtered.length} player(s)`;
+      updateLockLabel();
+
+      if (!filtered.length) {
+        grid.innerHTML = '<div class="small-note">No players found.</div>';
+        return;
+      }
+
+      filtered.forEach((player) => {
+        const card = document.createElement('div');
+        card.className = 'player-card';
+        card.innerHTML = `
+          <img src="${getImageSource(player)}" alt="${escapeHtml(player.name)}" onerror="this.src='${fallbackImage(player.name)}'" />
+          <div class="player-meta">
+            <div class="player-name">${escapeHtml(player.name)}</div>
+            <div class="player-sub">Role: ${escapeHtml(player.role || 'Unknown')}</div>
+            <div class="player-sub">Country: ${escapeHtml(player.country || 'Unknown')}</div>
+            <div class="player-sub">Base: Rs${Number(player.basePrice) || 0}L ${player.isCapped ? '(Capped)' : '(Uncapped)'}</div>
+            <div class="player-actions">
+              <button class="mini-btn mini-edit" data-action="edit" ${locked ? 'disabled' : ''}>Edit</button>
+              <button class="mini-btn mini-delete" data-action="delete" ${locked ? 'disabled' : ''}>Delete</button>
+              <button class="mini-btn mini-upload" data-action="upload" ${locked ? 'disabled' : ''}>Upload</button>
+              <button class="mini-btn mini-image" data-action="image" ${locked ? 'disabled' : ''}>Image URL</button>
+            </div>
+          </div>
+        `;
+
+        if (!locked) {
+          card.querySelector('[data-action="edit"]').onclick = () => fillForm(player);
+          card.querySelector('[data-action="delete"]').onclick = () => deletePlayer(player.id);
+          card.querySelector('[data-action="upload"]').onclick = () => uploadImage(player.id);
+          card.querySelector('[data-action="image"]').onclick = () => promptImageUrl(player.id);
+        }
+        grid.appendChild(card);
+      });
+    }
+
+    async function loadPlayers() {
+      const response = await fetch('/api/players');
+      const json = await parseJsonSafe(response);
+      players = Array.isArray(json) ? json.slice().sort((a, b) => (a.id || 0) - (b.id || 0)) : [];
+      renderPlayers();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', () => renderPlayers());
+    document.getElementById('catalogRoleFilter').addEventListener('change', () => renderPlayers());
+    document.getElementById('catalogCappedFilter').addEventListener('change', () => renderPlayers());
+    document.getElementById('q_search').addEventListener('input', () => renderQueueState());
+    document.getElementById('deckSearch').addEventListener('input', () => renderDeckBuilder());
+    document.getElementById('deckRoleGroup').addEventListener('change', () => renderDeckBuilder());
+    document.getElementById('deckCapped').addEventListener('change', () => renderDeckBuilder());
+    document.getElementById('deckSource').addEventListener('change', () => renderDeckBuilder());
+
+    socket.on('init', ({ gameState: gs, allPlayers }) => {
+      gameState = gs || {};
+      if (Array.isArray(allPlayers)) {
+        players = allPlayers.slice().sort((a, b) => (a.id || 0) - (b.id || 0));
+      }
+      renderPlayers();
+      loadQueueState();
+    });
+
+    socket.on('stateUpdate', (gs) => {
+      gameState = gs || {};
+      updateLockLabel();
+      scheduleQueueRefresh(60);
+    });
+
+    socket.on('auctionStarted', ({ gameState: gs }) => {
+      gameState = gs || gameState;
+      updateLockLabel();
+      scheduleQueueRefresh(40);
+    });
+
+    socket.on('auctionPaused', ({ gameState: gs }) => {
+      gameState = gs || gameState;
+      updateLockLabel();
+      scheduleQueueRefresh(40);
+    });
+
+    socket.on('auctionResumed', ({ gameState: gs }) => {
+      gameState = gs || gameState;
+      updateLockLabel();
+      scheduleQueueRefresh(40);
+    });
+
+    socket.on('auctionFinished', ({ teams }) => {
+      if (!gameState) gameState = {};
+      gameState.phase = 'finished';
+      if (teams) gameState.teams = teams;
+      updateLockLabel();
+      scheduleQueueRefresh(40);
+    });
+
+    socket.on('playerAdded', ({ player }) => {
+      if (!player) return;
+      const idx = players.findIndex((item) => item.id === player.id);
+      if (idx === -1) players.push(player);
+      else players[idx] = player;
+      players.sort((a, b) => (a.id || 0) - (b.id || 0));
+      renderPlayers();
+      scheduleQueueRefresh(100);
+    });
+
+    socket.on('playerUpdated', ({ player }) => {
+      if (!player) return;
+      const idx = players.findIndex((item) => item.id === player.id);
+      if (idx === -1) players.push(player);
+      else players[idx] = player;
+      players.sort((a, b) => (a.id || 0) - (b.id || 0));
+      renderPlayers();
+      if (editingPlayerId === player.id) fillForm(player);
+      scheduleQueueRefresh(100);
+    });
+
+    socket.on('playerDeleted', ({ playerId }) => {
+      players = players.filter((item) => item.id !== playerId);
+      if (editingPlayerId === playerId) resetForm();
+      renderPlayers();
+      scheduleQueueRefresh(100);
+    });
+
+    socket.on('newPlayer', () => scheduleQueueRefresh(20));
+    socket.on('playerSold', () => scheduleQueueRefresh(20));
+    socket.on('playerUnsold', () => scheduleQueueRefresh(20));
+    socket.on('queueUpdated', ({ queueState: qs }) => {
+      queueState = qs || null;
+      renderQueueState();
+    });
+
+    socket.on('error', (msg) => {
+      showFlash(String(msg || 'Error'), 'error');
+    });
+
+    function logout() {
+      localStorage.removeItem('adminAuth');
+      localStorage.removeItem('adminPass');
+      window.location.href = '/admin.html';
+    }
+
+    resetForm();
+    updateAuctionLayout();
+    renderQueueState();
+    window.addEventListener('beforeunload', () => {
+      clearTimeout(queueRefreshTimer);
+    });
+  </script>
+</body>
+</html>
