@@ -647,6 +647,42 @@ export const stopAuction = mutation({
   },
 });
 
+export const nextComponent = mutation({
+  args: { adminPass: v.string() },
+  handler: async (ctx, args) => {
+    if (args.adminPass !== ADMIN_PASSWORD) throw new Error("Unauthorized admin credentials");
+    const stateRecord = await ctx.db.query("auction_state").withIndex("by_key", (q) => q.eq("key", "current_game")).first();
+    if (!stateRecord) throw new Error("Game state not found");
+    const state = stateRecord.data;
+    if (!state.currentPlayer) throw new Error("No active component");
+
+    const currentComp = state.currentPlayer;
+    const queue = state.auctionQueue || [];
+    queue.push(currentComp);
+
+    if (queue.length > 0) {
+      const nextItem = queue.shift();
+      state.currentPlayer = nextItem;
+      state.currentBid = nextItem.basePrice;
+      state.currentBidder = null;
+      state.timerSeconds = BID_TIMER_SECONDS;
+      state.auctionQueue = queue;
+    }
+
+    const feed = state.feed || [];
+    feed.unshift({
+      id: "next_" + Date.now(),
+      text: `⏭️ Admin skipped #${currentComp.id} ${currentComp.name} to end of queue. Next: #${state.currentPlayer?.id || ''} ${state.currentPlayer?.name || ''}`,
+      time: Date.now(),
+      type: "info",
+    });
+    state.feed = feed.slice(0, 50);
+
+    await ctx.db.patch(stateRecord._id, { data: state, updatedAt: Date.now() });
+    return { success: true, next: state.currentPlayer };
+  },
+});
+
 export const resetAuction = mutation({
   args: { adminPass: v.string() },
   handler: async (ctx, args) => {
@@ -658,6 +694,13 @@ export const resetAuction = mutation({
     } else {
       await ctx.db.insert("auction_state", { key: "current_game", data: cleanState, updatedAt: Date.now() });
     }
+
+    // Reset all team budgets back to 500 and clear acquired items
+    const allTeams = await ctx.db.query("teams").collect();
+    for (const t of allTeams) {
+      await ctx.db.patch(t._id, { budget: INITIAL_BUDGET, players: [], playingXI: [], updatedAt: Date.now() });
+    }
+
     return { success: true };
   },
 });

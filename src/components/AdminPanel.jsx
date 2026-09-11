@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Play, Pause, FastForward, CheckCircle, XCircle, RotateCcw, ShieldCheck, Trash2, Edit3, Plus, Users, Zap, Layers } from 'lucide-react';
+import { Play, Pause, FastForward, CheckCircle, XCircle, RotateCcw, ShieldCheck, Trash2, Edit3, Plus, Users, Zap, Layers, Eye, Download, FileText, ArrowRight, SkipForward } from 'lucide-react';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 
 export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToast }) {
+  const [activeTab, setActiveTab] = useState('controls'); // 'controls' | 'preview' | 'data'
   const [editingBudgetTeam, setEditingBudgetTeam] = useState(null);
   const [newBudgetVal, setNewBudgetVal] = useState('');
 
@@ -12,6 +13,7 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
   const resumeAuctionMutation = useMutation(api.auction.resumeAuction);
   const sellComponentMutation = useMutation(api.auction.sellComponent);
   const markUnsoldMutation = useMutation(api.auction.markUnsold);
+  const nextComponentMutation = useMutation(api.auction.nextComponent);
   const stopAuctionMutation = useMutation(api.auction.stopAuction);
   const resetAuctionMutation = useMutation(api.auction.resetAuction);
   const verifyTeamMutation = useMutation(api.auction.verifyTeam);
@@ -22,11 +24,14 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
   const teamList = Object.values(teams || {});
   const phase = gameState?.phase || 'lobby';
   const currentComponent = gameState?.currentPlayer;
+  const currentBid = gameState?.currentBid || (currentComponent ? currentComponent.basePrice : 0);
+  const currentBidderId = gameState?.currentBidder;
+  const currentBidderTeam = currentBidderId && teams ? teams[currentBidderId] : null;
 
   const handleStart = async () => {
     try {
       await startAuctionMutation({ adminPass });
-      showToast('🚀 Auction started with 53 components queue!', 'success');
+      showToast('🚀 Auction started! All participants redirected to Live Stage.', 'success');
     } catch (err) {
       showToast(err.message || 'Failed to start auction', 'error');
     }
@@ -36,10 +41,10 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
     try {
       if (phase === 'auction') {
         await pauseAuctionMutation({ adminPass });
-        showToast('⏸️ Auction paused', 'info');
+        showToast('⏸️ Auction paused. Players will see paused banner.', 'info');
       } else if (phase === 'paused') {
         await resumeAuctionMutation({ adminPass });
-        showToast('▶️ Auction resumed', 'success');
+        showToast('▶️ Auction resumed!', 'success');
       }
     } catch (err) {
       showToast(err.message || 'Pause/Resume failed', 'error');
@@ -55,6 +60,15 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
     }
   };
 
+  const handleNext = async () => {
+    try {
+      await nextComponentMutation({ adminPass });
+      showToast('⏭️ Skipped current component to end of queue', 'info');
+    } catch (err) {
+      showToast(err.message || 'Next failed', 'error');
+    }
+  };
+
   const handleUnsold = async () => {
     try {
       await markUnsoldMutation({ adminPass });
@@ -65,20 +79,20 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
   };
 
   const handleStop = async () => {
-    if (!window.confirm('Are you sure you want to conclude the auction and view final leaderboard?')) return;
+    if (!window.confirm('Are you sure you want to conclude the auction and view final evaluation results?')) return;
     try {
       await stopAuctionMutation({ adminPass });
-      showToast('🏁 Auction concluded!', 'success');
+      showToast('🏁 Auction concluded! Redirected to results.', 'success');
     } catch (err) {
       showToast(err.message || 'Stop failed', 'error');
     }
   };
 
   const handleReset = async () => {
-    if (!window.confirm('WARNING: Reset full auction queue, bids, and return to lobby? (Teams remain saved)')) return;
+    if (!window.confirm('WARNING: Reset full auction queue, clear bids, restore 500 team budgets, and return to lobby?')) return;
     try {
       await resetAuctionMutation({ adminPass });
-      showToast('🔄 Auction state reset to lobby', 'info');
+      showToast('🔄 Auction state reset to lobby. All team budgets restored to 500 pts.', 'info');
     } catch (err) {
       showToast(err.message || 'Reset failed', 'error');
     }
@@ -124,12 +138,29 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
     }
   };
 
+  const exportJSON = () => {
+    const data = {
+      timestamp: new Date().toISOString(),
+      gameState,
+      teams: teamList,
+      soldHistory: gameState?.soldHistory || [],
+      unsoldPlayers: gameState?.unsoldPlayers || [],
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `electronic-auction-data-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border border-amber-500/40 bg-gradient-to-r from-slate-950 via-amber-950/20 to-slate-950 p-6 shadow-2xl shadow-amber-500/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border border-amber-500/40 bg-gradient-to-r from-slate-950 via-amber-950/20 to-slate-950 p-5 sm:p-6 shadow-2xl shadow-amber-500/10">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 border border-amber-500/30 px-3 py-1 text-xs font-mono-code text-amber-300 mb-2">
+          <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 border border-amber-500/30 px-3 py-1 text-xs font-mono-code text-amber-300 mb-1">
             <ShieldCheck className="h-3.5 w-3.5 text-amber-400" />
             <span>Master Administrator Command Console</span>
           </div>
@@ -137,193 +168,402 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
             AUCTION & PARTICIPANT CONTROLS
           </h1>
           <p className="text-xs font-rajdhani text-slate-400">
-            Current Phase: <strong className="uppercase text-amber-400 font-mono-code">{phase}</strong> • 
-            Remaining in Queue: <strong className="text-cyan-400 font-mono-code">{gameState?.auctionQueue?.length ?? 53}</strong>
+            Phase: <strong className="uppercase text-amber-400 font-mono-code">{phase}</strong> • 
+            Remaining in Queue: <strong className="text-cyan-400 font-mono-code">{gameState?.auctionQueue?.length ?? 53}</strong> •
+            Registered Teams: <strong className="text-emerald-400 font-mono-code">{teamList.length}</strong>
           </p>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Sub Navigation */}
+          <div className="flex bg-slate-900 border border-slate-700 rounded-xl p-1">
+            <button
+              onClick={() => setActiveTab('controls')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-rajdhani font-bold transition-all ${
+                activeTab === 'controls' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              Controls
+            </button>
+            <button
+              onClick={() => setActiveTab('preview')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-rajdhani font-bold transition-all ${
+                activeTab === 'preview' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              👁️ Player Preview
+            </button>
+            <button
+              onClick={() => setActiveTab('data')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-rajdhani font-bold transition-all ${
+                activeTab === 'data' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              📊 Data Evaluate
+            </button>
+          </div>
+
           <button
             onClick={onLogoutAdmin}
-            className="rounded-xl bg-slate-900 border border-slate-700 hover:bg-slate-800 px-4 py-2 text-xs font-rajdhani font-bold text-slate-300 transition-colors"
+            className="rounded-xl bg-slate-900 border border-slate-700 hover:bg-slate-800 px-3.5 py-2 text-xs font-rajdhani font-bold text-slate-300 transition-colors"
           >
-            Exit Admin
+            Exit
           </button>
         </div>
       </div>
 
-      {/* Stage Action Controls */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/90 backdrop-blur-xl p-6 shadow-xl space-y-5">
-        <h2 className="font-bebas text-2xl tracking-wider text-slate-100 flex items-center gap-2">
-          <Zap className="h-5 w-5 text-amber-400" />
-          <span>LIVE STAGE ACTIONS</span>
-        </h2>
+      {/* TAB 1: MASTER CONTROLS */}
+      {activeTab === 'controls' && (
+        <div className="space-y-6">
+          {/* Stage Action Controls Grid */}
+          <div className="rounded-3xl border border-slate-800 bg-slate-900/90 backdrop-blur-xl p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bebas text-2xl tracking-wider text-slate-100 flex items-center gap-2">
+                <Zap className="h-5 w-5 text-amber-400" />
+                <span>AUCTION STAGE COMMANDS</span>
+              </h2>
+              <span className="text-xs font-mono-code text-slate-400">
+                Phase: <strong className="text-cyan-400 uppercase">{phase}</strong>
+              </span>
+            </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-          <button
-            onClick={handleStart}
-            disabled={phase !== 'lobby' && phase !== 'finished'}
-            className="flex flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 p-4 text-slate-950 font-rajdhani font-bold text-sm shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-40"
-          >
-            <Play className="h-5 w-5 mb-1 text-slate-950" />
-            <span>START AUCTION</span>
-          </button>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+              {/* 1. START */}
+              <button
+                onClick={handleStart}
+                disabled={phase !== 'lobby' && phase !== 'finished'}
+                className="flex flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-emerald-600 to-teal-700 hover:from-emerald-500 hover:to-teal-600 p-3.5 text-slate-950 font-rajdhani font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-35"
+              >
+                <Play className="h-5 w-5 mb-1 text-slate-950" />
+                <span>START AUCTION</span>
+              </button>
 
-          <button
-            onClick={handleSell}
-            disabled={phase !== 'auction' || !currentComponent}
-            className="flex flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 p-4 text-slate-950 font-rajdhani font-bold text-sm shadow-lg shadow-cyan-500/20 transition-all disabled:opacity-40"
-          >
-            <CheckCircle className="h-5 w-5 mb-1 text-slate-950" />
-            <span>SELL COMPONENT</span>
-          </button>
+              {/* 2. PAUSE / RESUME */}
+              <button
+                onClick={handlePauseToggle}
+                disabled={phase !== 'auction' && phase !== 'paused'}
+                className="flex flex-col items-center justify-center rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3.5 text-slate-200 font-rajdhani font-bold text-xs transition-all disabled:opacity-35"
+              >
+                {phase === 'paused' ? <Play className="h-5 w-5 mb-1 text-emerald-400" /> : <Pause className="h-5 w-5 mb-1 text-amber-400" />}
+                <span>{phase === 'paused' ? 'RESUME' : 'PAUSE'}</span>
+              </button>
 
-          <button
-            onClick={handleUnsold}
-            disabled={phase !== 'auction' || !currentComponent}
-            className="flex flex-col items-center justify-center rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 p-4 text-slate-200 font-rajdhani font-bold text-sm transition-all disabled:opacity-40"
-          >
-            <XCircle className="h-5 w-5 mb-1 text-rose-400" />
-            <span>MARK UNSOLD</span>
-          </button>
+              {/* 3. SOLD CURRENT */}
+              <button
+                onClick={handleSell}
+                disabled={phase !== 'auction' || !currentComponent}
+                className="flex flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 p-3.5 text-slate-950 font-rajdhani font-bold text-xs shadow-lg shadow-cyan-500/20 transition-all disabled:opacity-35"
+              >
+                <CheckCircle className="h-5 w-5 mb-1 text-slate-950" />
+                <span>SOLD CURRENT</span>
+              </button>
 
-          <button
-            onClick={handlePauseToggle}
-            disabled={phase !== 'auction' && phase !== 'paused'}
-            className="flex flex-col items-center justify-center rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 p-4 text-slate-200 font-rajdhani font-bold text-sm transition-all disabled:opacity-40"
-          >
-            {phase === 'paused' ? <Play className="h-5 w-5 mb-1 text-emerald-400" /> : <Pause className="h-5 w-5 mb-1 text-amber-400" />}
-            <span>{phase === 'paused' ? 'RESUME' : 'PAUSE'}</span>
-          </button>
+              {/* 4. NEXT (MOVE TO BACK) */}
+              <button
+                onClick={handleNext}
+                disabled={phase !== 'auction' || !currentComponent}
+                className="flex flex-col items-center justify-center rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3.5 text-slate-200 font-rajdhani font-bold text-xs transition-all disabled:opacity-35"
+              >
+                <SkipForward className="h-5 w-5 mb-1 text-sky-400" />
+                <span>NEXT (BACK)</span>
+              </button>
 
-          <button
-            onClick={handleStop}
-            disabled={phase === 'lobby' || phase === 'finished'}
-            className="flex flex-col items-center justify-center rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 p-4 text-slate-200 font-rajdhani font-bold text-sm transition-all disabled:opacity-40"
-          >
-            <FastForward className="h-5 w-5 mb-1 text-purple-400" />
-            <span>END AUCTION</span>
-          </button>
+              {/* 5. SKIP / MARK UNSOLD */}
+              <button
+                onClick={handleUnsold}
+                disabled={phase !== 'auction' || !currentComponent}
+                className="flex flex-col items-center justify-center rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3.5 text-slate-200 font-rajdhani font-bold text-xs transition-all disabled:opacity-35"
+              >
+                <XCircle className="h-5 w-5 mb-1 text-rose-400" />
+                <span>SKIP (UNSOLD)</span>
+              </button>
 
-          <button
-            onClick={handleReset}
-            className="flex flex-col items-center justify-center rounded-2xl bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/40 p-4 text-rose-300 font-rajdhani font-bold text-sm transition-all"
-          >
-            <RotateCcw className="h-5 w-5 mb-1 text-rose-400" />
-            <span>RESET STAGE</span>
-          </button>
-        </div>
-      </div>
+              {/* 6. STOP AUCTION */}
+              <button
+                onClick={handleStop}
+                disabled={phase === 'lobby' || phase === 'finished'}
+                className="flex flex-col items-center justify-center rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3.5 text-slate-200 font-rajdhani font-bold text-xs transition-all disabled:opacity-35"
+              >
+                <FastForward className="h-5 w-5 mb-1 text-purple-400" />
+                <span>STOP AUCTION</span>
+              </button>
 
-      {/* Team Approval & Management */}
-      <div className="rounded-3xl border border-slate-800 bg-slate-900/90 backdrop-blur-xl p-6 shadow-xl space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="font-bebas text-2xl tracking-wider text-slate-100 flex items-center gap-2">
-              <Users className="h-5 w-5 text-emerald-400" />
-              <span>TEAM VERIFICATION & BUDGET MANAGER ({teamList.length})</span>
-            </h2>
-            <p className="text-xs font-rajdhani text-slate-400">
-              Only verified teams are allowed to place bids during the live auction
-            </p>
+              {/* 7. RESET AUCTION */}
+              <button
+                onClick={handleReset}
+                className="flex flex-col items-center justify-center rounded-2xl bg-rose-950/40 hover:bg-rose-900/50 border border-rose-500/40 p-3.5 text-rose-300 font-rajdhani font-bold text-xs transition-all"
+              >
+                <RotateCcw className="h-5 w-5 mb-1 text-rose-400" />
+                <span>RESET STAGE</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleVerifyAll(true)}
-              className="rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 text-xs font-rajdhani font-bold transition-colors"
-            >
-              ✓ Approve All Teams
-            </button>
-            <button
-              onClick={() => handleVerifyAll(false)}
-              className="rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 text-xs font-rajdhani font-bold transition-colors"
-            >
-              Revoke All
-            </button>
+          {/* Team Approval & Management */}
+          <div className="rounded-3xl border border-slate-800 bg-slate-900/90 backdrop-blur-xl p-6 shadow-xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="font-bebas text-2xl tracking-wider text-slate-100 flex items-center gap-2">
+                  <Users className="h-5 w-5 text-emerald-400" />
+                  <span>REGISTERED TEAMS & APPROVAL MANAGER ({teamList.length})</span>
+                </h2>
+                <p className="text-xs font-rajdhani text-slate-400">
+                  Approved teams can place bids. Unapproved teams can only observe.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleVerifyAll(true)}
+                  className="rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 px-3 py-1.5 text-xs font-rajdhani font-bold transition-colors"
+                >
+                  ✓ Approve All Teams
+                </button>
+                <button
+                  onClick={() => handleVerifyAll(false)}
+                  className="rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 text-xs font-rajdhani font-bold transition-colors"
+                >
+                  Revoke All
+                </button>
+              </div>
+            </div>
+
+            {teamList.length === 0 ? (
+              <p className="text-xs font-rajdhani text-slate-500 italic py-4 text-center">
+                No teams registered yet.
+              </p>
+            ) : (
+              <div className="divide-y divide-slate-800">
+                {teamList.map((team) => {
+                  const members = team.members || [team.leader || 'Leader'];
+                  const isApproved = Boolean(team.verified);
+
+                  return (
+                    <div key={team.id} className="py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        {team.logo ? (
+                          <img src={team.logo} alt="" className="h-10 w-10 rounded-full object-cover border border-slate-700" />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800 border border-slate-700 text-lg">
+                            {team.icon || '⚡'}
+                          </div>
+                        )}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-rajdhani font-bold text-base text-slate-100">{team.name}</h3>
+                            <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-mono-code text-cyan-300 border border-slate-700">
+                              PIN: {team.password}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-400 font-rajdhani">
+                            Members: <strong className="text-slate-200">{members.join(', ')}</strong>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 self-end md:self-center">
+                        <div className="text-right">
+                          <div className="text-xs font-mono-code text-emerald-400 font-bold">{team.budget} pts</div>
+                          <div className="text-[10px] font-mono-code text-slate-400">{(team.players || []).length} items</div>
+                        </div>
+
+                        {isApproved ? (
+                          <button
+                            onClick={() => handleVerify(team.id, false)}
+                            className="rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 px-3 py-1.5 text-xs font-rajdhani font-bold transition-colors"
+                          >
+                            Revoke
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleVerify(team.id, true)}
+                            className="rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3 py-1.5 text-xs font-rajdhani shadow-md transition-all"
+                          >
+                            ✓ Approve
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => {
+                            setEditingBudgetTeam(team);
+                            setNewBudgetVal(team.budget);
+                          }}
+                          className="rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 text-xs border border-slate-700 transition-colors"
+                          title="Edit Budget"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteTeam(team.id, team.name)}
+                          className="rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 p-2 text-xs border border-rose-500/30 transition-colors"
+                          title="Delete Team"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
+      )}
 
-        {teamList.length === 0 ? (
-          <p className="text-xs font-rajdhani text-slate-500 italic py-4 text-center">
-            No teams registered yet. Teams can register from the participant lobby.
-          </p>
-        ) : (
-          <div className="divide-y divide-slate-800">
-            {teamList.map((team) => {
-              const members = team.members || [team.leader || 'Leader'];
-              const isApproved = Boolean(team.verified);
+      {/* TAB 2: LIVE PLAYER PREVIEW */}
+      {activeTab === 'preview' && (
+        <div className="rounded-3xl border border-cyan-500/40 bg-slate-900/90 backdrop-blur-xl p-6 shadow-2xl space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div>
+              <h2 className="font-bebas text-2xl tracking-wider text-slate-100 flex items-center gap-2">
+                <Eye className="h-5 w-5 text-cyan-400" />
+                <span>LIVE PLAYER VIEW PREVIEW</span>
+              </h2>
+              <p className="text-xs font-rajdhani text-slate-400">
+                Exact mirror of how participants see the auction stage on their desktops
+              </p>
+            </div>
+            <span className="rounded-full bg-cyan-500/20 px-3 py-1 text-xs font-mono-code text-cyan-300 border border-cyan-500/40">
+              ● SYNCED LIVE
+            </span>
+          </div>
+
+          {currentComponent ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center rounded-2xl bg-slate-950 p-6 border border-cyan-500/30">
+              <div className="flex items-center justify-center p-4 bg-slate-900/80 rounded-xl border border-slate-800 aspect-video">
+                <img
+                  src={currentComponent.image}
+                  alt={currentComponent.name}
+                  className="max-h-48 max-w-full object-contain filter drop-shadow-[0_0_20px_rgba(0,229,255,0.25)]"
+                />
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <span className="text-xs font-mono-code text-cyan-400">#{currentComponent.id} • {currentComponent.role}</span>
+                  <h3 className="font-bebas text-4xl text-slate-100 tracking-wider glow-text-cyan">{currentComponent.name}</h3>
+                  <p className="text-xs font-rajdhani text-slate-300 mt-1">{currentComponent.description}</p>
+                </div>
+
+                <div className="rounded-xl bg-slate-900 border border-slate-800 p-3 flex justify-between items-center">
+                  <div>
+                    <span className="text-[10px] font-mono-code text-slate-400 uppercase">Top Bid</span>
+                    <div className="font-mono-code font-bold text-2xl text-emerald-400">{currentBid} pts</div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-mono-code text-slate-400 uppercase">Leader</span>
+                    <div className="font-rajdhani font-bold text-base text-cyan-300">
+                      {currentBidderTeam ? currentBidderTeam.name : 'No bids yet'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-xs font-mono-code text-slate-400">
+                  Timer: <strong className="text-cyan-400">{gameState?.timerSeconds ?? 15}s remaining</strong>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-16 text-slate-500">
+              <Zap className="h-10 w-10 mx-auto mb-2 opacity-30" />
+              <p className="font-rajdhani text-sm">No component active on stage.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: DATA EVALUATE */}
+      {activeTab === 'data' && (
+        <div className="rounded-3xl border border-slate-800 bg-slate-900/90 backdrop-blur-xl p-6 shadow-2xl space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <h2 className="font-bebas text-2xl tracking-wider text-slate-100 flex items-center gap-2">
+                <FileText className="h-5 w-5 text-amber-400" />
+                <span>AUCTION DATA EVALUATION MATRIX</span>
+              </h2>
+              <p className="text-xs font-rajdhani text-slate-400">
+                Detailed audit of which team bought which component, purchase prices, and remaining budgets
+              </p>
+            </div>
+
+            <button
+              onClick={exportJSON}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 px-4 py-2 text-xs font-rajdhani font-bold text-slate-950 shadow-lg shadow-amber-500/20 transition-all self-start sm:self-center"
+            >
+              <Download className="h-4 w-4" />
+              <span>Export Full Dataset (JSON)</span>
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            {teamList.map((team, idx) => {
+              const won = team.players || [];
+              const spent = 500 - team.budget;
 
               return (
-                <div key={team.id} className="py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    {team.logo ? (
-                      <img src={team.logo} alt="" className="h-10 w-10 rounded-full object-cover border border-slate-700" />
-                    ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800 border border-slate-700 text-lg">
-                        {team.icon || '⚡'}
+                <div
+                  key={team.id}
+                  className="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 space-y-3"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/60 pb-3">
+                    <div className="flex items-center gap-3">
+                      {team.logo ? (
+                        <img src={team.logo} alt="" className="h-8 w-8 rounded-full object-cover" />
+                      ) : (
+                        <div className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-800 text-sm">
+                          {team.icon || '⚡'}
+                        </div>
+                      )}
+                      <div>
+                        <h4 className="font-rajdhani font-bold text-base text-slate-100">{team.name}</h4>
+                        <p className="text-[11px] font-rajdhani text-slate-400">
+                          Members: {(team.members || []).join(', ')}
+                        </p>
                       </div>
-                    )}
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-rajdhani font-bold text-base text-slate-100">{team.name}</h3>
-                        <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-mono-code text-cyan-300 border border-slate-700">
-                          PIN: {team.password}
-                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-4 text-xs font-mono-code">
+                      <div>
+                        <span className="text-slate-400">Components: </span>
+                        <strong className="text-cyan-400">{won.length}</strong>
                       </div>
-                      <p className="text-xs text-slate-400 font-rajdhani">
-                        Members (Max 5): <strong className="text-slate-200">{members.join(', ')}</strong>
-                      </p>
+                      <div>
+                        <span className="text-slate-400">Points Spent: </span>
+                        <strong className="text-rose-400">{spent} pts</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Remaining Budget: </span>
+                        <strong className="text-emerald-400">{team.budget} pts</strong>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 self-end md:self-center">
-                    <div className="text-right">
-                      <div className="text-xs font-mono-code text-emerald-400 font-bold">{team.budget} pts</div>
-                      <div className="text-[10px] font-mono-code text-slate-400">{(team.players || []).length} items</div>
+                  {/* Components breakdown */}
+                  {won.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                      {won.map((item, itemIdx) => (
+                        <div
+                          key={itemIdx}
+                          className="flex items-center gap-2 rounded-xl bg-slate-900 border border-slate-800 p-2 text-xs font-rajdhani"
+                        >
+                          <img src={item.image} alt="" className="h-5 w-5 object-contain shrink-0" />
+                          <div className="truncate">
+                            <div className="font-bold text-slate-200 truncate">{item.name}</div>
+                            <div className="text-[10px] font-mono-code text-emerald-400">{item.soldPrice || item.basePrice} pts</div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-
-                    {isApproved ? (
-                      <button
-                        onClick={() => handleVerify(team.id, false)}
-                        className="rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 px-3 py-1.5 text-xs font-rajdhani font-bold transition-colors"
-                      >
-                        Revoke Approval
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleVerify(team.id, true)}
-                        className="rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-3 py-1.5 text-xs font-rajdhani shadow-md shadow-emerald-500/20 transition-all"
-                      >
-                        ✓ Approve Team
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => {
-                        setEditingBudgetTeam(team);
-                        setNewBudgetVal(team.budget);
-                      }}
-                      className="rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 text-xs border border-slate-700 transition-colors"
-                      title="Edit Budget"
-                    >
-                      <Edit3 className="h-3.5 w-3.5" />
-                    </button>
-
-                    <button
-                      onClick={() => handleDeleteTeam(team.id, team.name)}
-                      className="rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 p-2 text-xs border border-rose-500/30 transition-colors"
-                      title="Delete Team"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                  ) : (
+                    <p className="text-xs font-rajdhani text-slate-500 italic">No components acquired by this team.</p>
+                  )}
                 </div>
               );
             })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Edit Budget Modal */}
       {editingBudgetTeam && (

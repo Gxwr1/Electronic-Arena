@@ -109,15 +109,31 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isAdmin]);
 
-  // Auto-transition participants when Host starts or finishes auction
+  // Auto-transition participants when Host changes auction phases
   useEffect(() => {
     if (!gameState) return;
-    if (gameState.phase === 'auction' && activeTab === 'preview') {
-      showToast('⚡ The Live Auction has STARTED! Spotlight on stage.', 'info');
-      changeTab('auction');
-    } else if (gameState.phase === 'finished' && (activeTab === 'auction' || activeTab === 'preview')) {
-      showToast('🏁 The Auction has concluded! Showing final standings.', 'info');
-      changeTab('leaderboard');
+    const phase = gameState.phase;
+
+    if (phase === 'auction') {
+      if (activeTab === 'preview' || activeTab === 'landing') {
+        showToast('⚡ The Live Auction has STARTED! Spotlight on stage.', 'info');
+        changeTab('auction');
+      }
+    } else if (phase === 'paused') {
+      // Pause keeps players on auction stage
+      if (activeTab !== 'admin' && activeTab !== 'auction') {
+        changeTab('auction');
+      }
+    } else if (phase === 'finished') {
+      if (activeTab === 'auction' || activeTab === 'preview') {
+        showToast('🏁 The Auction has concluded! Showing final evaluation results.', 'info');
+        changeTab('leaderboard');
+      }
+    } else if (phase === 'lobby') {
+      if (activeTab === 'auction' || activeTab === 'leaderboard') {
+        showToast('🔄 Host reset stage to Lobby.', 'info');
+        changeTab(currentTeam ? 'preview' : 'landing');
+      }
     }
   }, [gameState?.phase]);
 
@@ -184,7 +200,7 @@ export function App() {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans overflow-x-hidden">
+    <div className="relative h-screen w-screen flex flex-col bg-slate-950 text-slate-100 font-sans overflow-hidden select-none">
       {/* 60fps Electric PCB Background Animation */}
       <ElectricBackground />
 
@@ -200,19 +216,18 @@ export function App() {
         isAdmin={isAdmin}
       />
 
-      {/* Main App Screens */}
-      <main className="flex-1 pb-12 relative z-10">
+      {/* Main App Screens Container (Fixed viewport height) */}
+      <main className="flex-1 min-h-0 relative z-10 overflow-y-auto">
         {/* 1. Landing Screen (Code Entry & Register only, Clean & Electrifying) */}
         {activeTab === 'landing' && (
           <LandingView
             teams={teams}
             onLoginSuccess={handleLoginSuccess}
-            onSecretAdminTrigger={() => setIsAdminLoginOpen(true)}
             showToast={showToast}
           />
         )}
 
-        {/* 2. Preview & Waiting Room Screen */}
+        {/* 2. Fixed Preview & Waiting Room Screen */}
         {activeTab === 'preview' && currentTeam && (
           <PreviewRoom
             currentTeam={currentTeam}
@@ -220,7 +235,7 @@ export function App() {
           />
         )}
 
-        {/* 3. Live Auction Stage */}
+        {/* 3. Live Auction Stage (Fixed Desktop Non-Scrollable Layout) */}
         {activeTab === 'auction' && (
           <AuctionStage
             gameState={gameState}
@@ -231,7 +246,7 @@ export function App() {
           />
         )}
 
-        {/* 4. Standings & Detailed Team Inventory Leaderboard */}
+        {/* 4. Standings & Detailed Team Inventory Data Evaluation */}
         {activeTab === 'leaderboard' && (
           <LeaderboardView
             teams={teams}

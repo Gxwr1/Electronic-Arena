@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { KeyRound, UserPlus, Upload, Sparkles, ShieldAlert, ArrowRight, Lock } from 'lucide-react';
+import { KeyRound, UserPlus, Upload, Sparkles, ShieldAlert, ArrowRight, Users, CheckCircle2, Clock } from 'lucide-react';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 
-export function LandingView({ teams, onLoginSuccess, onSecretAdminTrigger, showToast }) {
+export function LandingView({ teams, onLoginSuccess, showToast }) {
   const [activeTab, setActiveTab] = useState('code'); // 'code' | 'register'
+  const [showTeamsModal, setShowTeamsModal] = useState(false);
 
   // Code entry state
   const [pin, setPin] = useState('');
@@ -21,6 +22,7 @@ export function LandingView({ teams, onLoginSuccess, onSecretAdminTrigger, showT
   const [loading, setLoading] = useState(false);
 
   const registerTeamMutation = useMutation(api.auction.registerTeam);
+  const teamList = Object.values(teams || {});
 
   const handleCodeSubmit = (e) => {
     e.preventDefault();
@@ -30,7 +32,6 @@ export function LandingView({ teams, onLoginSuccess, onSecretAdminTrigger, showT
       return;
     }
 
-    const teamList = Object.values(teams || {});
     const match = teamList.find((t) => t.password === cleanPin);
 
     if (match) {
@@ -98,9 +99,9 @@ export function LandingView({ teams, onLoginSuccess, onSecretAdminTrigger, showT
   };
 
   return (
-    <div className="relative z-10 flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4 py-10 sm:px-6">
+    <div className="relative z-10 flex min-h-[calc(100vh-4.5rem)] flex-col items-center justify-center px-4 py-8 sm:px-6">
       {/* Electrifying Glow Backdrop */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
 
       {/* Main Container */}
       <div className="w-full max-w-xl text-center space-y-6">
@@ -108,7 +109,7 @@ export function LandingView({ teams, onLoginSuccess, onSecretAdminTrigger, showT
         <div className="space-y-3">
           <div className="inline-flex items-center gap-2 rounded-full bg-cyan-500/10 border border-cyan-500/30 px-3.5 py-1 text-xs font-mono-code text-cyan-300 shadow-sm shadow-cyan-500/20">
             <Sparkles className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
-            <span>53 Logic Components • 500 Pts Budget</span>
+            <span>53 Logic Components • 500 Pts Starting Budget</span>
           </div>
 
           <h1 className="font-bebas text-5xl sm:text-7xl tracking-wider text-slate-100 leading-none glow-text-cyan">
@@ -119,6 +120,23 @@ export function LandingView({ teams, onLoginSuccess, onSecretAdminTrigger, showT
             Real-Time Hardware Bidding Arena
           </p>
         </div>
+
+        {/* Registered Teams Ticker / Button */}
+        {teamList.length > 0 && (
+          <div className="flex flex-col items-center gap-2">
+            <button
+              onClick={() => setShowTeamsModal(true)}
+              className="inline-flex items-center gap-2 rounded-2xl bg-slate-900/90 hover:bg-slate-800/90 border border-cyan-500/40 px-4 py-2 text-xs font-rajdhani font-bold text-cyan-300 shadow-lg shadow-cyan-500/10 transition-all group"
+            >
+              <Users className="h-4 w-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+              <span>Registered Teams ({teamList.length}) — View Roster & Logos</span>
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+            </button>
+          </div>
+        )}
 
         {/* Action Card: Code Entry or Registration */}
         <div className="rounded-3xl border border-cyan-500/30 bg-slate-900/90 backdrop-blur-2xl p-6 sm:p-8 shadow-2xl shadow-cyan-500/10 text-left">
@@ -163,7 +181,7 @@ export function LandingView({ teams, onLoginSuccess, onSecretAdminTrigger, showT
                     type="text"
                     value={pin}
                     onChange={(e) => setPin(e.target.value)}
-                    placeholder="Enter your passcode PIN (e.g. gate101)"
+                    placeholder="Enter your passcode PIN (e.g. logic101)"
                     maxLength={25}
                     autoFocus
                     required
@@ -177,7 +195,7 @@ export function LandingView({ teams, onLoginSuccess, onSecretAdminTrigger, showT
                 type="submit"
                 className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-sky-400 to-blue-600 hover:from-cyan-400 hover:to-blue-500 py-3.5 text-sm font-rajdhani font-bold text-slate-950 tracking-wider shadow-lg shadow-cyan-500/25 transition-all"
               >
-                <span>ENTER AUCTION WAITING ROOM</span>
+                <span>ENTER PREVIEW & WAITING ROOM</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
             </form>
@@ -297,7 +315,7 @@ export function LandingView({ teams, onLoginSuccess, onSecretAdminTrigger, showT
               {/* Notice */}
               <div className="flex items-start gap-2 rounded-xl bg-amber-950/30 border border-amber-500/30 p-2.5 text-amber-300 text-xs font-rajdhani leading-snug">
                 <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>Starts with <strong>500 Points</strong>. Bidding unlocks once approved by Host.</span>
+                <span>Starts with <strong>500 Points</strong>. Bidding unlocks once verified by Host.</span>
               </div>
 
               <button
@@ -311,18 +329,83 @@ export function LandingView({ teams, onLoginSuccess, onSecretAdminTrigger, showT
             </form>
           )}
         </div>
-
-        {/* Discrete secret admin trigger */}
-        <div className="flex justify-center pt-2">
-          <button
-            onClick={onSecretAdminTrigger}
-            className="opacity-20 hover:opacity-100 transition-opacity p-2 text-slate-600 hover:text-amber-400"
-            title="Admin Console"
-          >
-            <Lock className="h-3.5 w-3.5" />
-          </button>
-        </div>
       </div>
+
+      {/* Pop-up Modal for Registered Teams */}
+      {showTeamsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-2xl rounded-3xl border border-cyan-500/40 bg-slate-900/95 p-6 shadow-2xl text-slate-100 space-y-5 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                  <Users className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bebas text-2xl text-slate-100 tracking-wider">REGISTERED TEAMS ARENA</h3>
+                  <p className="text-xs font-rajdhani text-slate-400">
+                    {teamList.length} Teams Ready • 500 Starting Points Budget
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowTeamsModal(false)}
+                className="rounded-xl bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-rajdhani font-bold text-slate-300 transition-colors"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-1 space-y-3">
+              {teamList.map((team, idx) => {
+                const members = team.members || [team.leader || 'Leader'];
+                const isApproved = Boolean(team.verified);
+
+                return (
+                  <div
+                    key={team.id || idx}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-slate-950/80 border border-slate-800 p-3.5 hover:border-cyan-500/30 transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      {team.logo ? (
+                        <img src={team.logo} alt="" className="h-10 w-10 rounded-full object-cover border border-cyan-500/40" />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-800 border border-slate-700 text-lg">
+                          {team.icon || '⚡'}
+                        </div>
+                      )}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-rajdhani font-bold text-base text-slate-100">{team.name}</h4>
+                          {isApproved ? (
+                            <span className="inline-flex items-center gap-1 rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-rajdhani font-bold text-emerald-400 border border-emerald-500/30">
+                              <CheckCircle2 className="h-3 w-3" />
+                              <span>Approved</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded bg-amber-500/20 px-2 py-0.5 text-[10px] font-rajdhani font-bold text-amber-400 border border-amber-500/30">
+                              <Clock className="h-3 w-3" />
+                              <span>Awaiting Approval</span>
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400 font-rajdhani">
+                          Leader: <strong className="text-slate-200">{team.leader || members[0]}</strong> • 
+                          Roster: <span className="text-slate-300">{members.join(', ')}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <div className="font-mono-code font-bold text-sm text-emerald-400">{team.budget} pts</div>
+                      <div className="text-[10px] font-mono-code text-slate-400">PIN Registered</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

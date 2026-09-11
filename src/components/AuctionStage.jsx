@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Zap, Clock, ShieldCheck, ShieldAlert, Award, Flame, Layers } from 'lucide-react';
+import { Zap, Clock, ShieldCheck, ShieldAlert, Award, Flame, Layers, Users, Sparkles, Pause, ArrowRight } from 'lucide-react';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SoldCelebrationModal } from './SoldCelebrationModal';
@@ -17,11 +17,15 @@ export function AuctionStage({ gameState, teams, currentTeam, showToast, onOpenL
   const currentBid = gameState?.currentBid || (currentComponent ? currentComponent.basePrice : 0);
   const currentBidderId = gameState?.currentBidder;
   const currentBidderTeam = currentBidderId && teams ? teams[currentBidderId] : null;
-  const isMyTeamLeading = currentTeam && currentBidderId === currentTeam.id;
+  const isMyTeamLeading = Boolean(currentTeam && currentBidderId === currentTeam.id);
 
   const isApproved = Boolean(currentTeam && currentTeam.verified);
   const isAuctionPhase = gameState?.phase === 'auction';
   const isPausedPhase = gameState?.phase === 'paused';
+
+  const teamList = Object.values(teams || {});
+  const myWonItems = currentTeam?.players || [];
+  const totalSpent = 500 - (currentTeam?.budget ?? 500);
 
   // Sync timer with gameState
   useEffect(() => {
@@ -36,7 +40,7 @@ export function AuctionStage({ gameState, teams, currentTeam, showToast, onOpenL
     const interval = setInterval(() => {
       setTimer((prev) => {
         if (prev <= 1) {
-          // Timer reached 0: Automatically sell or mark unsold
+          // Timer reached 0: Automatically sell to highest bidder or mark unsold
           if (!resolvingRef.current) {
             resolvingRef.current = true;
             autoResolveMutation().catch(() => {});
@@ -61,7 +65,7 @@ export function AuctionStage({ gameState, teams, currentTeam, showToast, onOpenL
       return;
     }
     if (!isAuctionPhase || !currentComponent) {
-      showToast('No component is currently up for bidding', 'error');
+      showToast('No component is currently active for bidding', 'error');
       return;
     }
 
@@ -125,300 +129,335 @@ export function AuctionStage({ gameState, teams, currentTeam, showToast, onOpenL
     }
   };
 
-  const timerRadius = 40;
+  const timerRadius = 36;
   const circumference = 2 * Math.PI * timerRadius;
   const strokeDashoffset = circumference - (Math.max(0, timer) / 15) * circumference;
   const isUrgentTimer = timer <= 4;
   const isWarningTimer = timer <= 8 && timer > 4;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 space-y-6">
-      {/* Celebration Popup (Green for Winner, Red for Loser) */}
+    <div className="relative z-10 h-[calc(100vh-4.25rem)] flex flex-col overflow-hidden max-w-7xl mx-auto px-3 py-2 sm:px-4">
+      {/* Real-time Global Sold Celebration Overlay (Green for Winner, Red for Losers) */}
       <SoldCelebrationModal lastSoldEvent={gameState?.lastSoldEvent} currentTeam={currentTeam} />
 
-      {/* Paused Banner */}
+      {/* Paused Banner Overlay */}
       {isPausedPhase && (
-        <div className="rounded-2xl bg-amber-950/50 border border-amber-500/50 p-3 text-center text-amber-300 font-rajdhani font-bold flex items-center justify-center gap-2">
-          <Clock className="h-4 w-4 animate-spin" />
-          <span>⏸️ AUCTION IS TEMPORARILY PAUSED BY HOST</span>
+        <div className="shrink-0 mb-2 rounded-xl bg-amber-950/80 border border-amber-500/60 p-2 text-center text-amber-300 font-rajdhani font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20">
+          <Pause className="h-4 w-4 animate-pulse text-amber-400" />
+          <span>⏸️ AUCTION IS PAUSED BY HOST — REMAIN ON STAGE, BIDDING RESUMES SHORTLY</span>
         </div>
       )}
 
-      {/* Main Desktop Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column: Spotlight Card (7 cols) */}
-        <div className="lg:col-span-7 space-y-6">
-          <div className="relative rounded-3xl border border-cyan-500/30 bg-slate-900/95 backdrop-blur-2xl p-6 sm:p-8 shadow-2xl shadow-cyan-500/10 overflow-hidden">
-            <div className="absolute top-0 right-0 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
-
-            {currentComponent ? (
-              <div className="space-y-6">
-                {/* Header Meta */}
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="inline-flex items-center gap-2 rounded-full bg-cyan-500/10 border border-cyan-500/30 px-3 py-1 text-xs font-mono-code text-cyan-300 mb-2">
-                      <span>#{currentComponent.id}</span>
-                      <span>•</span>
-                      <span>{currentComponent.role}</span>
-                    </div>
-                    <h1 className="font-bebas text-4xl sm:text-6xl text-slate-100 tracking-wider glow-text-cyan leading-none">
-                      {currentComponent.name}
-                    </h1>
-                  </div>
-
-                  {/* 15s Circular Animated Timer */}
-                  <div className="relative flex items-center justify-center shrink-0">
-                    <svg width="96" height="96" className="timer-circle-svg">
-                      <circle
-                        cx="48"
-                        cy="48"
-                        r={timerRadius}
-                        stroke="#1e293b"
-                        strokeWidth="8"
-                        fill="transparent"
-                      />
-                      <circle
-                        cx="48"
-                        cy="48"
-                        r={timerRadius}
-                        stroke={isUrgentTimer ? '#ff0055' : isWarningTimer ? '#f59e0b' : '#00e5ff'}
-                        strokeWidth="8"
-                        strokeDasharray={circumference}
-                        strokeDashoffset={strokeDashoffset}
-                        strokeLinecap="round"
-                        fill="transparent"
-                        className="transition-all duration-300"
-                      />
-                    </svg>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                      <span className={`font-mono-code font-bold text-2xl leading-none ${
-                        isUrgentTimer ? 'text-rose-500 animate-ping' : isWarningTimer ? 'text-amber-400' : 'text-cyan-400'
-                      }`}>
-                        {timer}s
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* SVG Schematic Spotlight */}
-                <div className="relative flex items-center justify-center rounded-2xl bg-slate-950 border border-cyan-500/25 p-6 min-h-[240px] shadow-inner">
-                  <img
-                    src={currentComponent.image}
-                    alt={currentComponent.name}
-                    className="max-h-60 max-w-full object-contain filter drop-shadow-[0_0_25px_rgba(0,229,255,0.25)]"
-                  />
-                  <div className="absolute bottom-3 right-3 rounded-xl bg-slate-900/90 border border-slate-700 px-3 py-1.5 text-xs font-mono-code text-cyan-300">
-                    Symbol: <strong>{currentComponent.symbol}</strong>
-                  </div>
-                </div>
-
-                {/* Spec Description */}
-                <div className="rounded-2xl bg-slate-950/80 border border-slate-800 p-4 space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-mono-code text-slate-400">
-                    <span>Classification: <strong className="text-slate-200">{currentComponent.country}</strong></span>
-                    <span>Symbol Name: <strong className="text-cyan-400">{currentComponent.symbolName}</strong></span>
-                  </div>
-                  <p className="text-sm font-rajdhani text-slate-300 leading-relaxed">
-                    {currentComponent.description}
-                  </p>
-                </div>
-
-                {/* Leading Bid Status */}
-                <div className={`rounded-2xl border p-4 transition-all ${
-                  isMyTeamLeading
-                    ? 'bg-emerald-950/50 border-emerald-400 shadow-lg shadow-emerald-500/20'
-                    : currentBidderTeam
-                    ? 'bg-slate-950/90 border-cyan-500/40'
-                    : 'bg-slate-950/60 border-slate-800'
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-mono-code uppercase tracking-wider text-slate-400">
-                        Current Top Bid
-                      </span>
-                      <div className="font-mono-code font-bold text-3xl sm:text-4xl text-emerald-400 glow-text-green">
-                        {currentBid} pts
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <span className="text-xs font-mono-code uppercase tracking-wider text-slate-400">
-                        Leading Bidder
-                      </span>
-                      {currentBidderTeam ? (
-                        <div className="flex items-center gap-2 justify-end mt-1">
-                          {currentBidderTeam.logo && (
-                            <img src={currentBidderTeam.logo} alt="" className="h-6 w-6 rounded-full object-cover" />
-                          )}
-                          <span className={`font-rajdhani font-bold text-xl ${
-                            isMyTeamLeading ? 'text-emerald-300' : 'text-cyan-300'
-                          }`}>
-                            {isMyTeamLeading ? '🏆 YOUR TEAM LEADS!' : currentBidderTeam.name}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="font-rajdhani text-sm text-slate-500 italic mt-1">
-                          Base price: {currentComponent.basePrice} pts
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="py-24 text-center space-y-3">
-                <Zap className="mx-auto h-12 w-12 text-slate-600 animate-pulse" />
-                <h3 className="font-bebas text-3xl text-slate-400 tracking-wider">
-                  AUCTION STAGE STANDBY
-                </h3>
-                <p className="text-sm font-rajdhani text-slate-500 max-w-md mx-auto">
-                  Waiting for Host to start the live queue...
-                </p>
-              </div>
-            )}
-          </div>
+      {/* Top Status Bar */}
+      <div className="shrink-0 flex items-center justify-between gap-3 rounded-2xl bg-slate-900/90 border border-slate-800 px-4 py-2 mb-2 shadow-md">
+        <div className="flex items-center gap-3">
+          {currentTeam ? (
+            <div className="flex items-center gap-2">
+              {currentTeam.logo ? (
+                <img src={currentTeam.logo} alt="" className="h-7 w-7 rounded-lg object-cover border border-cyan-400" />
+              ) : (
+                <span className="text-lg">{currentTeam.icon || '⚡'}</span>
+              )}
+              <span className="font-rajdhani font-bold text-sm text-slate-100">{currentTeam.name}</span>
+              <span className="rounded bg-slate-800 px-2 py-0.5 text-xs font-mono-code text-emerald-400 font-bold border border-slate-700">
+                {currentTeam.budget} pts remaining
+              </span>
+            </div>
+          ) : (
+            <div className="text-xs font-rajdhani text-slate-400">
+              Spectator Mode • <button onClick={onOpenLogin} className="text-cyan-400 underline font-bold">Login to Bid</button>
+            </div>
+          )}
         </div>
 
-        {/* Right Column: Quick Bids & Activity (5 cols) */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Quick 3 Bid Buttons Panel */}
-          <div className="rounded-3xl border border-cyan-500/30 bg-slate-900/95 backdrop-blur-2xl p-6 shadow-2xl shadow-cyan-500/10 space-y-5">
-            <div className="flex items-center justify-between">
-              <h2 className="font-bebas text-2xl tracking-wider text-cyan-400 flex items-center gap-2">
-                <Flame className="h-5 w-5 text-cyan-400" />
-                <span>QUICK BID CONTROLS</span>
-              </h2>
-              {currentTeam && (
-                <div className="text-xs font-mono-code text-slate-300">
-                  Budget: <strong className="text-emerald-400">{currentTeam.budget} pts</strong>
-                </div>
-              )}
+        <div className="flex items-center gap-2">
+          {isAuctionPhase && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/20 px-2.5 py-0.5 text-xs font-mono-code text-rose-400 border border-rose-500/40">
+              <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+              <span>LIVE BIDDING</span>
+            </span>
+          )}
+          <span className="text-xs font-mono-code text-slate-400">
+            Queue Remaining: <strong className="text-cyan-400">{gameState?.auctionQueue?.length ?? 53}</strong>
+          </span>
+        </div>
+      </div>
+
+      {/* Main 3-Column Fixed Desktop Layout (Non-scrollable outer page) */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
+        {/* LEFT COLUMN: List of Components This Team Has Bought (3 cols) */}
+        <div className="lg:col-span-3 flex flex-col min-h-0 rounded-2xl border border-slate-800 bg-slate-900/80 p-3 shadow-lg backdrop-blur-md">
+          <div className="shrink-0 flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+            <div className="flex items-center gap-1.5">
+              <Layers className="h-4 w-4 text-emerald-400" />
+              <h3 className="font-bebas text-lg text-slate-100 tracking-wider">MY ACQUIRED ITEMS</h3>
             </div>
+            <span className="text-xs font-mono-code text-emerald-400 font-bold">
+              {myWonItems.length} items
+            </span>
+          </div>
 
-            {/* Exactly 3 Quick Bid Buttons: +1 pt, +2 pts, +5 pts */}
-            <div className="grid grid-cols-3 gap-3">
-              <button
-                onClick={() => handleQuickBid(1)}
-                disabled={!isAuctionPhase || !currentComponent || !isApproved || isBidding || (currentBid + 1 > (currentTeam?.budget || 0))}
-                className="group relative flex flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 border border-cyan-500/40 p-4 hover:border-cyan-400 hover:from-cyan-950/50 hover:to-slate-900 transition-all shadow-lg hover:shadow-cyan-500/20 disabled:opacity-40 disabled:pointer-events-none"
-              >
-                <span className="font-mono-code text-xs text-cyan-400 mb-0.5">+1 Increment</span>
-                <span className="font-bebas text-3xl sm:text-4xl text-slate-100 group-hover:text-cyan-200">+1 pt</span>
-                <span className="text-[10px] font-mono-code text-slate-400 mt-1">{currentBid + 1} pts</span>
-              </button>
-
-              <button
-                onClick={() => handleQuickBid(2)}
-                disabled={!isAuctionPhase || !currentComponent || !isApproved || isBidding || (currentBid + 2 > (currentTeam?.budget || 0))}
-                className="group relative flex flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 border border-cyan-500/40 p-4 hover:border-cyan-400 hover:from-cyan-950/50 hover:to-slate-900 transition-all shadow-lg hover:shadow-cyan-500/20 disabled:opacity-40 disabled:pointer-events-none"
-              >
-                <span className="font-mono-code text-xs text-cyan-400 mb-0.5">+2 Increment</span>
-                <span className="font-bebas text-3xl sm:text-4xl text-slate-100 group-hover:text-cyan-200">+2 pts</span>
-                <span className="text-[10px] font-mono-code text-slate-400 mt-1">{currentBid + 2} pts</span>
-              </button>
-
-              <button
-                onClick={() => handleQuickBid(5)}
-                disabled={!isAuctionPhase || !currentComponent || !isApproved || isBidding || (currentBid + 5 > (currentTeam?.budget || 0))}
-                className="group relative flex flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-cyan-950/60 to-slate-900 border border-cyan-400 p-4 hover:border-cyan-300 hover:from-cyan-900/60 hover:to-slate-900 transition-all shadow-lg shadow-cyan-500/20 hover:shadow-cyan-400/40 disabled:opacity-40 disabled:pointer-events-none"
-              >
-                <span className="font-mono-code text-xs text-cyan-300 mb-0.5">Power Bid</span>
-                <span className="font-bebas text-3xl sm:text-4xl text-cyan-300">+5 pts</span>
-                <span className="text-[10px] font-mono-code text-cyan-400 mt-1">{currentBid + 5} pts</span>
-              </button>
-            </div>
-
-            {/* Custom Bid */}
-            <form onSubmit={handleCustomBid} className="flex gap-2">
-              <input
-                type="number"
-                value={customBid}
-                onChange={(e) => setCustomBid(e.target.value)}
-                placeholder={`Custom bid > ${currentBid}`}
-                min={currentBid + 1}
-                max={currentTeam?.budget || 500}
-                disabled={!isAuctionPhase || !currentComponent || !isApproved || isBidding}
-                className="flex-1 rounded-xl bg-slate-950 border border-slate-700 px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-400 focus:outline-none font-mono-code disabled:opacity-40"
-              />
-              <button
-                type="submit"
-                disabled={!isAuctionPhase || !currentComponent || !isApproved || isBidding || !customBid}
-                className="rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 px-4 py-2 text-xs font-rajdhani font-bold text-slate-200 transition-colors disabled:opacity-40"
-              >
-                BID
-              </button>
-            </form>
-
-            {!currentTeam && (
-              <div className="rounded-xl bg-slate-950/80 border border-slate-800 p-3 text-center">
-                <p className="text-xs font-rajdhani text-slate-400 mb-2">
-                  You are observing as guest. Enter your team code to place bids.
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">
+            {myWonItems.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-4 text-slate-500 space-y-2">
+                <Layers className="h-8 w-8 opacity-30" />
+                <p className="text-xs font-rajdhani">
+                  No components acquired yet.<br />Place bids on the center stage to win!
                 </p>
-                <button
-                  onClick={onOpenLogin}
-                  className="rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-1.5 text-xs font-rajdhani"
-                >
-                  Enter Team Code
-                </button>
               </div>
+            ) : (
+              myWonItems.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-2.5 rounded-xl bg-slate-950/80 border border-slate-800 p-2 hover:border-emerald-500/40 transition-colors"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900 p-1 border border-slate-800 shrink-0">
+                    <img src={item.image} alt={item.name} className="h-full w-full object-contain" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-rajdhani font-bold text-xs text-slate-200 truncate">{item.name}</div>
+                    <div className="flex items-center justify-between text-[10px] font-mono-code text-slate-400">
+                      <span>#{item.id}</span>
+                      <span className="text-emerald-400 font-bold">{item.soldPrice || item.basePrice} pts</span>
+                    </div>
+                  </div>
+                </div>
+              ))
             )}
           </div>
 
-          {/* Live Activity Feed */}
-          <div className="rounded-3xl border border-slate-800 bg-slate-900/90 backdrop-blur-2xl p-5 shadow-xl space-y-3">
-            <h3 className="font-bebas text-xl text-slate-200 tracking-wider flex items-center gap-2">
-              <Zap className="h-4 w-4 text-cyan-400" />
-              <span>LIVE AUCTION ACTIVITY</span>
-            </h3>
+          {currentTeam && (
+            <div className="shrink-0 pt-2 mt-2 border-t border-slate-800 text-[11px] font-mono-code text-slate-400 flex justify-between">
+              <span>Total Spent: <strong className="text-rose-400">{totalSpent} pts</strong></span>
+              <span>Remaining: <strong className="text-emerald-400">{currentTeam.budget} pts</strong></span>
+            </div>
+          )}
+        </div>
 
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-              {(gameState?.feed || []).slice(0, 15).map((item) => (
+        {/* CENTER COLUMN: Component Spotlight & Bidding Controls (6 cols) */}
+        <div className="lg:col-span-6 flex flex-col min-h-0 rounded-2xl border border-cyan-500/30 bg-slate-900/95 p-4 shadow-2xl backdrop-blur-xl relative overflow-hidden justify-between">
+          <div className="absolute top-0 right-0 w-60 h-60 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          {currentComponent ? (
+            <div className="flex flex-col flex-1 min-h-0 justify-between space-y-3">
+              {/* Component Info Header & Circular Timer */}
+              <div className="flex items-start justify-between gap-3 shrink-0">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-0.5 text-[10px] font-mono-code text-cyan-300 mb-1">
+                    <span>#{currentComponent.id}</span>
+                    <span>•</span>
+                    <span>{currentComponent.role}</span>
+                  </div>
+                  <h1 className="font-bebas text-3xl sm:text-4xl text-slate-100 tracking-wider glow-text-cyan leading-none">
+                    {currentComponent.name}
+                  </h1>
+                </div>
+
+                {/* 15s Circular Animated Timer */}
+                <div className="relative flex items-center justify-center shrink-0">
+                  <svg width="78" height="78" className="timer-circle-svg">
+                    <circle cx="39" cy="39" r={timerRadius} stroke="#1e293b" strokeWidth="6" fill="transparent" />
+                    <circle
+                      cx="39"
+                      cy="39"
+                      r={timerRadius}
+                      stroke={isUrgentTimer ? '#ff0055' : isWarningTimer ? '#f59e0b' : '#00e5ff'}
+                      strokeWidth="6"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={strokeDashoffset}
+                      strokeLinecap="round"
+                      fill="transparent"
+                      className="transition-all duration-300"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <span className={`font-mono-code font-bold text-xl leading-none ${
+                      isUrgentTimer ? 'text-rose-500 animate-ping' : isWarningTimer ? 'text-amber-400' : 'text-cyan-400'
+                    }`}>
+                      {timer}s
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Component SVG Schematic Spotlight */}
+              <div className="relative flex-1 min-h-[140px] max-h-[220px] flex items-center justify-center rounded-xl bg-slate-950 border border-cyan-500/20 p-3 shadow-inner">
+                <img
+                  src={currentComponent.image}
+                  alt={currentComponent.name}
+                  className="max-h-full max-w-full object-contain filter drop-shadow-[0_0_20px_rgba(0,229,255,0.25)]"
+                />
+                <div className="absolute bottom-2 right-2 rounded-lg bg-slate-900/90 border border-slate-700 px-2 py-0.5 text-[10px] font-mono-code text-cyan-300">
+                  Symbol: <strong>{currentComponent.symbol}</strong>
+                </div>
+              </div>
+
+              {/* Leading Bid Status Banner */}
+              <div className={`shrink-0 rounded-xl border p-2.5 transition-all ${
+                isMyTeamLeading
+                  ? 'bg-emerald-950/60 border-emerald-400 shadow-md shadow-emerald-500/20'
+                  : currentBidderTeam
+                  ? 'bg-slate-950/90 border-cyan-500/40'
+                  : 'bg-slate-950/70 border-slate-800'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-mono-code uppercase tracking-wider text-slate-400 block">
+                      Current Top Bid
+                    </span>
+                    <div className="font-mono-code font-bold text-2xl sm:text-3xl text-emerald-400 glow-text-green leading-none mt-0.5">
+                      {currentBid} pts
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="text-[10px] font-mono-code uppercase tracking-wider text-slate-400 block">
+                      Leading Bidder
+                    </span>
+                    {currentBidderTeam ? (
+                      <div className="flex items-center gap-1.5 justify-end mt-0.5">
+                        {currentBidderTeam.logo && (
+                          <img src={currentBidderTeam.logo} alt="" className="h-5 w-5 rounded-full object-cover" />
+                        )}
+                        <span className={`font-rajdhani font-bold text-base ${
+                          isMyTeamLeading ? 'text-emerald-300 animate-pulse' : 'text-cyan-300'
+                        }`}>
+                          {isMyTeamLeading ? '👑 YOUR TEAM LEADS!' : currentBidderTeam.name}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="font-rajdhani text-xs text-slate-400 italic">
+                        Base: {currentComponent.basePrice} pts
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Bidding Controls: Quick 3 Bids (+1, +2, +5) & Custom Bid */}
+              <div className="shrink-0 space-y-2 pt-1 border-t border-slate-800/80">
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => handleQuickBid(1)}
+                    disabled={!isAuctionPhase || !isApproved || isBidding || (currentBid + 1 > (currentTeam?.budget || 0))}
+                    className="group flex flex-col items-center justify-center rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 border border-cyan-500/40 p-2 hover:border-cyan-400 hover:from-cyan-950/50 hover:to-slate-900 transition-all shadow-md disabled:opacity-35 disabled:pointer-events-none"
+                  >
+                    <span className="font-bebas text-xl sm:text-2xl text-slate-100 group-hover:text-cyan-200 leading-none">+1 pt</span>
+                    <span className="text-[10px] font-mono-code text-cyan-400 mt-0.5">{currentBid + 1} pts</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleQuickBid(2)}
+                    disabled={!isAuctionPhase || !isApproved || isBidding || (currentBid + 2 > (currentTeam?.budget || 0))}
+                    className="group flex flex-col items-center justify-center rounded-xl bg-gradient-to-b from-slate-800 to-slate-900 border border-cyan-500/40 p-2 hover:border-cyan-400 hover:from-cyan-950/50 hover:to-slate-900 transition-all shadow-md disabled:opacity-35 disabled:pointer-events-none"
+                  >
+                    <span className="font-bebas text-xl sm:text-2xl text-slate-100 group-hover:text-cyan-200 leading-none">+2 pts</span>
+                    <span className="text-[10px] font-mono-code text-cyan-400 mt-0.5">{currentBid + 2} pts</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleQuickBid(5)}
+                    disabled={!isAuctionPhase || !isApproved || isBidding || (currentBid + 5 > (currentTeam?.budget || 0))}
+                    className="group flex flex-col items-center justify-center rounded-xl bg-gradient-to-b from-cyan-950/70 to-slate-900 border border-cyan-400 p-2 hover:border-cyan-300 hover:from-cyan-900/70 transition-all shadow-md shadow-cyan-500/20 disabled:opacity-35 disabled:pointer-events-none"
+                  >
+                    <span className="font-bebas text-xl sm:text-2xl text-cyan-300 leading-none">+5 pts</span>
+                    <span className="text-[10px] font-mono-code text-cyan-400 mt-0.5">{currentBid + 5} pts</span>
+                  </button>
+                </div>
+
+                {/* Custom Bid Input */}
+                <form onSubmit={handleCustomBid} className="flex gap-2">
+                  <input
+                    type="number"
+                    value={customBid}
+                    onChange={(e) => setCustomBid(e.target.value)}
+                    placeholder={`Custom bid > ${currentBid}`}
+                    min={currentBid + 1}
+                    max={currentTeam?.budget || 500}
+                    disabled={!isAuctionPhase || !isApproved || isBidding}
+                    className="flex-1 rounded-xl bg-slate-950 border border-slate-700 px-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-400 focus:outline-none font-mono-code disabled:opacity-35"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!isAuctionPhase || !isApproved || isBidding || !customBid}
+                    className="rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-rajdhani font-bold px-4 py-1.5 text-xs shadow-md disabled:opacity-35"
+                  >
+                    BID
+                  </button>
+                </form>
+              </div>
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
+              <Zap className="h-12 w-12 text-slate-600 animate-pulse" />
+              <h3 className="font-bebas text-2xl text-slate-300 tracking-wider">AUCTION STAGE STANDBY</h3>
+              <p className="text-xs font-rajdhani text-slate-500 max-w-xs">
+                Waiting for Host to spotlight the next component...
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT COLUMN: Live Updates in Mini Bar & Registered Teams (3 cols) */}
+        <div className="lg:col-span-3 flex flex-col min-h-0 space-y-3">
+          {/* Live Activity Feed */}
+          <div className="flex-1 min-h-0 flex flex-col rounded-2xl border border-slate-800 bg-slate-900/80 p-3 shadow-lg backdrop-blur-md">
+            <div className="shrink-0 flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+              <div className="flex items-center gap-1.5">
+                <Zap className="h-4 w-4 text-cyan-400" />
+                <h3 className="font-bebas text-lg text-slate-100 tracking-wider">LIVE UPDATES</h3>
+              </div>
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+              </span>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1 text-xs">
+              {(gameState?.feed || []).slice(0, 20).map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-xl bg-slate-950/70 border border-slate-800/80 p-2.5 text-xs font-rajdhani text-slate-300 flex items-start gap-2"
+                  className="rounded-lg bg-slate-950/70 border border-slate-800/80 p-2 font-rajdhani text-slate-300 flex items-start gap-1.5 leading-snug"
                 >
-                  <span className="font-mono-code text-[10px] text-slate-500 shrink-0 mt-0.5">
+                  <span className="font-mono-code text-[9px] text-slate-500 shrink-0 mt-0.5">
                     {new Date(item.time || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </span>
-                  <span className="leading-snug flex-1">{item.text}</span>
+                  <span className="flex-1">{item.text}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* My Team Won Components Drawer */}
-          {currentTeam && (
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/90 backdrop-blur-2xl p-5 shadow-xl space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bebas text-xl text-slate-200 tracking-wider flex items-center gap-2">
-                  <Layers className="h-4 w-4 text-emerald-400" />
-                  <span>MY ACQUIRED COMPONENTS ({(currentTeam.players || []).length})</span>
-                </h3>
-                <span className="text-xs font-mono-code text-emerald-400">{currentTeam.budget} pts left</span>
+          {/* Registered Teams Mini Bar */}
+          <div className="h-44 shrink-0 flex flex-col rounded-2xl border border-slate-800 bg-slate-900/80 p-3 shadow-lg backdrop-blur-md">
+            <div className="shrink-0 flex items-center justify-between border-b border-slate-800 pb-1.5 mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-amber-400" />
+                <h4 className="font-bebas text-base text-slate-200 tracking-wider">TEAMS ARENA ({teamList.length})</h4>
               </div>
-
-              {(currentTeam.players || []).length === 0 ? (
-                <p className="text-xs font-rajdhani text-slate-500 italic py-2">
-                  No components won yet.
-                </p>
-              ) : (
-                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                  {currentTeam.players.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-2 rounded-xl bg-slate-950 border border-slate-800 p-2 text-xs font-rajdhani"
-                    >
-                      <img src={item.image} alt="" className="h-6 w-6 object-contain shrink-0" />
-                      <div className="truncate">
-                        <div className="font-bold text-slate-200 truncate">{item.name}</div>
-                        <div className="text-[10px] font-mono-code text-emerald-400">{item.soldPrice || item.basePrice} pts</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
-          )}
+
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-1 pr-1">
+              {teamList.map((t) => (
+                <div
+                  key={t.id}
+                  className="flex items-center justify-between rounded-lg bg-slate-950/60 border border-slate-800/60 px-2 py-1 text-xs font-rajdhani"
+                >
+                  <div className="flex items-center gap-1.5 truncate">
+                    {t.logo ? (
+                      <img src={t.logo} alt="" className="h-4 w-4 rounded-full object-cover shrink-0" />
+                    ) : (
+                      <span className="text-[10px]">{t.icon || '⚡'}</span>
+                    )}
+                    <span className="font-bold text-slate-200 truncate">{t.name}</span>
+                  </div>
+                  <div className="text-right font-mono-code text-[11px] text-emerald-400 font-bold shrink-0 ml-2">
+                    {t.budget} pts
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
