@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../convex/_generated/api';
+import { ElectricBackground } from './components/ElectricBackground';
 import { Navbar } from './components/Navbar';
-import { LobbyView } from './components/LobbyView';
+import { LandingView } from './components/LandingView';
+import { PreviewRoom } from './components/PreviewRoom';
 import { AuctionStage } from './components/AuctionStage';
 import { AdminPanel } from './components/AdminPanel';
 import { CircuitSimulator } from './components/CircuitSimulator';
 import { LeaderboardView } from './components/LeaderboardView';
-import { RegistrationModal } from './components/RegistrationModal';
-import { TeamLoginModal } from './components/TeamLoginModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { Toast } from './components/Toast';
 
@@ -18,9 +18,8 @@ function getTabFromUrl() {
 
   if (path.includes('admin') || hash.includes('admin')) return 'admin';
   if (path.includes('simulator') || hash.includes('simulator')) return 'simulator';
-  if (path.includes('team') || path.includes('lobby') || hash.includes('team') || hash.includes('lobby')) return 'teams';
   if (path.includes('leaderboard') || path.includes('standing') || hash.includes('leaderboard')) return 'leaderboard';
-  return 'auction';
+  return 'landing';
 }
 
 export function App() {
@@ -30,8 +29,6 @@ export function App() {
   const [adminPass, setAdminPass] = useState('aiml');
 
   // Modals
-  const [isRegModalOpen, setIsRegModalOpen] = useState(false);
-  const [isTeamLoginOpen, setIsTeamLoginOpen] = useState(false);
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
 
   // Toasts
@@ -56,17 +53,26 @@ export function App() {
   // Auto-sync current logged in team with reactive teams state from Convex
   useEffect(() => {
     if (currentTeam && teams && teams[currentTeam.id]) {
-      setCurrentTeam(teams[currentTeam.id]);
+      const updated = teams[currentTeam.id];
+      if (updated.verified && !currentTeam.verified) {
+        showToast('🎉 Your team was APPROVED by the Host! Bidding is unlocked.', 'success');
+      }
+      setCurrentTeam(updated);
     }
   }, [teams]);
 
-  // Load session from localStorage on mount and sync URL routing
+  // Load session from localStorage on mount & handle URL routing
   useEffect(() => {
     try {
       const savedPin = localStorage.getItem('teamPin');
       if (savedPin && teams) {
         const match = Object.values(teams).find((t) => t.password === savedPin);
-        if (match) setCurrentTeam(match);
+        if (match) {
+          setCurrentTeam(match);
+          if (activeTab === 'landing') {
+            setActiveTab('preview');
+          }
+        }
       }
       const savedAdmin = localStorage.getItem('isAdminAuth');
       const isAdminSaved = savedAdmin === 'true';
@@ -82,11 +88,39 @@ export function App() {
         } else {
           setActiveTab('admin');
         }
-      } else {
+      } else if (initialTab !== 'landing') {
         setActiveTab(initialTab);
       }
     } catch (e) {}
   }, [teams]);
+
+  // Secret Admin Keybind (Ctrl + Shift + A)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        if (isAdmin) {
+          changeTab('admin');
+        } else {
+          setIsAdminLoginOpen(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAdmin]);
+
+  // Auto-transition participants when Host starts or finishes auction
+  useEffect(() => {
+    if (!gameState) return;
+    if (gameState.phase === 'auction' && activeTab === 'preview') {
+      showToast('⚡ The Live Auction has STARTED! Spotlight on stage.', 'info');
+      changeTab('auction');
+    } else if (gameState.phase === 'finished' && (activeTab === 'auction' || activeTab === 'preview')) {
+      showToast('🏁 The Auction has concluded! Showing final standings.', 'info');
+      changeTab('leaderboard');
+    }
+  }, [gameState?.phase]);
 
   // Handle browser back/forward buttons
   useEffect(() => {
@@ -114,7 +148,7 @@ export function App() {
     }
 
     setActiveTab(tab);
-    const targetPath = tab === 'auction' ? '/' : `/${tab}`;
+    const targetPath = tab === 'landing' || tab === 'preview' ? '/' : `/${tab}`;
     if (window.location.pathname !== targetPath) {
       window.history.pushState(null, '', targetPath);
     }
@@ -123,12 +157,14 @@ export function App() {
   const handleLoginSuccess = (team) => {
     setCurrentTeam(team);
     localStorage.setItem('teamPin', team.password);
+    changeTab('preview');
   };
 
   const handleLogout = () => {
     setCurrentTeam(null);
     localStorage.removeItem('teamPin');
-    showToast('Logged out of team seat', 'info');
+    showToast('Left team seat. Returned to landing.', 'info');
+    changeTab('landing');
   };
 
   const handleAdminSuccess = () => {
@@ -144,20 +180,21 @@ export function App() {
   const handleAdminLogout = () => {
     setIsAdmin(false);
     localStorage.removeItem('isAdminAuth');
-    showToast('Exited Admin Mode', 'info');
-    changeTab('auction');
+    showToast('Exited Admin Console', 'info');
+    changeTab('landing');
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans">
-      {/* Top Navigation */}
+    <div className="relative min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans overflow-x-hidden">
+      {/* 60fps Electric PCB Background Animation */}
+      <ElectricBackground />
+
+      {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={changeTab}
         currentTeam={currentTeam}
         onLogout={handleLogout}
-        onOpenLogin={() => setIsTeamLoginOpen(true)}
-        onOpenRegister={() => setIsRegModalOpen(true)}
         isAdmin={isAdmin}
         onOpenAdminLogin={() => {
           if (isAdmin) {
@@ -168,29 +205,42 @@ export function App() {
         }}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 pb-16">
+      {/* Main App Screens */}
+      <main className="flex-1 pb-12 relative z-10">
+        {/* 1. Landing Screen (Code Entry & Register only, Clean & Electrifying) */}
+        {activeTab === 'landing' && (
+          <LandingView
+            teams={teams}
+            onLoginSuccess={handleLoginSuccess}
+            onOpenSimulator={() => changeTab('simulator')}
+            onSecretAdminTrigger={() => setIsAdminLoginOpen(true)}
+            showToast={showToast}
+          />
+        )}
+
+        {/* 2. Preview & Waiting Room Screen */}
+        {activeTab === 'preview' && currentTeam && (
+          <PreviewRoom
+            currentTeam={currentTeam}
+            gameState={gameState}
+            onLogout={handleLogout}
+            onOpenSimulator={() => changeTab('simulator')}
+          />
+        )}
+
+        {/* 3. Live Auction Stage */}
         {activeTab === 'auction' && (
           <AuctionStage
             gameState={gameState}
             teams={teams}
             currentTeam={currentTeam}
             showToast={showToast}
-            onOpenLogin={() => setIsTeamLoginOpen(true)}
-            onOpenRegister={() => setIsRegModalOpen(true)}
+            onOpenLogin={() => changeTab('landing')}
+            onOpenRegister={() => changeTab('landing')}
           />
         )}
 
-        {activeTab === 'teams' && (
-          <LobbyView
-            teams={teams}
-            currentTeam={currentTeam}
-            onOpenRegister={() => setIsRegModalOpen(true)}
-            onOpenLogin={() => setIsTeamLoginOpen(true)}
-            onSelectTeam={(team) => handleLoginSuccess(team)}
-          />
-        )}
-
+        {/* 4. Interactive 60Hz Circuit Simulator */}
         {activeTab === 'simulator' && (
           <CircuitSimulator
             currentTeam={currentTeam}
@@ -198,6 +248,7 @@ export function App() {
           />
         )}
 
+        {/* 5. Standings & Detailed Team Inventory Leaderboard */}
         {activeTab === 'leaderboard' && (
           <LeaderboardView
             teams={teams}
@@ -206,6 +257,7 @@ export function App() {
           />
         )}
 
+        {/* 6. Admin Control Console (Accessible via /admin) */}
         {activeTab === 'admin' && (
           <AdminPanel
             gameState={gameState}
@@ -217,35 +269,20 @@ export function App() {
         )}
       </main>
 
-      {/* Modals */}
-      <RegistrationModal
-        isOpen={isRegModalOpen}
-        onClose={() => setIsRegModalOpen(false)}
-        onSuccess={handleLoginSuccess}
-        showToast={showToast}
-      />
-
-      <TeamLoginModal
-        isOpen={isTeamLoginOpen}
-        onClose={() => setIsTeamLoginOpen(false)}
-        teams={teams}
-        onSuccess={handleLoginSuccess}
-        showToast={showToast}
-      />
-
+      {/* Hidden Master Admin Login Modal (Password: aiml) */}
       <AdminLoginModal
         isOpen={isAdminLoginOpen}
         onClose={() => {
           setIsAdminLoginOpen(false);
           if (activeTab === 'admin' && !isAdmin) {
-            changeTab('auction');
+            changeTab('landing');
           }
         }}
         onSuccess={handleAdminSuccess}
         showToast={showToast}
       />
 
-      {/* Global Toast System */}
+      {/* Floating Notifications */}
       <Toast toasts={toasts} onDismiss={handleDismissToast} />
     </div>
   );
