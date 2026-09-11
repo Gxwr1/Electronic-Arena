@@ -2670,8 +2670,6 @@ app.post('/api/auction/bid', (req, res) => {
   let bidAmount = parseInt(amount, 10);
   if (increment) {
     bidAmount = gameState.currentBid + parseInt(increment, 10);
-  } else if (Number.isFinite(bidAmount) && bidAmount > 0 && bidAmount <= 10 && gameState.currentBid > 0 && bidAmount <= gameState.currentBid) {
-    bidAmount = gameState.currentBid + bidAmount;
   }
 
   if (!Number.isFinite(bidAmount) || bidAmount <= gameState.currentBid) {
