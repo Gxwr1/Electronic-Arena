@@ -1,5 +1,5 @@
 node_modules/
-public/images/*
-!public/images/.gitkeep
 .env
 npm-debug.log*
+storage/auction_state.json
+game/auction-*.json

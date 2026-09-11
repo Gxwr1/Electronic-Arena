@@ -13,183 +13,34 @@ socket.on('connect', () => {
 });
 
 let myTeamId = null;
-let myPass = null; // remember password for session save
+let myPass = null;
 let selectedTeamId = null;
 let isAdmin = false;
 let gameState = null;
 let availableTeams = [];
-let currentTimerMax = 30;
+let currentTimerMax = 15;
 let previewAnimationFrame = null;
 let previewWheelHandler = null;
 let previewWheelTarget = null;
 const PLAYING_XI_SIZE = 11;
 const SUBSTITUTE_SIZE = 4;
-const MAX_SQUAD_SIZE = PLAYING_XI_SIZE + SUBSTITUTE_SIZE;
+const MAX_SQUAD_SIZE = 53;
 
 const ROLE_EMOJIS = {
-  Batter: '🏏',
-  'Batter/WK': '🧤',
-  'WK-Batter': '🧤',
-  'All-Rounder': '⭐',
-  'Fast Bowler': '🎯',
-  Spinner: '🌀',
+  'Input': '🎚️',
+  'Output': '💡',
+  'Logic Gates': '⚡',
+  'Decoders / Data Selectors': '🔀',
+  'Sequential Elements': '⏱️',
+  'Annotation': '🏷️',
+  'Misc Components': '🧮',
+  'Microcontroller': '🎛️',
+  'Sensor': '📡',
+  'Communication': '📶',
+  'IC & Logic': '⚡',
+  'Display & Actuator': '📟',
+  'Power & Passive': '🔋',
 };
-
-// ─── SET TEAM DRAG & DROP ───────────────────
-let currentPlayingXI = {};
-
-function openSetTeamModal() {
-  const modal = document.getElementById('setTeamModal');
-  if (!modal) return;
-
-  modal.classList.add('active');
-  
-  // Load current playing XI from my team data
-  const myTeam = gameState.myTeamFull || (myTeamId && gameState.teams ? gameState.teams[myTeamId] : null);
-  currentPlayingXI = (myTeam && myTeam.playingXI) ? { ...myTeam.playingXI } : {};
-  
-  renderSetTeamInterface();
-}
-
-function closeSetTeamModal() {
-  const modal = document.getElementById('setTeamModal');
-  if (modal) modal.classList.remove('active');
-}
-
-function renderSetTeamInterface() {
-  const poolEl = document.getElementById('playerPool');
-  if (!poolEl) return;
-
-  const myTeam = gameState.myTeamFull || (myTeamId && gameState.teams ? gameState.teams[myTeamId] : null);
-  const squad = (myTeam && myTeam.players) ? myTeam.players : [];
-  
-  // Players already in slots
-  const usedPlayerIds = Object.values(currentPlayingXI).filter(p => p).map(p => p.id);
-  
-  // Render Pool
-  poolEl.innerHTML = squad
-    .filter(p => !usedPlayerIds.includes(p.id))
-    .map(p => renderDraggablePlayer(p))
-    .join('');
-
-  // Render Slots
-  const slots = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11'];
-  slots.forEach(slotId => {
-    const slotBox = document.querySelector(`.slot-box[data-slot="${slotId}"] .slot-drop-zone`);
-    if (slotBox) {
-      const player = currentPlayingXI[slotId];
-      slotBox.innerHTML = player ? renderDraggablePlayer(player) : '';
-    }
-  });
-}
-
-function renderDraggablePlayer(player) {
-  const imageData = getReliableImageSource(player);
-  const safeName = escapeHtml(player.name || 'Unknown');
-  return `
-    <div class="draggable-player" draggable="true" ondragstart="handleDragStart(event)" id="drag-${player.id}" data-player-id="${player.id}">
-      <img src="${imageData.src}" alt="${safeName}" 
-        data-fallback="${imageData.fallback}"
-        onerror="if (this.dataset.fallback && this.src !== this.dataset.fallback) { this.src = this.dataset.fallback; }" />
-      <div class="draggable-player-info">
-        <span class="drag-name">${safeName}</span>
-        <span class="drag-role">${escapeHtml(player.role || 'Unknown')}</span>
-      </div>
-    </div>
-  `;
-}
-
-function handleDragStart(e) {
-  const playerId = e.target.closest('.draggable-player').dataset.playerId;
-  e.dataTransfer.setData('playerId', playerId);
-  
-  // If dragging from a slot, remember which one
-  const sourceSlot = e.target.closest('.slot-box');
-  if (sourceSlot) {
-    e.dataTransfer.setData('sourceSlot', sourceSlot.dataset.slot);
-  }
-}
-
-function allowDrop(e) {
-  e.preventDefault();
-  const dropZone = e.target.closest('.slot-drop-zone') || e.target.closest('.player-pool');
-  if (dropZone) dropZone.classList.add('drag-over');
-}
-
-function handleDrop(e) {
-  e.preventDefault();
-  const playerId = parseInt(e.dataTransfer.getData('playerId'), 10);
-  const sourceSlotId = e.dataTransfer.getData('sourceSlot');
-  
-  const slotBox = e.target.closest('.slot-box');
-  const poolZone = e.target.closest('.player-pool');
-  
-  // Find player data in my squad
-  const myTeam = gameState.myTeamFull || (myTeamId && gameState.teams ? gameState.teams[myTeamId] : null);
-  const player = (myTeam && myTeam.players) ? myTeam.players.find(p => p.id === playerId) : null;
-  
-  if (!player) return;
-
-  if (slotBox) {
-    const targetSlotId = slotBox.dataset.slot;
-    
-    // If there was a player in target slot, move them to pool or source slot
-    const existingInTarget = currentPlayingXI[targetSlotId];
-    
-    if (sourceSlotId) {
-      // Swapping slots or moving within slots
-      currentPlayingXI[sourceSlotId] = existingInTarget;
-    } else {
-      // Moving from pool to slot
-      // If target had someone, they go back to pool (handled by re-render)
-    }
-    
-    currentPlayingXI[targetSlotId] = player;
-  } else if (poolZone) {
-    // Moving from slot to pool
-    if (sourceSlotId) {
-      currentPlayingXI[sourceSlotId] = null;
-    }
-  }
-
-  // Clear drag-over classes
-  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-  
-  renderSetTeamInterface();
-}
-
-function savePlayingXI() {
-  const slots = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8', 'p9', 'p10', 'p11'];
-  const count = slots.filter(s => currentPlayingXI[s]).length;
-  
-  if (count < 11) {
-    const myTeam = gameState.myTeamFull || (myTeamId && gameState.teams ? gameState.teams[myTeamId] : null);
-    const squadCount = (myTeam && myTeam.players) ? myTeam.players.length : 0;
-    
-    if (squadCount >= 11) {
-       showToast(`Please select all 11 players (You have ${count} selected)`, 'error');
-       return;
-    } else {
-       // Allow saving partial team if squad is not full yet
-       showToast(`Saving partial team (${count} players)`, 'info');
-    }
-  }
-
-  socket.emit('savePlayingXI', { teamId: myTeamId, playingXI: currentPlayingXI });
-  // locally remember it so reopening modal shows latest XI immediately
-  if (gameState && gameState.myTeamFull && gameState.myTeamFull.id === myTeamId) {
-    gameState.myTeamFull.playingXI = { ...currentPlayingXI };
-  }
-  showToast('Playing XI saved!', 'success');
-  closeSetTeamModal();
-}
-
-// Add event listeners for dragover removal
-document.addEventListener('dragleave', (e) => {
-  if (e.target.classList.contains('drag-over')) {
-    e.target.classList.remove('drag-over');
-  }
-});
 
 function getSavedSession() {
   try {
@@ -216,19 +67,11 @@ function isSavedSessionValid(saved, state) {
 function lockLobbyControls() {
   const joinBtnEl = document.getElementById('joinBtn');
   if (joinBtnEl) joinBtnEl.disabled = true;
-  document.querySelectorAll('.team-btn').forEach((button) => {
-    button.style.pointerEvents = 'none';
-    button.classList.add('disabled');
-  });
 }
 
 function unlockLobbyControls() {
   const joinBtnEl = document.getElementById('joinBtn');
   if (joinBtnEl) joinBtnEl.disabled = false;
-  document.querySelectorAll('.team-btn').forEach((button) => {
-    button.style.pointerEvents = '';
-    button.classList.remove('disabled');
-  });
 }
 
 function setMyTeamBadge() {
@@ -238,11 +81,11 @@ function setMyTeamBadge() {
     badge.textContent = '';
     return;
   }
-  const team = availableTeams.find((item) => item.id === myTeamId);
-  if (!team) return;
-  badge.textContent = `${team.short}`;
-  badge.style.color = team.color;
-  badge.style.borderColor = team.color;
+  const myTeam = (gameState && gameState.myTeamFull) || (gameState && gameState.teams ? gameState.teams[myTeamId] : null);
+  if (!myTeam) return;
+  badge.textContent = `${myTeam.short || myTeam.name}`;
+  badge.style.color = myTeam.color || '#00e5ff';
+  badge.style.borderColor = myTeam.color || '#00e5ff';
 }
 
 function clearPreviewCarouselTimer() {
@@ -257,6 +100,46 @@ function clearPreviewCarouselTimer() {
   previewWheelTarget = null;
 }
 
+function updateVerificationBanner() {
+  const myTeam = (gameState && gameState.myTeamFull) || (myTeamId && gameState && gameState.teams ? gameState.teams[myTeamId] : null);
+  const isVerified = Boolean(myTeam && myTeam.verified);
+
+  const lobbyBanner = document.getElementById('lobbyVerificationBanner');
+  if (lobbyBanner) {
+    if (isVerified) {
+      lobbyBanner.className = 'verification-banner verified';
+      lobbyBanner.innerHTML = '<span>✅ Team Verified — You are approved to place bids during auction!</span>';
+    } else {
+      lobbyBanner.className = 'verification-banner pending';
+      lobbyBanner.innerHTML = '<span>⏳ Awaiting Admin Approval — Bidding unlocks once verified by Admin.</span>';
+    }
+  }
+
+  const auctionBadge = document.getElementById('auctionVerificationStatus');
+  if (auctionBadge) {
+    if (isVerified) {
+      auctionBadge.className = 'team-badge-verified';
+      auctionBadge.textContent = '✅ Verified to Bid';
+    } else {
+      auctionBadge.className = 'team-badge-pending';
+      auctionBadge.textContent = '⏳ Pending Approval';
+    }
+  }
+
+  const btn1 = document.getElementById('bidPlus1Btn');
+  const btn2 = document.getElementById('bidPlus2Btn');
+  const btn5 = document.getElementById('bidPlus5Btn');
+  const customBtn = document.getElementById('customBidBtn');
+  const customInput = document.getElementById('customBidInput');
+
+  const disabled = !isVerified;
+  if (btn1) btn1.disabled = disabled;
+  if (btn2) btn2.disabled = disabled;
+  if (btn5) btn5.disabled = disabled;
+  if (customBtn) customBtn.disabled = disabled;
+  if (customInput) customInput.disabled = disabled;
+}
+
 function showJoinedScreen() {
   const lobbyContainer = document.querySelector('#lobbyScreen .lobby-container');
   const joinedScreen = document.getElementById('joinedScreen');
@@ -265,11 +148,12 @@ function showJoinedScreen() {
   if (joinedScreen) joinedScreen.style.display = 'flex';
 
   const joinedTeam = document.getElementById('joinedTeam');
-  const team = availableTeams.find((item) => item.id === myTeamId);
+  const myTeam = (gameState && gameState.myTeamFull) || (myTeamId && gameState && gameState.teams ? gameState.teams[myTeamId] : null);
   if (joinedTeam) {
-    joinedTeam.textContent = team ? `${team.short} | ${team.name}` : (myTeamId ? myTeamId.toUpperCase() : '--');
+    joinedTeam.textContent = myTeam ? `${myTeam.short || myTeam.name} | ${myTeam.name}` : (myTeamId ? myTeamId.toUpperCase() : '--');
   }
 
+  updateVerificationBanner();
   switchScreen('lobbyScreen');
 }
 
@@ -288,17 +172,16 @@ function showAuctionScreen() {
   switchScreen('auctionScreen');
   const joinedScreen = document.getElementById('joinedScreen');
   const lobbyContainer = document.querySelector('#lobbyScreen .lobby-container');
-  const hostControlPanel = document.getElementById('hostControlPanel');
   const waitingScreen = document.getElementById('waitingScreen');
   const auctionLayout = document.getElementById('auctionLayout');
   const hostBadge = document.getElementById('hostBadge');
   if (joinedScreen) joinedScreen.style.display = 'none';
   if (lobbyContainer) lobbyContainer.style.display = '';
-  if (hostControlPanel) hostControlPanel.style.display = 'none';
   if (waitingScreen) waitingScreen.style.display = 'none';
   clearPreviewCarouselTimer();
   if (auctionLayout) auctionLayout.style.display = '';
   if (hostBadge) hostBadge.textContent = 'ADMIN CONTROLLED';
+  updateVerificationBanner();
 }
 
 function refreshJoinedGalleryIfVisible() {
@@ -343,7 +226,6 @@ socket.on('init', ({ gameState: gs, availableTeams: teams, allPlayers, isAdmin: 
     renderTeamsOverview();
     renderMyPlayersDashboard();
     
-    // IF NOT JOINED AND AUCTION IS RUNNING, SHOW RECOVERY OVERLAY
     if (!myTeamId && !isAdmin) {
       showSessionRecovery();
     }
@@ -370,18 +252,35 @@ socket.on('init', ({ gameState: gs, availableTeams: teams, allPlayers, isAdmin: 
   }
 });
 
-// helper to briefly reveal assigned team after code entry
 function showTeamReveal(team) {
   const reveal = document.getElementById('revealScreen');
   if (!reveal || !team) return;
   const logo = document.getElementById('revealLogo');
+  const icon = document.getElementById('revealLogoIcon');
   const nameEl = document.getElementById('revealTeamName');
-  if (logo) logo.src = team.logo || '';
+  const statusEl = document.getElementById('revealStatus');
+
+  if (team.logo) {
+    logo.src = team.logo;
+    logo.style.display = 'inline-block';
+    icon.style.display = 'none';
+  } else {
+    logo.style.display = 'none';
+    icon.style.display = 'block';
+    icon.textContent = team.icon || '⚡';
+  }
+
   if (nameEl) nameEl.textContent = team.name || team.short || '';
+  if (statusEl) {
+    statusEl.innerHTML = team.verified
+      ? '<span class="team-badge-verified">✅ Verified</span>'
+      : '<span class="team-badge-pending">⏳ Pending Admin Verification</span>';
+  }
+
   reveal.style.display = 'flex';
   setTimeout(() => {
     reveal.style.display = 'none';
-  }, 2000);
+  }, 2200);
 }
 
 socket.on('joinSuccess', ({ teamId, password, reconnectToken, reconnected, team }) => {
@@ -389,7 +288,6 @@ socket.on('joinSuccess', ({ teamId, password, reconnectToken, reconnected, team 
   myTeamId = teamId;
   selectedTeamId = teamId;
 
-  // store full team info if provided
   if (team) {
     if (!gameState) gameState = {};
     gameState.myTeamFull = team;
@@ -404,11 +302,11 @@ socket.on('joinSuccess', ({ teamId, password, reconnectToken, reconnected, team 
 
   lockLobbyControls();
   setMyTeamBadge();
+  updateVerificationBanner();
   renderLobby();
   renderMyPlayersDashboard();
 
   if (reconnected) {
-    // normal flow when recovering
     if (gameState && gameState.phase === 'auction') {
       showAuctionScreen();
     } else {
@@ -416,7 +314,6 @@ socket.on('joinSuccess', ({ teamId, password, reconnectToken, reconnected, team 
       renderPlayersGallery((gameState && gameState.players) ? gameState.players : []);
     }
   } else {
-    // new join: reveal team first then move to waiting/auction
     if (team) showTeamReveal(team);
     setTimeout(() => {
       if (gameState && gameState.phase === 'auction') {
@@ -468,13 +365,45 @@ socket.on('teamOwnerDisconnected', ({ name }) => {
 socket.on('leftGame', () => {
   clearSession();
   myTeamId = null;
-  myName = null;
+  myPass = null;
   selectedTeamId = null;
   unlockLobbyControls();
   showLobbyJoinScreen();
   renderLobby();
   renderMyPlayersDashboard();
-  showToast('You left the lobby', 'info');
+  showToast('You left the team', 'info');
+});
+
+socket.on('teamVerified', ({ teamId, verified }) => {
+  if (gameState && gameState.teams && gameState.teams[teamId]) {
+    gameState.teams[teamId].verified = verified;
+  }
+  if (gameState && gameState.myTeamFull && gameState.myTeamFull.id === teamId) {
+    gameState.myTeamFull.verified = verified;
+    if (verified) {
+      showToast('🎉 Your team has been APPROVED by the Admin! You can now bid.', 'success', 4000);
+    } else {
+      showToast('⚠️ Your team verification status was updated.', 'info', 3000);
+    }
+  }
+  updateVerificationBanner();
+  renderJoinedTeams();
+  renderTeamsOverview();
+});
+
+socket.on('allTeamsVerified', ({ verified }) => {
+  if (gameState && gameState.teams) {
+    Object.values(gameState.teams).forEach(t => { t.verified = verified; });
+  }
+  if (gameState && gameState.myTeamFull) {
+    gameState.myTeamFull.verified = verified;
+  }
+  if (verified) {
+    showToast('🎉 All teams have been APPROVED by the Admin!', 'success', 3000);
+  }
+  updateVerificationBanner();
+  renderJoinedTeams();
+  renderTeamsOverview();
 });
 
 socket.on('auctionStarted', ({ gameState: gs }) => {
@@ -482,7 +411,7 @@ socket.on('auctionStarted', ({ gameState: gs }) => {
   showAuctionScreen();
   renderTeamsOverview();
   renderMyPlayersDashboard();
-  showToast('🏏 Auction started!', 'info');
+  showToast('⚡ Logic Circuit Auction started!', 'info');
 });
 
 socket.on('newPlayer', ({ player, startingBid, remaining }) => {
@@ -505,60 +434,52 @@ socket.on('bidPlaced', ({ bid, bidderTeamId, teamName }) => {
 
   const isMe = bidderTeamId === myTeamId;
   if (!isMe) {
-    showToast(`💰 ${teamName} bid ₹${bid}L`, 'info', 2000);
+    showToast(`💰 ${teamName} bid ${bid} pts`, 'info', 2000);
   }
 
   const bidEl = document.getElementById('currentBidDisplay');
-  bidEl.classList.remove('bump');
-  void bidEl.offsetWidth;
-  bidEl.classList.add('bump');
+  if (bidEl) {
+    bidEl.classList.remove('bump');
+    void bidEl.offsetWidth;
+    bidEl.classList.add('bump');
+  }
 });
 
 socket.on('timerTick', ({ seconds }) => {
   updateTimer(seconds);
 });
 
-socket.on('playerSold', ({ player, soldTo, soldPrice, teamName, teamColor }) => {
+socket.on('playerSold', ({ player, soldTo, soldPrice, teamName }) => {
   if (!gameState) gameState = {};
   gameState.currentBidder = soldTo;
   const isWinner = soldTo === myTeamId;
 
-  // **immediately update local copy of my team for smooth UX**
   if (isWinner && gameState.myTeamFull) {
-    // push a copy with soldPrice
     const copy = { ...player, soldPrice };
     gameState.myTeamFull.players = gameState.myTeamFull.players || [];
     gameState.myTeamFull.players.push(copy);
-    // adjust budget locally as well
     if (typeof gameState.myTeamFull.budget === 'number') {
       gameState.myTeamFull.budget -= soldPrice;
+      const myBal = document.getElementById('myBalance');
+      if (myBal) myBal.textContent = `${gameState.myTeamFull.budget} pts`;
     }
   }
 
   showSoldOverlay(
     player.name,
-    isWinner ? 'YOU WON THIS PLAYER' : `${teamName} WON THE BID`,
+    isWinner ? 'YOU WON THIS COMPONENT' : `${teamName} WON THE BID`,
     soldPrice,
     isWinner ? 'win' : 'lost',
-    soldTo // Pass teamId for logo
+    soldTo
   );
   addFeedItem(
     isWinner
-      ? `✅ WON: ${player.name} for ₹${soldPrice}L`
-      : `🔴 SOLD: ${player.name} -> ${teamName} ₹${soldPrice}L`,
+      ? `✅ WON: ${player.name} for ${soldPrice} pts`
+      : `🔴 SOLD: ${player.name} -> ${teamName} (${soldPrice} pts)`,
     isWinner ? 'won' : 'lost'
   );
   renderTeamsOverview();
   renderMyPlayersDashboard();
-
-  if (isWinner) {
-    const squadSize = getMySquadSize();
-    if (squadSize >= MAX_SQUAD_SIZE) {
-      showToast('🎯 Squad full! Click "SET TEAM" to arrange your playing XI.', 'info', 4000);
-      // also send whatever playingXI we have (possibly empty) so server stores a placeholder
-      socket.emit('savePlayingXI', { teamId: myTeamId, playingXI: currentPlayingXI });
-    }
-  }
 });
 
 socket.on('playerAdded', ({ player }) => {
@@ -568,7 +489,7 @@ socket.on('playerAdded', ({ player }) => {
   if (idx === -1) gameState.players.push(player);
   else gameState.players[idx] = player;
   refreshJoinedGalleryIfVisible();
-  showToast(`New player added: ${player.name}`, 'info');
+  showToast(`New component added: ${player.name}`, 'info');
 });
 
 socket.on('playerUpdated', ({ player }) => {
@@ -592,22 +513,22 @@ socket.on('playerDeleted', ({ playerId }) => {
   refreshJoinedGalleryIfVisible();
 });
 
-// Updates sanitized public teams list (no budget/players visible)
 socket.on('teamsUpdate', ({ teams }) => {
   if (!gameState) gameState = {};
   gameState.teams = teams;
   renderTeamsOverview();
+  renderJoinedTeams();
+  updateVerificationBanner();
 });
 
-// Updates my own team's full details (budget, players, etc.) - only sent to my socket
 socket.on('myTeam', ({ team }) => {
   if (team && team.id === myTeamId) {
-    // Store my team's full details (budget, players)
     if (!gameState) gameState = {};
-    if (!gameState.myTeamFull) gameState.myTeamFull = {};
     gameState.myTeamFull = team;
-    document.getElementById('myBalance').textContent = `₹${team.budget}L`;
+    const balEl = document.getElementById('myBalance');
+    if (balEl) balEl.textContent = `${team.budget} pts`;
     renderMyPlayersDashboard();
+    updateVerificationBanner();
   }
 });
 
@@ -647,9 +568,9 @@ socket.on('resultUpdate', ({ resultReview }) => {
 socket.on('gameReset', ({ message }) => {
   clearSession();
   myTeamId = null;
-  myName = null;
+  myPass = null;
   selectedTeamId = null;
-  showToast(message || 'Game reset', 'info');
+  showToast(message || 'Auction reset', 'info');
   setTimeout(() => window.location.reload(), 1500);
 });
 
@@ -678,70 +599,47 @@ socket.on('stateUpdate', (gs) => {
   renderTeamsOverview();
   renderMyPlayersDashboard();
   refreshJoinedGalleryIfVisible();
+  updateVerificationBanner();
 });
 
 function switchScreen(id) {
   document.querySelectorAll('.screen').forEach((screen) => screen.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  const target = document.getElementById(id);
+  if (target) target.classList.add('active');
 }
 
 function renderLobby() {
-  renderTeamGrid();
   renderJoinedTeams();
-}
-
-function renderTeamGrid() {
-  // team selection UI is hidden now; nothing to render if element missing
-  const grid = document.getElementById('teamGrid');
-  if (!grid) return;
-  grid.innerHTML = '';
-
-  availableTeams.forEach((team) => {
-    const takenTeam = gameState && gameState.teams ? gameState.teams[team.id] : null;
-    const isTaken = Boolean(takenTeam);
-    const isMine = myTeamId === team.id;
-    const isSelected = selectedTeamId === team.id || isMine;
-
-    const div = document.createElement('div');
-    div.className = `team-btn${isTaken && !isMine ? ' taken' : ''}${isSelected ? ' selected' : ''}`;
-
-    if (isSelected || (isTaken && !isMine)) {
-      div.style.background = team.color;
-      div.style.borderColor = team.color;
-    }
-
-    div.innerHTML = `<div class="team-short">${team.short}</div><div class="team-full">${team.name.replace(' ', '\n')}</div>`;
-
-    if (!isTaken && !myTeamId) {
-      div.onclick = () => selectTeam(team.id, team.color, div);
-    }
-
-    grid.appendChild(div);
-  });
-}
-
-function selectTeam(teamId, color, element) {
-  selectedTeamId = teamId;
-  document.querySelectorAll('.team-btn').forEach((button) => {
-    button.classList.remove('selected');
-    button.style.background = '';
-    button.style.borderColor = '';
-  });
-  element.classList.add('selected');
-  element.style.background = color;
-  element.style.borderColor = color;
 }
 
 function renderJoinedTeams() {
   const list = document.getElementById('joinedTeamsList');
+  if (!list) return;
   list.innerHTML = '';
   if (!gameState || !gameState.teams) return;
 
-  Object.values(gameState.teams).forEach((team) => {
+  const teams = Object.values(gameState.teams);
+  if (!teams.length) {
+    list.innerHTML = '<div style="color:var(--text-dim);font-size:13px;padding:8px 0;">No teams registered yet. Be the first to register above!</div>';
+    return;
+  }
+
+  teams.forEach((team) => {
     const chip = document.createElement('div');
     chip.className = 'joined-team-chip';
-    chip.style.background = team.color;
-    chip.textContent = `${team.short} - ${team.ownerName}`;
+    chip.style.borderLeft = `3px solid ${team.color || '#00e5ff'}`;
+    const isVerified = Boolean(team.verified);
+    const memberCount = Array.isArray(team.members) && team.members.length ? `${team.members.length} members` : (team.leader ? '1 member' : '0 members');
+    chip.innerHTML = `
+      <div style="display:flex; align-items:center; gap:8px; justify-content:space-between; width:100%;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          ${team.logo ? `<img src="${team.logo}" style="width:24px; height:24px; border-radius:50%; object-fit:cover;" />` : `<span style="font-size:16px;">${escapeHtml(team.icon || '⚡')}</span>`}
+          <strong>${escapeHtml(team.name || team.short)}</strong>
+          <span style="font-size:12px; opacity:0.8;">(${escapeHtml(memberCount)})</span>
+        </div>
+        ${isVerified ? '<span class="team-badge-verified">✅ Verified</span>' : '<span class="team-badge-pending">⏳ Pending</span>'}
+      </div>
+    `;
     list.appendChild(chip);
   });
 }
@@ -754,7 +652,7 @@ function joinGame() {
 
   const code = document.getElementById('teamCode').value.trim();
   if (!code) {
-    showToast('Enter your code', 'error');
+    showToast('Enter your passcode / PIN', 'error');
     return;
   }
 
@@ -768,10 +666,6 @@ function leaveGame() {
     return;
   }
   socket.emit('leaveGame');
-}
-
-function startAuction() {
-  showToast('Auction can only be started from admin panel', 'info');
 }
 
 function escapeHtml(value) {
@@ -793,14 +687,14 @@ function escapeSvgText(value) {
 }
 
 function getInlineFallbackImage(name) {
-  const label = String(name || 'Player').trim().slice(0, 18) || 'Player';
+  const label = String(name || 'Component').trim().slice(0, 22) || 'Component';
   const safeLabel = escapeSvgText(label);
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='320' height='420' viewBox='0 0 320 420'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='#1d2232'/><stop offset='100%' stop-color='#11131d'/></linearGradient></defs><rect width='320' height='420' fill='url(#g)'/><circle cx='160' cy='152' r='58' fill='#2a3147'/><rect x='86' y='228' width='148' height='106' rx='12' fill='#2a3147'/><text x='160' y='374' text-anchor='middle' fill='#ffd700' font-family='Arial,sans-serif' font-size='22'>${safeLabel}</text></svg>`;
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='320' height='420' viewBox='0 0 320 420'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%' stop-color='#1a233a'/><stop offset='100%' stop-color='#0a0f1d'/></linearGradient></defs><rect width='320' height='420' rx='12' fill='url(#g)'/><rect x='8' y='8' width='304' height='404' rx='8' fill='none' stroke='#00d2ff' stroke-width='1.5' stroke-opacity='0.3'/><rect x='90' y='110' width='140' height='140' rx='14' fill='#111927' stroke='#ffd700' stroke-width='2'/><text x='160' y='195' text-anchor='middle' font-size='48'>⚡</text><text x='160' y='320' text-anchor='middle' fill='#ffd700' font-family='Arial,sans-serif' font-size='16' font-weight='bold'>${safeLabel}</text><text x='160' y='350' text-anchor='middle' fill='#747d8c' font-family='Arial,sans-serif' font-size='12'>LOGIC COMPONENT</text></svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
 function getReliableImageSource(player) {
-  const fallback = getInlineFallbackImage(player && player.name ? player.name : 'Player');
+  const fallback = getInlineFallbackImage(player && player.name ? player.name : 'Component');
   const raw = String((player && player.image) || '').trim();
 
   if (!raw) {
@@ -826,44 +720,45 @@ function getReliableImageSource(player) {
 
 function renderPlayerSpotlight(player, startingBid) {
   const el = document.getElementById('playerSpotlight');
-  const emoji = ROLE_EMOJIS[player.role] || '🏏';
+  if (!el || !player) return;
+  const emoji = ROLE_EMOJIS[player.role] || '⚡';
   const safeName = escapeHtml(player.name || 'Unknown');
-  const safeRole = escapeHtml(player.role || 'Unknown');
+  const safeRole = escapeHtml(player.role || 'Component');
+  const safeSymbolName = escapeHtml(player.symbolName || player.name || '');
+  const safeSymbol = escapeHtml(player.symbol || '');
+  const safeDesc = escapeHtml(player.description || '');
   const imageData = getReliableImageSource(player);
 
   el.innerHTML = `
     <div class="player-card-inner">
       <div class="player-image-section">
-        <div class="player-image-wrapper">
+        <div class="player-image-wrapper" style="background: rgba(0,0,0,0.45); padding: 16px; border-radius: 12px; border: 1px solid rgba(0,229,255,0.25); text-align:center;">
           <img src="${imageData.src}" alt="${safeName}" class="player-image" loading="lazy" decoding="async"
+            style="object-fit: contain; max-height: 220px; width: 100%;"
             data-fallback="${imageData.fallback}"
             onerror="if (this.dataset.fallback && this.src !== this.dataset.fallback) { this.src = this.dataset.fallback; }" />
         </div>
       </div>
       <div class="player-info-section">
-        <div class="player-name-display">${safeName}</div>
-        <div class="price-display">₹${startingBid}L</div>
-        <div class="role-display">${emoji} ${safeRole}</div>
+        <div class="player-name-display" style="color:var(--gold); font-size: 30px; font-family:'Bebas Neue',sans-serif; letter-spacing: 1.5px;">${safeName}</div>
+        
+        ${safeSymbol ? `
+          <div class="spotlight-symbol-badge">
+            <span>Symbol: <strong>${safeSymbolName}</strong> [ ${safeSymbol} ]</span>
+          </div>
+        ` : ''}
+
+        <div class="price-display" style="color:var(--neon-green); font-size: 28px; font-weight: bold; margin: 8px 0;">${startingBid} pts</div>
+        <div class="role-display" style="font-size: 15px; color: var(--neon-cyan); margin-bottom: 10px;">${emoji} ${safeRole}</div>
+        
+        ${safeDesc ? `
+          <div style="font-size: 13px; color: #cbd5e1; line-height: 1.5; background: rgba(255,255,255,0.04); padding: 10px 14px; border-radius: 8px; border-left: 3px solid var(--neon-cyan);">
+            ${safeDesc}
+          </div>
+        ` : ''}
       </div>
     </div>
   `;
-}
-
-function reorderPlayersForGallery(players) {
-  if (!players || !players.length) return [];
-  const batters = players.filter((p) => ['Batter', 'Batter/WK', 'WK-Batter'].includes(p.role));
-  const bowlers = players.filter((p) => ['Fast Bowler', 'Spinner'].includes(p.role));
-  const allRounders = players.filter((p) => p.role === 'All-Rounder');
-  const others = players.filter((p) => !['Batter', 'Batter/WK', 'WK-Batter', 'Fast Bowler', 'Spinner', 'All-Rounder'].includes(p.role));
-
-  const ordered = [];
-  while (batters.length || bowlers.length || allRounders.length || others.length) {
-    for (let i = 0; i < 5 && batters.length; i += 1) ordered.push(batters.shift());
-    for (let i = 0; i < 5 && bowlers.length; i += 1) ordered.push(bowlers.shift());
-    for (let i = 0; i < 5 && allRounders.length; i += 1) ordered.push(allRounders.shift());
-    if (others.length) ordered.push(others.shift());
-  }
-  return ordered;
 }
 
 function renderPlayersGallery(players) {
@@ -871,10 +766,10 @@ function renderPlayersGallery(players) {
   if (!wrap) return;
   clearPreviewCarouselTimer();
   wrap.innerHTML = '';
-  const ordered = reorderPlayersForGallery(players || []);
+  const ordered = players || [];
 
   if (!ordered.length) {
-    wrap.innerHTML = '<div style="color:var(--text-dim);padding:10px">No players available</div>';
+    wrap.innerHTML = '<div style="color:var(--text-dim);padding:10px">No components available</div>';
     return;
   }
 
@@ -886,7 +781,7 @@ function renderPlayersGallery(players) {
     const safeName = escapeHtml(player.name || 'Unknown');
     return `
       <div class="gallery-sequence-card">
-        <div class="gallery-sequence-image">
+        <div class="gallery-sequence-image" style="background:rgba(0,0,0,0.4);">
           <img src="${imageData.src}" alt="${safeName}" loading="lazy" decoding="async"
             data-fallback="${imageData.fallback}"
             onerror="if (this.dataset.fallback && this.src !== this.dataset.fallback) { this.src = this.dataset.fallback; }" />
@@ -932,14 +827,17 @@ function renderPlayersGallery(players) {
 
   previewAnimationFrame = window.requestAnimationFrame(step);
 }
+
 function updateBidDisplay(amount, bidderTeamId, teamName) {
-  document.getElementById('currentBidDisplay').textContent = `₹${amount}L`;
+  const el = document.getElementById('currentBidDisplay');
+  if (el) el.textContent = `${amount} pts`;
 
   const leaderEl = document.getElementById('bidLeaderDisplay');
+  if (!leaderEl) return;
   if (bidderTeamId && teamName) {
     const isMe = bidderTeamId === myTeamId;
     leaderEl.textContent = isMe ? '🏆 You are leading!' : `${teamName} leads`;
-    leaderEl.style.color = isMe ? 'var(--green)' : 'var(--gold)';
+    leaderEl.style.color = isMe ? 'var(--neon-green)' : 'var(--gold)';
   } else {
     leaderEl.textContent = 'No bids yet';
     leaderEl.style.color = 'var(--text-dim)';
@@ -957,8 +855,8 @@ function updateTimer(seconds) {
   timerText.textContent = seconds;
 
   circle.classList.remove('urgent', 'warning');
-  if (seconds <= 5) circle.classList.add('urgent');
-  else if (seconds <= 10) circle.classList.add('warning');
+  if (seconds <= 4) circle.classList.add('urgent');
+  else if (seconds <= 8) circle.classList.add('warning');
 }
 
 function renderTeamsOverview() {
@@ -972,23 +870,26 @@ function renderTeamsOverview() {
     const div = document.createElement('div');
     div.className = `team-card${isLeading ? ' leading' : ''}`;
     
-    // For admin or my team, show full budget/players; for other teams (non-admin), hide details
     let showDetails = isAdmin || isMyTeam;
     let fullTeam = isMyTeam && gameState.myTeamFull ? gameState.myTeamFull : team;
     
     const budget = showDetails ? (fullTeam.budget || 0) : '?';
-    const playerCount = showDetails ? ((fullTeam.players || []).length) : '?';
-    const ownerName = team.ownerName || 'Unknown';
+    const playerCount = showDetails ? ((fullTeam.players || []).length) : ((team.players || []).length || 0);
+    const ownerName = team.ownerName || team.name || 'Unknown';
+    const isVerified = Boolean(team.verified);
     
     div.innerHTML = `
-      <div class="team-color-dot" style="background:${team.color}"></div>
+      <div class="team-color-dot" style="background:${team.color || '#00e5ff'}"></div>
       <div class="team-card-info">
-        <div class="team-card-name">${team.short} ${isLeading ? '⚡' : ''}</div>
+        <div class="team-card-name">
+          ${team.short || team.name} ${isLeading ? '⚡' : ''}
+          ${isVerified ? '<span class="team-badge-verified">✅</span>' : '<span class="team-badge-pending">⏳</span>'}
+        </div>
         <div class="team-card-owner">${isMyTeam ? '👤 ' + ownerName : ownerName}</div>
       </div>
-      <div>
-        <div class="team-card-budget">₹${budget}L</div>
-        <div class="team-card-players">${playerCount} players</div>
+      <div style="text-align:right;">
+        <div class="team-card-budget" style="color:var(--neon-green); font-weight:bold;">${budget} pts</div>
+        <div class="team-card-players" style="font-size:11px; opacity:0.8;">${playerCount} components</div>
       </div>
     `;
     el.appendChild(div);
@@ -999,7 +900,6 @@ function renderMyPlayersDashboard() {
   const list = document.getElementById('myPlayersList');
   if (!list) return;
   
-  // Use myTeamFull (full details) if available, else fall back to public teams view
   let myTeamData = null;
   if (myTeamId) {
     if (gameState && gameState.myTeamFull) {
@@ -1010,29 +910,30 @@ function renderMyPlayersDashboard() {
   }
   
   if (!myTeamId || !myTeamData) {
-    list.innerHTML = '<div class="my-player-empty">Join a team to track your squad</div>';
+    list.innerHTML = '<div class="my-player-empty">Join a team to track acquired components</div>';
     return;
   }
 
   const players = myTeamData.players || [];
   if (!players.length) {
-    list.innerHTML = '<div class="my-player-empty">No players won yet</div>';
+    list.innerHTML = '<div class="my-player-empty">No components won yet. Place bids to build your circuit!</div>';
     return;
   }
 
   list.innerHTML = players.map((player) => {
     const imageData = getReliableImageSource(player);
     const safeName = escapeHtml(player.name || 'Unknown');
-    const safeRole = escapeHtml(player.role || 'Unknown');
+    const safeRole = escapeHtml(player.role || 'Component');
     return `
-    <div class="my-player-card won">
+    <div class="my-player-card won" style="display:flex; align-items:center; gap:8px; padding:6px; background:rgba(255,255,255,0.03); border-radius:6px; margin-bottom:6px;">
       <img src="${imageData.src}" alt="${safeName}" loading="lazy" decoding="async"
+        style="width:36px; height:36px; object-fit:contain; background:rgba(0,0,0,0.3); border-radius:4px; padding:2px;"
         data-fallback="${imageData.fallback}"
         onerror="if (this.dataset.fallback && this.src !== this.dataset.fallback) { this.src = this.dataset.fallback; }" />
-      <div class="my-player-meta">
-        <div class="my-player-name">${safeName}</div>
-        <div class="my-player-role">${safeRole}</div>
-        <div class="my-player-price">₹${player.soldPrice}L</div>
+      <div class="my-player-meta" style="flex:1;">
+        <div class="my-player-name" style="font-size:13px; font-weight:bold; color:var(--gold);">${safeName}</div>
+        <div class="my-player-role" style="font-size:11px; color:var(--neon-cyan);">${safeRole}</div>
+        <div class="my-player-price" style="font-size:11px; color:var(--neon-green);">${player.soldPrice || player.basePrice} pts</div>
       </div>
     </div>
     `;
@@ -1046,7 +947,7 @@ function addFeedItem(text, type = 'sold') {
   item.className = `feed-item ${type}`;
   item.textContent = text;
   feed.insertBefore(item, feed.firstChild);
-  while (feed.children.length > 20) feed.removeChild(feed.lastChild);
+  while (feed.children.length > 25) feed.removeChild(feed.lastChild);
 }
 
 function getMySquadSize() {
@@ -1061,12 +962,13 @@ function placeBid(increment) {
     showToast('Join a team first', 'error');
     return;
   }
-  if (!gameState || !gameState.currentPlayer) {
-    showToast('No player is up for bidding', 'error');
+  const myTeam = (gameState && gameState.myTeamFull) || (gameState && gameState.teams ? gameState.teams[myTeamId] : null);
+  if (myTeam && myTeam.verified === false) {
+    showToast('⏳ Your team is awaiting Admin Approval before bidding.', 'error', 3500);
     return;
   }
-  if (getMySquadSize() >= MAX_SQUAD_SIZE) {
-    showToast(`Squad full (${MAX_SQUAD_SIZE}: ${PLAYING_XI_SIZE} + ${SUBSTITUTE_SIZE})`, 'error');
+  if (!gameState || !gameState.currentPlayer) {
+    showToast('No component is up for bidding', 'error');
     return;
   }
 
@@ -1074,7 +976,7 @@ function placeBid(increment) {
   if (!match) return;
 
   const addAmount = parseInt(match[1], 10);
-  const newBid = gameState.currentBid + addAmount;
+  const newBid = (gameState.currentBid || 0) + addAmount;
   socket.emit('placeBid', { amount: newBid });
 }
 
@@ -1083,18 +985,19 @@ function placeCustomBid() {
     showToast('Join a team first', 'error');
     return;
   }
-  if (!gameState || !gameState.currentPlayer) {
-    showToast('No player is up for bidding', 'error');
+  const myTeam = (gameState && gameState.myTeamFull) || (gameState && gameState.teams ? gameState.teams[myTeamId] : null);
+  if (myTeam && myTeam.verified === false) {
+    showToast('⏳ Your team is awaiting Admin Approval before bidding.', 'error', 3500);
     return;
   }
-  if (getMySquadSize() >= MAX_SQUAD_SIZE) {
-    showToast(`Squad full (${MAX_SQUAD_SIZE}: ${PLAYING_XI_SIZE} + ${SUBSTITUTE_SIZE})`, 'error');
+  if (!gameState || !gameState.currentPlayer) {
+    showToast('No component is up for bidding', 'error');
     return;
   }
 
   const val = parseInt(document.getElementById('customBidInput').value, 10);
   if (!val || val <= 0) {
-    showToast('Enter a valid amount', 'error');
+    showToast('Enter a valid bid amount (pts)', 'error');
     return;
   }
   socket.emit('placeBid', { amount: val });
@@ -1102,8 +1005,8 @@ function placeCustomBid() {
 }
 
 function getTeamLogo(teamId) {
-  if (!availableTeams || !teamId) return null;
-  const team = availableTeams.find(t => t.id === teamId);
+  if (!gameState || !gameState.teams || !teamId) return null;
+  const team = gameState.teams[teamId];
   return team ? team.logo : null;
 }
 
@@ -1111,18 +1014,18 @@ function showSessionRecovery() {
   const overlay = document.getElementById('sessionRecoveryOverlay');
   if (!overlay) return;
   overlay.style.display = 'flex';
-  // no team grid, just show code input
 }
 
 function recoverSession() {
   const code = document.getElementById('recoveryCode').value.trim();
   if (!code) {
-    showToast('Enter your code to recover', 'error');
+    showToast('Enter your passcode / PIN to recover', 'error');
     return;
   }
   myPass = code;
   socket.emit('joinGame', { password: code });
-  document.getElementById('sessionRecoveryOverlay').style.display = 'none';
+  const overlay = document.getElementById('sessionRecoveryOverlay');
+  if (overlay) overlay.style.display = 'none';
 }
 
 function showSoldOverlay(playerName, subtitle, price, status = 'lost', teamId = null) {
@@ -1141,15 +1044,15 @@ function showSoldOverlay(playerName, subtitle, price, status = 'lost', teamId = 
   overlay.className = 'sold-overlay';
   overlay.innerHTML = `
     <div class="sold-banner ${tone.className}">
-      ${logoUrl ? `<img src="${logoUrl}" style="width:100px; height:100px; object-fit:contain; margin-bottom:15px; animation: bounceIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); border-radius:50%; border:3px solid var(--gold);">` : ''}
+      ${logoUrl ? `<img src="${logoUrl}" style="width:90px; height:90px; object-fit:contain; margin-bottom:12px; animation: bounceIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); border-radius:50%; border:3px solid var(--gold);">` : ''}
       <h2>${tone.title}</h2>
-      <p style="font-size:24px;margin:8px 0;">${playerName}</p>
-      <p style="font-size:20px;font-weight:700;">${subtitle}</p>
-      <p style="font-size:28px;margin-top:8px;color:var(--gold);">₹${price} Lakhs</p>
+      <p style="font-size:24px;margin:8px 0; font-family:'Bebas Neue',sans-serif; letter-spacing:1px;">${playerName}</p>
+      <p style="font-size:18px;font-weight:700;">${subtitle}</p>
+      <p style="font-size:26px;margin-top:8px;color:var(--gold); font-weight:bold;">${price} Points</p>
     </div>
   `;
   document.body.appendChild(overlay);
-  setTimeout(() => overlay.remove(), 3200);
+  setTimeout(() => overlay.remove(), 3000);
 }
 
 function renderFinishedScreen(teams, soldHistory, unsoldPlayers, resultReview) {
@@ -1157,80 +1060,37 @@ function renderFinishedScreen(teams, soldHistory, unsoldPlayers, resultReview) {
   if (!grid) return;
   grid.innerHTML = '';
 
-  const reveal = resultReview || {
-    validated: false,
-    revealedPlaces: { 1: false, 2: false, 3: false },
-    revealedStandings: [],
-  };
-
-  const revealByPlace = {};
-  (reveal.revealedStandings || []).forEach((entry) => {
-    revealByPlace[entry.place] = entry;
-  });
-
-  const revealSection = document.createElement('div');
-  revealSection.className = 'final-reveal-panel';
-  revealSection.innerHTML = `
-    <h3>RESULT REVIEW</h3>
-    <p>${reveal.validated ? 'Validated by Admin 3. Reveals are in progress.' : 'Awaiting Admin 3 validation and winner reveal.'}</p>
-    <div class="final-reveal-list">
-      <div class="final-reveal-item ${reveal.revealedPlaces && reveal.revealedPlaces[3] ? 'revealed' : ''}">
-        <span>3rd Prize</span>
-        <strong>${revealByPlace[3] ? `${revealByPlace[3].teamShort} (${revealByPlace[3].score})` : 'Hidden'}</strong>
-      </div>
-      <div class="final-reveal-item ${reveal.revealedPlaces && reveal.revealedPlaces[2] ? 'revealed' : ''}">
-        <span>2nd Runner</span>
-        <strong>${revealByPlace[2] ? `${revealByPlace[2].teamShort} (${revealByPlace[2].score})` : 'Hidden'}</strong>
-      </div>
-      <div class="final-reveal-item ${reveal.revealedPlaces && reveal.revealedPlaces[1] ? 'revealed' : ''}">
-        <span>1st Winner</span>
-        <strong>${revealByPlace[1] ? `${revealByPlace[1].teamShort} (${revealByPlace[1].score})` : 'Hidden'}</strong>
-      </div>
-    </div>
-  `;
-  grid.appendChild(revealSection);
-
-  const finishedSubtitle = document.querySelector('#finishedScreen .finished-header p');
-  if (finishedSubtitle) {
-    finishedSubtitle.textContent = reveal.validated
-      ? 'Standings validated by Admin 3. Winner reveal is in progress.'
-      : 'Auction complete. Waiting for Admin 3 to validate and reveal winners.';
-  }
-
   Object.values(teams).forEach((team) => {
+    const card = document.createElement('div');
     const squad = Array.isArray(team.players) ? team.players : [];
-    const xi = team.playingXI ? Object.values(team.playingXI).filter(p => p) : [];
-    const subs = squad.filter(p => !xi.some(xip => xip.id === p.id));
 
     card.className = 'final-team-card';
-    card.style.borderColor = `${team.color}44`;
+    card.style.borderColor = `${team.color || '#00e5ff'}44`;
 
-    const renderRows = (players, label) => {
-      if (!players.length) return '';
-      const rows = players.map((player) => `
+    const rows = squad.length
+      ? squad.map((player) => `
         <div class="final-player-row">
           <div>
-            <div>${escapeHtml(player.name)}</div>
-            <div class="final-player-role">${escapeHtml(player.role)} | ${escapeHtml(player.country)}</div>
+            <div style="font-weight:bold; color:var(--gold);">${escapeHtml(player.name)}</div>
+            <div class="final-player-role">${escapeHtml(player.role)} | ${escapeHtml(player.symbolName || player.symbol || '')}</div>
           </div>
-          <div class="final-player-price">₹${player.soldPrice}L</div>
+          <div class="final-player-price" style="color:var(--neon-green); font-weight:bold;">${player.soldPrice || player.basePrice} pts</div>
         </div>
-      `).join('');
-      return `<div class="final-squad-label">${label}</div>${rows}`;
-    };
-
-    const xiContent = renderRows(xi, 'PLAYING XI');
-    const subsContent = renderRows(subs, 'SUBSTITUTES');
-    const fallbackContent = !xi.length ? renderRows(squad, 'SQUAD') : '';
+      `).join('')
+      : '<div style="color:var(--text-dim);font-size:13px;padding:10px 0">No components acquired</div>';
 
     card.innerHTML = `
-      <div class="final-team-header" style="background:${team.color}20;border-bottom:1px solid ${team.color}33">
-        <div class="final-team-name" style="color:${team.color}">${team.short} - ${team.ownerName}</div>
-        <div class="final-team-budget">₹${Number(team.budget) || 0}L left</div>
+      <div class="final-team-header" style="background:${team.color || '#00e5ff'}20; border-bottom:1px solid ${team.color || '#00e5ff'}33; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+        <div class="final-team-name" style="color:${team.color || '#00e5ff'}; font-weight:bold; font-size:18px;">
+          ${team.short || team.name} - ${escapeHtml(team.name || team.ownerName)}
+        </div>
+        <div class="final-team-budget" style="color:var(--neon-green); font-weight:bold;">
+          ${Number(team.budget) || 0} pts left
+        </div>
       </div>
-      <div class="final-team-players">
-        ${xiContent || fallbackContent || subsContent || '<div style="color:var(--text-dim);font-size:13px;padding:10px 0">No players bought</div>'}
-        ${xiContent ? subsContent : ''}
+      <div class="final-team-players" style="padding:12px;">
+        <div class="final-squad-label" style="font-size:12px; color:var(--neon-cyan); margin-bottom:8px; text-transform:uppercase;">Acquired Circuit Components (${squad.length})</div>
+        ${rows}
       </div>
     `;
     grid.appendChild(card);
@@ -1261,6 +1121,7 @@ function resetGame() {
 let toastTimeout;
 function showToast(msg, type = 'info', duration = 3000) {
   const toast = document.getElementById('toast');
+  if (!toast) return;
   toast.textContent = msg;
   toast.className = `toast ${type} show`;
   clearTimeout(toastTimeout);
@@ -1277,9 +1138,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const nameInput = document.getElementById('playerName');
-  if (nameInput) {
-    nameInput.addEventListener('keypress', (event) => {
+  const teamCode = document.getElementById('teamCode');
+  if (teamCode) {
+    teamCode.addEventListener('keypress', (event) => {
       if (event.key === 'Enter') joinGame();
     });
   }

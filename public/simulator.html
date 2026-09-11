@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Digital Logic Circuit Simulator ⚡ | Electro Auction</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;700;900&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070d18;
+      --panel-bg: rgba(13, 23, 42, 0.95);
+      --panel-border: rgba(0, 229, 255, 0.2);
+      --neon-cyan: #00e5ff;
+      --neon-green: #00ff88;
+      --neon-red: #ff3366;
+      --neon-amber: #f59e0b;
+      --gold: #ffd700;
+      --wire-high: #00ff88;
+      --wire-low: #334155;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── TOP NAVBAR ─── */
+    .sim-navbar {
+      height: 54px;
+      background: rgba(10, 17, 32, 0.98);
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      z-index: 100;
+    }
+
+    .sim-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sim-logo {
+      font-size: 22px;
+    }
+
+    .sim-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 24px;
+      letter-spacing: 1.5px;
+      color: var(--gold);
+    }
+
+    .sim-mode-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(0, 229, 255, 0.15);
+      color: var(--neon-cyan);
+      border: 1px solid var(--neon-cyan);
+      text-transform: uppercase;
+    }
+
+    .sim-mode-badge.sandbox {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--neon-amber);
+      border-color: var(--neon-amber);
+    }
+
+    .sim-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sim-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .sim-btn:hover {
+      background: rgba(0, 229, 255, 0.2);
+      border-color: var(--neon-cyan);
+      color: #fff;
+    }
+
+    .sim-btn.active {
+      background: var(--neon-green);
+      color: #04140c;
+      border-color: var(--neon-green);
+      box-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
+    }
+
+    .sim-btn.danger:hover {
+      background: rgba(255, 51, 102, 0.25);
+      border-color: var(--neon-red);
+      color: var(--neon-red);
+    }
+
+    .sim-btn-auction {
+      background: linear-gradient(135deg, #00e5ff, #0077b6);
+      color: #04140c;
+      border: none;
+      font-weight: 800;
+    }
+
+    /* ─── MAIN WORKSPACE ─── */
+    .sim-workspace {
+      flex: 1;
+      display: flex;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ─── COMPONENT DRAWER (LEFT) ─── */
+    .sim-drawer {
+      width: 290px;
+      background: var(--panel-bg);
+      border-right: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      z-index: 50;
+      backdrop-filter: blur(12px);
+    }
+
+    .drawer-header {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .drawer-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--neon-cyan);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .team-info-box {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .category-filter-select {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 600;
+      font-size: 13px;
+      width: 100%;
+      outline: none;
+    }
+
+    .drawer-search {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--panel-border);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      width: 100%;
+      outline: none;
+    }
+
+    .drawer-search:focus {
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+    }
+
+    .drawer-components-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .drawer-components-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    .drawer-components-list::-webkit-scrollbar-thumb {
+      background: rgba(0, 229, 255, 0.2);
+      border-radius: 3px;
+    }
+
+    .comp-item-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: grab;
+      transition: all 0.2s;
+    }
+
+    .comp-item-card:hover {
+      background: rgba(0, 229, 255, 0.08);
+      border-color: var(--neon-cyan);
+      transform: translateX(3px);
+    }
+
+    .comp-item-card.locked {
+      opacity: 0.45;
+      cursor: not-allowed;
+      border-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .comp-item-img {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 6px;
+      padding: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      flex-shrink: 0;
+    }
+
+    .comp-item-meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .comp-item-name {
+      font-weight: 700;
+      font-size: 13px;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .comp-item-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      margin-top: 2px;
+    }
+
+    .comp-qty-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: rgba(0, 255, 136, 0.18);
+      color: var(--neon-green);
+      border: 1px solid rgba(0, 255, 136, 0.4);
+    }
+
+    .comp-qty-badge.zero {
+      background: rgba(255, 51, 102, 0.15);
+      color: var(--neon-red);
+      border-color: rgba(255, 51, 102, 0.4);
+    }
+
+    /* ─── CANVAS AREA (CENTER) ─── */
+    .sim-canvas-wrap {
+      flex: 1;
+      position: relative;
+      background: radial-gradient(circle at 50% 50%, #0d1629 0%, #060b14 100%);
+      overflow: hidden;
+      cursor: crosshair;
+    }
+
+    #circuitCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ─── HUD OVERLAYS ─── */
+    .canvas-hud {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(10, 17, 32, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      backdrop-filter: blur(8px);
+      pointer-events: none;
+    }
+
+    .hud-val {
+      font-family: 'Fira Code', monospace;
+      color: var(--neon-cyan);
+      font-weight: 600;
+    }
+
+    .canvas-helper-tip {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(10, 17, 32, 0.85);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 13px;
+      color: #cbd5e1;
+      pointer-events: none;
+      backdrop-filter: blur(8px);
+      line-height: 1.4;
+    }
+
+    /* ─── TOAST ─── */
+    .sim-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(50px);
+      background: rgba(13, 23, 42, 0.95);
+      border: 1px solid var(--neon-cyan);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 9999;
+      pointer-events: none;
+    }
+
+    .sim-toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ TOP NAVIGATION ═══════════════ -->
+<header class="sim-navbar">
+  <div class="sim-brand">
+    <span class="sim-logo">⚡</span>
+    <span class="sim-title">DIGITAL LOGIC SIMULATOR</span>
+    <span id="modeBadge" class="sim-mode-badge">Team Inventory Mode</span>
+  </div>
+
+  <div class="sim-controls">
+    <button class="sim-btn" id="btnPlayPause" onclick="toggleSim()">
+      <span id="playIcon">⏸️</span> <span id="playText">PAUSE</span>
+    </button>
+    <button class="sim-btn" onclick="stepSim()">⚡ STEP</button>
+    <button class="sim-btn" onclick="resetStates()">🔄 RESET</button>
+    <button class="sim-btn danger" onclick="clearCanvasPrompt()">🗑️ CLEAR</button>
+    
+    <div style="width: 1px; height: 20px; background: rgba(255,255,255,0.1); margin: 0 4px;"></div>
+
+    <button class="sim-btn" onclick="exportCircuit()">💾 SAVE</button>
+    <button class="sim-btn" onclick="document.getElementById('fileLoadInput').click()">📂 LOAD</button>
+    <input type="file" id="fileLoadInput" accept=".json" style="display:none;" onchange="loadCircuit(this)" />
+
+    <button class="sim-btn" id="btnToggleSandbox" onclick="toggleSandboxMode()">🔓 UNLOCK ALL (SANDBOX)</button>
+    <a href="/index.html" class="sim-btn sim-btn-auction">🏆 AUCTION ARENA</a>
+  </div>
+</header>
+
+<!-- ═══════════════ SIMULATOR WORKSPACE ═══════════════ -->
+<div class="sim-workspace">
+  <!-- LEFT: COMPONENT DRAWER -->
+  <aside class="sim-drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">
+        <span>Component Palette</span>
+        <span id="drawerCount" style="font-size:12px; color:var(--neon-green);">0 Available</span>
+      </div>
+
+      <div id="teamInfoBox" class="team-info-box">
+        <div style="display:flex; justify-content:space-between;">
+          <strong id="teamNameDisplay">Connecting...</strong>
+          <span id="teamBudgetDisplay" style="color:var(--neon-green);">500 pts</span>
+        </div>
+        <div id="teamNotice" style="font-size:11px; color:var(--text-muted);">
+          Drag acquired components onto the canvas to simulate your circuit.
+        </div>
+      </div>
+
+      <select id="categoryFilter" class="category-filter-select" onchange="filterComponents()">
+        <option value="all">All Categories</option>
+        <option value="Input">1. Input Components</option>
+        <option value="Output">2. Output Components</option>
+        <option value="Logic Gates">3. Logic Gates</option>
+        <option value="Decoders / Data Selectors">4. Decoders / Data Selectors</option>
+        <option value="Sequential Elements">5. Sequential Elements</option>
+        <option value="Annotation">6. Annotation & Probes</option>
+        <option value="Misc Components">7. Arithmetic & Misc</option>
+      </select>
+
+      <input type="text" id="componentSearch" class="drawer-search" placeholder="Search logic components..." oninput="filterComponents()" />
+    </div>
+
+    <div class="drawer-components-list" id="componentList">
+      <!-- Generated dynamically -->
+    </div>
+  </aside>
+
+  <!-- CENTER: INTERACTIVE CANVAS -->
+  <main class="sim-canvas-wrap" id="canvasWrap">
+    <canvas id="circuitCanvas"></canvas>
+
+    <div class="canvas-helper-tip">
+      <div>💡 <strong>How to wire:</strong> Click on an <strong>output pin (right)</strong> and click on an <strong>input pin (left)</strong> to draw a wire.</div>
+      <div style="margin-top:2px;">🖱️ <strong>Interact:</strong> Click switches / buttons on canvas to toggle logic 0 & 1 in real time.</div>
+      <div style="margin-top:2px;">❌ <strong>Delete:</strong> Right-click a wire or component, or select and press Delete.</div>
+    </div>
+
+    <div class="canvas-hud">
+      <span>Components: <span class="hud-val" id="hudComponentsCount">0</span></span>
+      <span>Wires: <span class="hud-val" id="hudWiresCount">0</span></span>
+      <span>Engine: <span class="hud-val" id="hudEngineStatus">60Hz RUNNING</span></span>
+      <span>Zoom: <span class="hud-val" id="hudZoomVal">100%</span></span>
+    </div>
+  </main>
+</div>
+
+<div id="simToast" class="sim-toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/simulator.js"></script>
+</body>
+</html>

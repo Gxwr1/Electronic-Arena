@@ -10,38 +10,31 @@ const PLAYERS_DATA_FILE = path.join(__dirname, 'data', 'players.js');
 const STATE_FILE = path.join(__dirname, 'storage', 'auction_state.json');
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'aiml';
-const INITIAL_BUDGET = 10000;
+const INITIAL_BUDGET = 500;
 const BID_TIMER_SECONDS = 15;
 const REVEAL_PLACES = [3, 2, 1];
 const PLAYING_XI_SIZE = 11;
 const SUBSTITUTE_SIZE = 4;
-const MAX_SQUAD_SIZE = PLAYING_XI_SIZE + SUBSTITUTE_SIZE;
+const MAX_SQUAD_SIZE = 30;
 const ALERT_EMAIL_TO = 'gxwr143@gmail.com';
 const ALERT_EMAIL_WEBHOOK_URL = String(process.env.ALERT_EMAIL_WEBHOOK_URL || '').trim();
 const ALERT_HISTORY_LIMIT = 600;
 
 const VALID_PLAYER_ROLE_IDS = [
-  'Batter',
-  'Batter/WK',
-  'WK-Batter',
-  'All-Rounder',
-  'Fast Bowler',
-  'Spinner',
+  'Input',
+  'Output',
+  'Logic Gates',
+  'Decoders / Data Selectors',
+  'Sequential Elements',
+  'Annotation',
+  'Misc Components',
 ];
 
-const IPL_TEAMS = [
-  { id: 'csk', name: 'Chennai Super Kings', short: 'CSK', color: '#FFCC00', logo: '/logo/download (10).jpeg', password: 'csk123' },
-  { id: 'mi', name: 'Mumbai Indians', short: 'MI', color: '#005DA0', logo: '/logo/mi.jpeg', password: 'mi123' },
-  { id: 'rcb', name: 'Royal Challengers Bengaluru', short: 'RCB', color: '#EC1C24', logo: '/logo/rcb.jpeg', password: 'rcb123' },
-  { id: 'kkr', name: 'Kolkata Knight Riders', short: 'KKR', color: '#3A225D', logo: '/logo/kkr.jpeg', password: 'kkr123' },
-  { id: 'dc', name: 'Delhi Capitals', short: 'DC', color: '#0078BC', logo: '/logo/dc.jpeg', password: 'dc123' },
-  { id: 'pbks', name: 'Punjab Kings', short: 'PBKS', color: '#AA4545', logo: '/logo/download (11).jpeg', password: 'pbks123' },
-  // RR logo filename is uppercase in storage, ensure correct casing
-  { id: 'rr', name: 'Rajasthan Royals', short: 'RR', color: '#254AA5', logo: '/logo/RR.jpeg', password: 'rr123' },
-  { id: 'srh', name: 'Sunrisers Hyderabad', short: 'SRH', color: '#F7A721', logo: '/logo/srh.jpeg', password: 'srh123' },
-  { id: 'gt', name: 'Gujarat Titans', short: 'GT', color: '#4a4a4a', logo: '/logo/download (12).jpeg', password: 'gt123' },
-  { id: 'lsg', name: 'Lucknow Super Giants', short: 'LSG', color: '#A72B2A', logo: '/logo/lsg.jpeg', password: 'lsg123' },
-];
+const DEFAULT_TEAMS = [];
+
+function seedDefaultTeams(teamsObj = {}) {
+  return teamsObj;
+}
 
 function clonePlayers() {
   return JSON.parse(JSON.stringify(playersData));
@@ -120,11 +113,13 @@ function createInitialResultReview() {
 }
 
 function createInitialState() {
+  const initialTeams = {};
+  seedDefaultTeams(initialTeams);
   return {
     phase: 'lobby',
     hostSocketId: null,
     hostName: null,
-    teams: {},
+    teams: initialTeams,
     players: clonePlayers(),
     currentPlayer: null,
     currentBid: 0,
@@ -182,6 +177,10 @@ function loadState() {
         Object.assign(reconnectSessions, saved.reconnectSessions);
       }
       
+      if (Object.keys(gameState.teams).length === 0) {
+        seedDefaultTeams(gameState.teams);
+      }
+
       // Reset socket IDs and transient owner data on load
       Object.values(gameState.teams).forEach(team => {
         team.ownerId = null;
@@ -318,20 +317,29 @@ function isPlayerCatalogLocked() {
 
 function roleProfile(role) {
   const r = String(role || '').toLowerCase();
-  const wicketkeeper = r.includes('wk') || r.includes('wicket');
-  const allRounder = r.includes('all-rounder') || r.includes('all rounder');
-  const bowler = r.includes('bowler') || r.includes('spinner');
-  let batter = r.includes('batter') || r.includes('batsman') || r.includes('bat');
-
-  if (wicketkeeper && !batter) {
-    batter = true;
-  }
+  const input = r.includes('input') || r.includes('switch') || r.includes('button') || r.includes('power') || r.includes('ground') || r.includes('vcc') || r.includes('gnd');
+  const output = r.includes('output') || r.includes('led') || r.includes('display') || r.includes('buzzer') || r.includes('probe');
+  const logicGates = r.includes('gate') || r.includes('and') || r.includes('nand') || r.includes('nor') || r.includes('xor') || r.includes('xnor') || r.includes('buffer') || r.includes('not');
+  const decodersSelectors = r.includes('decoder') || r.includes('mux') || r.includes('selector') || r.includes('demux') || r.includes('multiplexer') || r.includes('encoder');
+  const sequentialElements = r.includes('sequential') || r.includes('flip') || r.includes('flop') || r.includes('latch') || r.includes('counter') || r.includes('register') || r.includes('clock') || r.includes('timer');
+  const annotation = r.includes('annotation') || r.includes('text') || r.includes('label');
+  const miscComponents = r.includes('misc') || r.includes('adder') || r.includes('alu') || r.includes('comparator') || r.includes('motor') || r.includes('force');
 
   return {
-    batter,
-    bowler,
-    wicketkeeper,
-    allRounder,
+    input,
+    output,
+    logicGates,
+    decodersSelectors,
+    sequentialElements,
+    annotation,
+    miscComponents,
+    // backwards-compatibility flags
+    microcontroller: input || logicGates,
+    sensor: input,
+    communication: decodersSelectors,
+    icLogic: logicGates || sequentialElements,
+    displayActuator: output,
+    powerPassive: input || miscComponents,
   };
 }
 
@@ -350,20 +358,22 @@ function isTeamSquadFull(team) {
 }
 
 function getQueueRoleGroup(player) {
-  const profile = roleProfile(player && player.role);
-  if (profile.allRounder) return 'allrounder';
-  if (profile.wicketkeeper) return 'wicketkeeper';
-  if (profile.bowler) return 'bowler';
-  if (profile.batter) return 'batsman';
+  const role = normalizeRoleId(player && player.role);
+  if (role === 'Input') return 'input';
+  if (role === 'Output') return 'output';
+  if (role === 'Logic Gates') return 'logic_gates';
+  if (role === 'Decoders / Data Selectors') return 'decoders_selectors';
+  if (role === 'Sequential Elements') return 'sequential_elements';
+  if (role === 'Annotation') return 'annotation';
+  if (role === 'Misc Components') return 'misc_components';
   return 'other';
 }
 
 function normalizeQueueFilter(input) {
   const filter = input && typeof input === 'object' ? input : {};
   const roleGroupRaw = String(filter.roleGroup || 'all').trim().toLowerCase();
-  const roleGroup = ['all', 'batsman', 'bowler', 'allrounder', 'wicketkeeper', 'other'].includes(roleGroupRaw)
-    ? roleGroupRaw
-    : 'all';
+  const validGroups = ['all', 'input', 'output', 'logic_gates', 'decoders_selectors', 'sequential_elements', 'annotation', 'misc_components', 'other'];
+  const roleGroup = validGroups.includes(roleGroupRaw) ? roleGroupRaw : 'all';
 
   let capped = null;
   if (typeof filter.capped === 'boolean') {
@@ -394,10 +404,13 @@ function buildQueueCounts(queue) {
     capped: 0,
     uncapped: 0,
     byRoleGroup: {
-      batsman: 0,
-      wicketkeeper: 0,
-      bowler: 0,
-      allrounder: 0,
+      input: 0,
+      output: 0,
+      logic_gates: 0,
+      decoders_selectors: 0,
+      sequential_elements: 0,
+      annotation: 0,
+      misc_components: 0,
       other: 0,
     },
     byBucket: {},
@@ -472,10 +485,13 @@ function buildQueueSearchPool() {
 function buildQueuePoolCounts(pool) {
   const sourceCounts = { remaining: 0, unsold: 0 };
   const roleCounts = {
-    batsman: 0,
-    wicketkeeper: 0,
-    bowler: 0,
-    allrounder: 0,
+    input: 0,
+    output: 0,
+    logic_gates: 0,
+    decoders_selectors: 0,
+    sequential_elements: 0,
+    annotation: 0,
+    misc_components: 0,
     other: 0,
   };
   let capped = 0;
@@ -592,17 +608,19 @@ function emitAlertsUpdate() {
 }
 
 function normalizeRoleId(role) {
-  const raw = String(role || '').trim().toLowerCase();
-  if (!raw) return 'Other';
-  if (raw.includes('all-rounder') || raw.includes('all rounder')) return 'All-Rounder';
-  if (raw.includes('spinner') || raw.includes('spin')) return 'Spinner';
-  if (raw.includes('fast bowler') || raw.includes('pace bowler')) return 'Fast Bowler';
-  if (raw.includes('wk-batter') || raw.includes('wicketkeeper-batter')) return 'WK-Batter';
-  if (raw.includes('batter/wk') || raw.includes('batsman/wk')) return 'Batter/WK';
-  if (raw.includes('wicket') || raw === 'wk') return 'WK-Batter';
-  if (raw.includes('batter') || raw.includes('batsman') || raw.includes('bat')) return 'Batter';
-  if (raw.includes('bowler')) return 'Fast Bowler';
-  return 'Other';
+  const raw = String(role || '').trim();
+  if (!raw) return 'Misc Components';
+  const r = raw.toLowerCase();
+  if (r.includes('input') || r.includes('switch') || r.includes('button') || r.includes('power') || r.includes('ground') || r.includes('vcc') || r.includes('gnd')) return 'Input';
+  if (r.includes('output') || r.includes('led') || r.includes('display') || r.includes('buzzer') || r.includes('probe')) return 'Output';
+  if (r.includes('gate') || r.includes('and') || r.includes('nand') || r.includes('nor') || r.includes('xor') || r.includes('xnor') || r.includes('buffer') || r.includes('not')) return 'Logic Gates';
+  if (r.includes('decoder') || r.includes('mux') || r.includes('selector') || r.includes('demux') || r.includes('multiplexer') || r.includes('encoder')) return 'Decoders / Data Selectors';
+  if (r.includes('sequential') || r.includes('flip') || r.includes('flop') || r.includes('latch') || r.includes('counter') || r.includes('register') || r.includes('clock') || r.includes('timer')) return 'Sequential Elements';
+  if (r.includes('annotation') || r.includes('text') || r.includes('label')) return 'Annotation';
+  if (r.includes('misc') || r.includes('adder') || r.includes('alu') || r.includes('comparator') || r.includes('motor') || r.includes('force')) return 'Misc Components';
+  const match = VALID_PLAYER_ROLE_IDS.find(v => v.toLowerCase() === r);
+  if (match) return match;
+  return 'Misc Components';
 }
 
 function createEmptyRoleCounts() {
@@ -616,11 +634,20 @@ function createEmptyRoleCounts() {
 
 function createEmptyRoleGroupCounts() {
   return {
-    batters: 0,
-    wicketkeepers: 0,
-    allRounders: 0,
-    fastBowlers: 0,
-    spinners: 0,
+    inputs: 0,
+    outputs: 0,
+    logicGates: 0,
+    decodersSelectors: 0,
+    sequentialElements: 0,
+    annotations: 0,
+    miscComponents: 0,
+    // backwards-compat
+    microcontrollers: 0,
+    sensors: 0,
+    communications: 0,
+    icLogics: 0,
+    displayActuators: 0,
+    powerPassives: 0,
   };
 }
 
@@ -629,12 +656,13 @@ function addPlayerToRoleCounters(roleCounts, roleGroupCounts, player) {
   if (Object.prototype.hasOwnProperty.call(roleCounts, roleId)) roleCounts[roleId] += 1;
   else roleCounts.Other += 1;
 
-  const flags = getPlayerSelectionFlags(player);
-  if (flags.profile.batter) roleGroupCounts.batters += 1;
-  if (flags.profile.wicketkeeper) roleGroupCounts.wicketkeepers += 1;
-  if (flags.profile.allRounder) roleGroupCounts.allRounders += 1;
-  if (flags.fastBowler) roleGroupCounts.fastBowlers += 1;
-  if (flags.spinner) roleGroupCounts.spinners += 1;
+  if (roleId === 'Input') { roleGroupCounts.inputs += 1; roleGroupCounts.sensors += 1; }
+  if (roleId === 'Output') { roleGroupCounts.outputs += 1; roleGroupCounts.displayActuators += 1; }
+  if (roleId === 'Logic Gates') { roleGroupCounts.logicGates += 1; roleGroupCounts.icLogics += 1; }
+  if (roleId === 'Decoders / Data Selectors') { roleGroupCounts.decodersSelectors += 1; roleGroupCounts.communications += 1; }
+  if (roleId === 'Sequential Elements') { roleGroupCounts.sequentialElements += 1; roleGroupCounts.icLogics += 1; }
+  if (roleId === 'Annotation') { roleGroupCounts.annotations += 1; }
+  if (roleId === 'Misc Components') { roleGroupCounts.miscComponents += 1; roleGroupCounts.powerPassives += 1; }
 }
 
 function getPlayerEffectivePrice(player) {
@@ -714,9 +742,7 @@ function buildAdminReport() {
       id: team && team.id ? team.id : '',
       name: team && team.name ? team.name : 'Unknown Team',
       short: team && team.short ? team.short : 'TEAM',
-      logo: team && team.logo ? team.logo : (
-        (IPLTEAMS.find(i => i.id === (team && team.id)) || {}).logo || ''
-      ),
+      logo: team && team.logo ? team.logo : '',
       ownerName: team && team.ownerName ? team.ownerName : 'Unknown',
       isConnected: Boolean(team && team.ownerId),
       playersCount,
@@ -842,12 +868,12 @@ function buildAdminReportCsv(report) {
     'Budget Remaining (L)',
     'Total Spent (L)',
     'Avg Spend (L)',
-    'Batter',
-    'Batter/WK',
-    'WK-Batter',
-    'All-Rounder',
-    'Fast Bowler',
-    'Spinner',
+    'Microcontroller',
+    'Sensor',
+    'Communication',
+    'IC & Logic',
+    'Display & Actuator',
+    'Power & Passive',
     'Other',
     'Event Sold Count',
   ]);
@@ -865,13 +891,13 @@ function buildAdminReportCsv(report) {
       team.budgetRemainingL,
       team.totalSpentL,
       team.avgSpendL,
-      team.roleCounts.Batter,
-      team.roleCounts['Batter/WK'],
-      team.roleCounts['WK-Batter'],
-      team.roleCounts['All-Rounder'],
-      team.roleCounts['Fast Bowler'],
-      team.roleCounts.Spinner,
-      team.roleCounts.Other,
+      team.roleCounts.Microcontroller || team.roleCounts.Batter || 0,
+      team.roleCounts.Sensor || team.roleCounts['Fast Bowler'] || 0,
+      team.roleCounts.Communication || team.roleCounts.Spinner || 0,
+      team.roleCounts['IC & Logic'] || team.roleCounts['All-Rounder'] || 0,
+      team.roleCounts['Display & Actuator'] || team.roleCounts['WK-Batter'] || 0,
+      team.roleCounts['Power & Passive'] || 0,
+      team.roleCounts.Other || 0,
       team.soldEvents,
     ]);
   });
@@ -903,7 +929,7 @@ async function sendAlertEmailWebhook(alert) {
   const message = trimAndLimit(alert && alert.message ? alert.message : '', 600);
   const severity = normalizeAlertSeverity(alert && alert.severity);
   const source = trimAndLimit(alert && alert.source ? alert.source : 'Coordinator', 80);
-  const subject = `[IPL Auction ${severity.toUpperCase()}] ${title}`;
+  const subject = `[Electro Auction ${severity.toUpperCase()}] ${title}`;
   const text = [
     `Alert Type: ${severity.toUpperCase()}`,
     `Source: ${source}`,
@@ -1001,15 +1027,25 @@ function derivePlayerPerformanceValue(player) {
 function getPlayerSelectionFlags(player) {
   const role = String(player && player.role || '').toLowerCase();
   const profile = roleProfile(role);
-  const spinner = role.includes('spinner');
-  const fastBowler = role.includes('fast bowler') || (profile.bowler && !spinner);
-  const openerCandidate = profile.batter || profile.wicketkeeper;
+  const isMicrocontroller = profile.microcontroller;
+  const isSensor = profile.sensor;
+  const isCommunication = profile.communication;
+  const isIcLogic = profile.icLogic;
+  const isDisplayActuator = profile.displayActuator;
+  const isPowerPassive = profile.powerPassive;
 
   return {
     profile,
-    spinner,
-    fastBowler,
-    openerCandidate,
+    isMicrocontroller,
+    isSensor,
+    isCommunication,
+    isIcLogic,
+    isDisplayActuator,
+    isPowerPassive,
+    // backwards-compat
+    spinner: isCommunication,
+    fastBowler: isSensor,
+    openerCandidate: isMicrocontroller || isDisplayActuator,
   };
 }
 
@@ -1048,49 +1084,64 @@ function buildPlayingXIFromSquad(squadPlayers) {
 
   const selectedPlayers = [];
   const selectedKeys = new Set();
-  const openerKeys = new Set();
+  const mcuKeys = new Set();
 
+  // 1. Pick 1 Microcontroller
   pickPlayersForConstraint(
     sorted,
     selectedPlayers,
     selectedKeys,
     1,
-    (player) => getPlayerSelectionFlags(player).profile.wicketkeeper
+    (player) => getPlayerSelectionFlags(player).isMicrocontroller,
+    (player) => mcuKeys.add(getPlayerKey(player))
   );
 
+  // 2. Pick 2 Sensors
   pickPlayersForConstraint(
     sorted,
     selectedPlayers,
     selectedKeys,
     2,
-    (player) => getPlayerSelectionFlags(player).openerCandidate,
-    (player) => openerKeys.add(getPlayerKey(player))
+    (player) => getPlayerSelectionFlags(player).isSensor
   );
 
+  // 3. Pick 2 Communication Modules
   pickPlayersForConstraint(
     sorted,
     selectedPlayers,
     selectedKeys,
     2,
-    (player) => getPlayerSelectionFlags(player).fastBowler
+    (player) => getPlayerSelectionFlags(player).isCommunication
   );
 
+  // 4. Pick 2 IC & Logic / Drivers
   pickPlayersForConstraint(
     sorted,
     selectedPlayers,
     selectedKeys,
     2,
-    (player) => getPlayerSelectionFlags(player).spinner
+    (player) => getPlayerSelectionFlags(player).isIcLogic
   );
 
+  // 5. Pick 2 Displays & Actuators
   pickPlayersForConstraint(
     sorted,
     selectedPlayers,
     selectedKeys,
-    1,
-    (player) => getPlayerSelectionFlags(player).profile.allRounder
+    2,
+    (player) => getPlayerSelectionFlags(player).isDisplayActuator
   );
 
+  // 6. Pick 2 Power & Passives
+  pickPlayersForConstraint(
+    sorted,
+    selectedPlayers,
+    selectedKeys,
+    2,
+    (player) => getPlayerSelectionFlags(player).isPowerPassive
+  );
+
+  // 7. Fill remaining slots up to 11
   if (selectedPlayers.length < PLAYING_XI_SIZE) {
     pickPlayersForConstraint(
       sorted,
@@ -1101,35 +1152,33 @@ function buildPlayingXIFromSquad(squadPlayers) {
     );
   }
 
-  if (openerKeys.size < 2) {
-    selectedPlayers.forEach((player) => {
-      if (openerKeys.size >= 2) return;
-      if (getPlayerSelectionFlags(player).openerCandidate) {
-        openerKeys.add(getPlayerKey(player));
-      }
-    });
-  }
-
   const composition = {
     squadPlayers: Array.isArray(squadPlayers) ? squadPlayers.length : 0,
     players: selectedPlayers.length,
+    microcontrollers: 0,
+    sensors: 0,
+    communications: 0,
+    icLogics: 0,
+    displayActuators: 0,
+    powerPassives: 0,
+    // backwards-compat
     batters: 0,
     bowlers: 0,
     wicketkeepers: 0,
     allRounders: 0,
-    openers: Math.min(2, openerKeys.size),
+    openers: Math.min(1, mcuKeys.size),
     fastBowlers: 0,
     spinners: 0,
   };
 
   selectedPlayers.forEach((player) => {
     const flags = getPlayerSelectionFlags(player);
-    if (flags.profile.batter) composition.batters += 1;
-    if (flags.profile.bowler) composition.bowlers += 1;
-    if (flags.profile.wicketkeeper) composition.wicketkeepers += 1;
-    if (flags.profile.allRounder) composition.allRounders += 1;
-    if (flags.fastBowler) composition.fastBowlers += 1;
-    if (flags.spinner) composition.spinners += 1;
+    if (flags.isMicrocontroller) { composition.microcontrollers += 1; composition.batters += 1; }
+    if (flags.isSensor) { composition.sensors += 1; composition.fastBowlers += 1; composition.bowlers += 1; }
+    if (flags.isCommunication) { composition.communications += 1; composition.spinners += 1; composition.bowlers += 1; }
+    if (flags.isIcLogic) { composition.icLogics += 1; composition.allRounders += 1; }
+    if (flags.isDisplayActuator) { composition.displayActuators += 1; composition.wicketkeepers += 1; }
+    if (flags.isPowerPassive) { composition.powerPassives += 1; }
   });
 
   const substitutes = sorted
@@ -1154,10 +1203,15 @@ function evaluateTeamForResults(team) {
     xiPlayers = Object.values(team.playingXI).filter(p => p);
     
     // Build composition manually from xiPlayers
-    const openerKeys = new Set();
     const composition = {
       squadPlayers: players.length,
       players: xiPlayers.length,
+      microcontrollers: 0,
+      sensors: 0,
+      communications: 0,
+      icLogics: 0,
+      displayActuators: 0,
+      powerPassives: 0,
       batters: 0,
       bowlers: 0,
       wicketkeepers: 0,
@@ -1167,20 +1221,14 @@ function evaluateTeamForResults(team) {
       spinners: 0,
     };
 
-    xiPlayers.forEach((player, index) => {
+    xiPlayers.forEach((player) => {
       const flags = getPlayerSelectionFlags(player);
-      if (flags.profile.batter) composition.batters += 1;
-      if (flags.profile.bowler) composition.bowlers += 1;
-      if (flags.profile.wicketkeeper) composition.wicketkeepers += 1;
-      if (flags.profile.allRounder) composition.allRounders += 1;
-      if (flags.fastBowler) composition.fastBowlers += 1;
-      if (flags.spinner) composition.spinners += 1;
-      
-      // Check for openers in the specific slots op1, op2
-      const slotName = Object.keys(team.playingXI).find(k => team.playingXI[k] && team.playingXI[k].id === player.id);
-      if (slotName === 'op1' || slotName === 'op2') {
-         composition.openers += 1;
-      }
+      if (flags.isMicrocontroller) { composition.microcontrollers += 1; composition.batters += 1; }
+      if (flags.isSensor) { composition.sensors += 1; composition.fastBowlers += 1; composition.bowlers += 1; }
+      if (flags.isCommunication) { composition.communications += 1; composition.spinners += 1; composition.bowlers += 1; }
+      if (flags.isIcLogic) { composition.icLogics += 1; composition.allRounders += 1; }
+      if (flags.isDisplayActuator) { composition.displayActuators += 1; composition.wicketkeepers += 1; }
+      if (flags.isPowerPassive) { composition.powerPassives += 1; }
     });
 
     const substitutes = players.filter(p => !xiPlayers.some(xi => xi.id === p.id)).slice(0, SUBSTITUTE_SIZE);
@@ -1214,19 +1262,19 @@ function evaluateTeamForResults(team) {
 
   const squadCompletionScore = scoreByRange(composition.squadPlayers, MAX_SQUAD_SIZE, MAX_SQUAD_SIZE, 10, 5);
   const xiSizeScore = scoreByRange(composition.players, PLAYING_XI_SIZE, PLAYING_XI_SIZE, 8, 8);
-  const wicketkeeperScore = scoreByRange(composition.wicketkeepers, 1, 1, 16, 16);
-  const openerScore = scoreByRange(composition.openers, 2, 2, 16, 8);
-  const fastBowlerScore = scoreByRange(composition.fastBowlers, 2, 5, 14, 6);
-  const spinnerScore = scoreByRange(composition.spinners, 2, 4, 14, 6);
-  const allRounderScore = scoreByRange(composition.allRounders, 1, 3, 12, 6);
+  const mcuScore = scoreByRange(composition.microcontrollers, 1, 1, 16, 16);
+  const sensorScore = scoreByRange(composition.sensors, 2, 4, 16, 8);
+  const commScore = scoreByRange(composition.communications, 2, 4, 14, 6);
+  const icScore = scoreByRange(composition.icLogics, 2, 4, 14, 6);
+  const displayScore = scoreByRange(composition.displayActuators, 1, 3, 12, 6);
   const roleBalanceScore = (
     squadCompletionScore
     + xiSizeScore
-    + wicketkeeperScore
-    + openerScore
-    + fastBowlerScore
-    + spinnerScore
-    + allRounderScore
+    + mcuScore
+    + sensorScore
+    + commScore
+    + icScore
+    + displayScore
   );
 
   const skillScore = Math.round((averageSkill / 10) * 15);
@@ -1236,23 +1284,29 @@ function evaluateTeamForResults(team) {
   const budgetLeft = Number(team && team.budget) || 0;
   const missing = {
     squadPlayers: Math.max(0, MAX_SQUAD_SIZE - composition.squadPlayers),
-    wicketkeepers: Math.max(0, 1 - composition.wicketkeepers),
-    openers: Math.max(0, 2 - composition.openers),
-    fastBowlers: Math.max(0, 2 - composition.fastBowlers),
-    spinners: Math.max(0, 2 - composition.spinners),
-    allRounders: Math.max(0, 1 - composition.allRounders),
+    microcontrollers: Math.max(0, 1 - composition.microcontrollers),
+    sensors: Math.max(0, 2 - composition.sensors),
+    communications: Math.max(0, 2 - composition.communications),
+    icLogics: Math.max(0, 2 - composition.icLogics),
+    displayActuators: Math.max(0, 1 - composition.displayActuators),
+    // backwards-compat
+    wicketkeepers: Math.max(0, 1 - (composition.displayActuators || 0)),
+    openers: Math.max(0, 1 - (composition.microcontrollers || 0)),
+    fastBowlers: Math.max(0, 2 - (composition.sensors || 0)),
+    spinners: Math.max(0, 2 - (composition.communications || 0)),
+    allRounders: Math.max(0, 1 - (composition.icLogics || 0)),
   };
 
   const scoreBreakdown = [
-    { label: '15-Player Squad Completion', points: squadCompletionScore },
-    { label: 'Playing XI Completion', points: xiSizeScore },
-    { label: 'Wicketkeeper (1 Required)', points: wicketkeeperScore },
-    { label: 'Openers (2 Required)', points: openerScore },
-    { label: 'Fast Bowlers (Min 2)', points: fastBowlerScore },
-    { label: 'Spinners (Min 2)', points: spinnerScore },
-    { label: 'All-Rounders (Min 1)', points: allRounderScore },
-    { label: 'Skill Value', points: skillScore },
-    { label: 'Performance Value', points: performanceScore },
+    { label: '15-Component Inventory Completion', points: squadCompletionScore },
+    { label: '11-Component Project Kit Completion', points: xiSizeScore },
+    { label: 'Microcontroller (1 Required)', points: mcuScore },
+    { label: 'Sensors (Min 2)', points: sensorScore },
+    { label: 'Communication Modules (Min 2)', points: commScore },
+    { label: 'IC & Logic / Drivers (Min 2)', points: icScore },
+    { label: 'Displays & Actuators (Min 1)', points: displayScore },
+    { label: 'Hardware Spec Rating', points: skillScore },
+    { label: 'Market Performance Value', points: performanceScore },
   ];
 
   const score = roleBalanceScore + playerValueScore;
@@ -1298,8 +1352,13 @@ function evaluateTeamForResults(team) {
       constraints: {
         required: {
           squadPlayers: MAX_SQUAD_SIZE,
+          microcontrollers: 1,
+          sensors: 2,
+          communications: 2,
+          icLogics: 2,
+          displayActuators: 1,
           wicketkeepers: 1,
-          openers: 2,
+          openers: 1,
           fastBowlers: 2,
           spinners: 2,
           allRounders: 1,
@@ -1433,7 +1492,18 @@ function getSanitizedTeams() {
       id: t.id,
       name: t.name,
       short: t.short,
-      color: t.color,
+      leader: t.leader || '',
+      members: Array.isArray(t.members) ? t.members : [],
+      color: t.color || '#00e5ff',
+      icon: t.icon || '⚡',
+      logo: t.logo || '',
+      budget: Number(t.budget) || 0,
+      verified: Boolean(t.verified),
+      players: Array.isArray(t.players) ? t.players : [],
+      playerCount: Array.isArray(t.players) ? t.players.length : 0,
+      ownerId: t.ownerId,
+      ownerName: t.ownerName || t.name,
+      isConnected: Boolean(t.ownerId),
     };
   });
   return out;
@@ -1448,12 +1518,17 @@ function getMyTeamForSocket(socket) {
     id: team.id,
     name: team.name,
     short: team.short,
-    color: team.color,
+    leader: team.leader || '',
+    members: Array.isArray(team.members) ? team.members : [],
+    color: team.color || '#00e5ff',
+    icon: team.icon || '⚡',
+    logo: team.logo || '',
     budget: team.budget,
-    players: team.players,
+    verified: Boolean(team.verified),
+    players: team.players || [],
     playingXI: team.playingXI || {},
     ownerId: team.ownerId,
-    ownerName: team.ownerName,
+    ownerName: team.ownerName || team.name,
   };
 }
 
@@ -1568,7 +1643,7 @@ function sealBid() {
     } else if (isTeamSquadFull(team)) {
       failReason = `Squad full (${MAX_SQUAD_SIZE}: ${PLAYING_XI_SIZE} playing + ${SUBSTITUTE_SIZE} subs). Cannot buy more players.`;
     } else if (gameState.currentBid > team.budget) {
-      failReason = `Not enough budget. Available: ${team.budget}L`;
+      failReason = `Not enough budget. Available: ${team.budget} points`;
     }
 
     if (failReason) {
@@ -1616,7 +1691,7 @@ function sealBid() {
       // broadcast sanitized teams and per-player team info
       broadcastTeamsUpdate();
 
-      console.log(`SOLD: ${player.name} -> ${team.name} for ${gameState.currentBid}L`);
+      console.log(`SOLD: ${player.name} -> ${team.name} for ${gameState.currentBid} pts`);
     }
   }
 
@@ -1746,10 +1821,11 @@ io.on('connection', (socket) => {
   }
 
   // send initial state; omit passwords for non-admin sockets
-  const teamsForClient = IPL_TEAMS.map((t) => {
-    if (socket.isAdmin) return { ...t };
+  const teamsForClient = Object.values(gameState.teams).map((t) => {
     const copy = { ...t };
-    delete copy.password;
+    if (!socket.isAdmin) {
+      delete copy.password;
+    }
     return copy;
   });
 
@@ -1769,94 +1845,153 @@ io.on('connection', (socket) => {
   }
   socket.emit('myTeam', { team: getMyTeamForSocket(socket) });
 
-  socket.on('joinGame', (payload = {}) => {
-    let teamId = String(payload.teamId || '').trim();
-    const password = String(payload.password || '');
-
-    // if no teamId provided, try to locate team by matching password/code
-    if (!teamId) {
-      const match = IPL_TEAMS.find((t) => t.password === password);
-      if (match) {
-        teamId = match.id;
-      }
-    }
-
-    if (!teamId || !password) {
-      socket.emit('error', 'Code is required');
+  socket.on('registerTeam', (payload = {}, callback) => {
+    const rawName = String(payload.name || payload.teamName || '').trim();
+    if (!rawName) {
+      const errMsg = 'Team name is required';
+      socket.emit('error', errMsg);
+      if (typeof callback === 'function') callback({ success: false, error: errMsg });
       return;
     }
 
-    const teamConfig = IPL_TEAMS.find((t) => t.id === teamId);
-    if (!teamConfig) {
-      socket.emit('error', 'Invalid code');
-      return;
-    }
-    if (teamConfig.password !== password) {
-      socket.emit('error', 'Incorrect code');
-      return;
-    }
-
-    // SESSION RECOVERY: If auction started, allow joining if password+team match
-    if (gameState.phase !== 'lobby') {
-      const existingTeam = gameState.teams[teamId];
-      if (existingTeam) {
-        // allow reconnect regardless of ownerName, password checked above
-        existingTeam.ownerId = socket.id;
-        existingTeam.ownerIp = socket.handshake.address;
-        connectedUsers[socket.id] = {
-          teamId,
-        };
-
-        socket.emit('joinSuccess', {
-          socketId: socket.id,
-          teamId,
-          isHost: false,
-          reconnected: true,
-        });
-
-        broadcastTeamsUpdate();
-        saveState();
-        return;
-      }
-
-      socket.emit('error', 'Game already started. Cannot join new team.');
+    const existingNames = Object.values(gameState.teams).map(t => (t.name || '').toLowerCase());
+    if (existingNames.includes(rawName.toLowerCase())) {
+      const errMsg = 'A team with this name already exists';
+      socket.emit('error', errMsg);
+      if (typeof callback === 'function') callback({ success: false, error: errMsg });
       return;
     }
 
-    if (connectedUsers[socket.id]) {
-      socket.emit('error', 'You are already in the game');
-      return;
+    const slug = rawName.toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 16);
+    const teamId = `team_${slug}_${Math.random().toString(36).substring(2, 6)}`;
+    
+    let short = String(payload.short || '').trim().toUpperCase();
+    if (!short) {
+      short = rawName.split(/\s+/).map(w => w[0]).join('').slice(0, 4).toUpperCase() || 'TEAM';
     }
 
-    const team = IPL_TEAMS.find((item) => item.id === teamId);
-    if (!team) {
-      socket.emit('error', 'Invalid team');
-      return;
-    }
+    const leader = String(payload.leader || payload.leaderName || '').trim();
+    const rawMembers = Array.isArray(payload.members)
+      ? payload.members
+      : (typeof payload.members === 'string' ? payload.members.split(',').map(s => s.trim()).filter(Boolean) : []);
+    const members = rawMembers.map(m => String(m).trim()).filter(Boolean).slice(0, 5);
+    const logo = String(payload.logo || payload.image || '').trim();
+    const color = String(payload.color || '#00e5ff').trim();
+    const icon = String(payload.icon || '⚡').trim();
+    const password = String(payload.password || payload.code || Math.random().toString(36).substring(2, 8)).trim();
+    const customBudget = Number(payload.budget);
+    const budget = Number.isFinite(customBudget) && customBudget > 0 ? customBudget : INITIAL_BUDGET;
 
-    if (gameState.teams[teamId]) {
-      socket.emit('error', 'Team already taken');
-      return;
-    }
-
-    const reconnectToken = randomUUID();
-
-    gameState.teams[teamId] = {
+    const newTeam = {
       id: teamId,
-      name: team.name,
-      short: team.short,
-      color: team.color,
-      logo: team.logo || '',
-      budget: INITIAL_BUDGET,
+      name: rawName,
+      short,
+      leader,
+      members,
+      color,
+      icon,
+      logo,
+      password,
+      budget,
+      verified: false,
       players: [],
       playingXI: {},
-      ownerId: socket.id,
-      ownerName: team.short, // no personal name
-      ownerIp: socket.handshake.address,
+      ownerId: null,
+      ownerName: rawName,
+      ownerIp: null,
     };
 
+    gameState.teams[teamId] = newTeam;
+    saveState();
+
+    io.emit('teamRegistered', {
+      team: {
+        id: newTeam.id,
+        name: newTeam.name,
+        short: newTeam.short,
+        leader: newTeam.leader,
+        members: newTeam.members,
+        color: newTeam.color,
+        icon: newTeam.icon,
+        logo: newTeam.logo,
+        budget: newTeam.budget,
+        verified: newTeam.verified,
+        players: [],
+        playerCount: 0,
+      }
+    });
+    broadcastTeamsUpdate();
+
+    const responsePayload = {
+      success: true,
+      teamId,
+      password,
+      team: {
+        id: newTeam.id,
+        name: newTeam.name,
+        short: newTeam.short,
+        leader: newTeam.leader,
+        members: newTeam.members,
+        color: newTeam.color,
+        icon: newTeam.icon,
+        logo: newTeam.logo,
+        password: newTeam.password,
+        budget: newTeam.budget,
+        verified: newTeam.verified,
+      }
+    };
+
+    if (typeof callback === 'function') callback(responsePayload);
+    socket.emit('teamRegisterSuccess', responsePayload);
+  });
+
+  socket.on('joinGame', (payload = {}) => {
+    let teamId = String(payload.teamId || payload.name || '').trim();
+    const password = String(payload.password || payload.passcode || payload.code || '').trim();
+
+    if (!teamId && !password) {
+      socket.emit('error', 'Team code or name is required');
+      return;
+    }
+
+    let team = null;
+    if (teamId && gameState.teams[teamId]) {
+      team = gameState.teams[teamId];
+    } else {
+      // Find matching team in gameState.teams
+      const teamsList = Object.values(gameState.teams);
+      team = teamsList.find(t => 
+        (t.password && t.password.toLowerCase() === password.toLowerCase()) ||
+        (t.id && t.id.toLowerCase() === teamId.toLowerCase()) ||
+        (t.short && t.short.toLowerCase() === teamId.toLowerCase()) ||
+        (t.name && t.name.toLowerCase() === teamId.toLowerCase())
+      );
+    }
+
+    if (!team) {
+      socket.emit('error', 'Invalid team code or name');
+      return;
+    }
+
+    if (team.password && password && team.password.toLowerCase() !== password.toLowerCase()) {
+      socket.emit('error', 'Incorrect team code');
+      return;
+    }
+
+    teamId = team.id;
+
+    // Disconnect old owner if connected on different socket
+    if (team.ownerId && team.ownerId !== socket.id && connectedUsers[team.ownerId]) {
+      delete connectedUsers[team.ownerId];
+    }
+
+    team.ownerId = socket.id;
+    team.ownerIp = socket.handshake.address;
+
+    const reconnectToken = randomUUID();
     reconnectSessions[reconnectToken] = {
       teamId,
+      name: team.name,
     };
 
     connectedUsers[socket.id] = {
@@ -1866,18 +2001,18 @@ io.on('connection', (socket) => {
 
     io.emit('teamJoined', {
       teams: getSanitizedTeams(),
-      user: { socketId: socket.id, teamId },
+      user: { socketId: socket.id, teamId, name: team.name },
     });
 
     socket.emit('joinSuccess', {
       socketId: socket.id,
       teamId,
+      name: team.name,
       isHost: false,
       reconnectToken,
       reconnected: false,
-      team: getMyTeamForSocket(socket), // send full team info for client
+      team: getMyTeamForSocket(socket),
     });
-    // also emit the dedicated myTeam event for consistency
     socket.emit('myTeam', { team: getMyTeamForSocket(socket) });
     broadcastTeamsUpdate();
     saveState();
@@ -2078,6 +2213,37 @@ io.on('connection', (socket) => {
     endAuction();
   });
 
+  socket.on('adminVerifyTeam', (payload = {}) => {
+    if (!canControlAuction(socket)) {
+      socket.emit('error', 'Only admin can verify teams');
+      return;
+    }
+    const teamId = String(payload.teamId || '').trim();
+    const verified = payload.verified !== undefined ? Boolean(payload.verified) : true;
+    if (!teamId || !gameState.teams[teamId]) {
+      socket.emit('error', 'Team not found');
+      return;
+    }
+    gameState.teams[teamId].verified = verified;
+    saveState();
+    broadcastTeamsUpdate();
+    io.emit('teamVerified', { teamId, verified });
+  });
+
+  socket.on('adminVerifyAllTeams', (payload = {}) => {
+    if (!canControlAuction(socket)) {
+      socket.emit('error', 'Only admin can verify teams');
+      return;
+    }
+    const verified = payload.verified !== undefined ? Boolean(payload.verified) : true;
+    Object.values(gameState.teams).forEach((t) => {
+      t.verified = verified;
+    });
+    saveState();
+    broadcastTeamsUpdate();
+    io.emit('allTeamsVerified', { verified });
+  });
+
   socket.on('placeBid', (payload = {}) => {
     const user = connectedUsers[socket.id];
     if (!user) {
@@ -2093,22 +2259,36 @@ io.on('connection', (socket) => {
       return;
     }
 
-    if (isTeamSquadFull(team)) {
+    if (team.verified === false) {
       socket.emit(
         'error',
-        `Squad full (${MAX_SQUAD_SIZE}: ${PLAYING_XI_SIZE} playing + ${SUBSTITUTE_SIZE} subs). Cannot bid for more players.`
+        'Your team is pending verification by the admin. Please wait for approval before bidding.'
       );
       return;
     }
 
-    const bidAmount = parseInt(payload.amount, 10);
+    if (isTeamSquadFull(team)) {
+      socket.emit(
+        'error',
+        `Squad full (${MAX_SQUAD_SIZE}: ${PLAYING_XI_SIZE} playing + ${SUBSTITUTE_SIZE} subs). Cannot bid for more components.`
+      );
+      return;
+    }
+
+    let bidAmount = parseInt(payload.amount, 10);
+    if (payload.increment) {
+      bidAmount = gameState.currentBid + parseInt(payload.increment, 10);
+    } else if (Number.isFinite(bidAmount) && bidAmount > 0 && bidAmount <= 10 && gameState.currentBid > 0 && bidAmount <= gameState.currentBid) {
+      // Convenience: treat small numbers <= 10 as incremental bid if below currentBid
+      bidAmount = gameState.currentBid + bidAmount;
+    }
     if (!Number.isFinite(bidAmount) || bidAmount <= gameState.currentBid) {
-      socket.emit('error', `Bid must be higher than ${gameState.currentBid}L`);
+      socket.emit('error', `Bid must be higher than ${gameState.currentBid} points`);
       return;
     }
 
     if (bidAmount > team.budget) {
-      socket.emit('error', `Not enough budget. Available: ${team.budget}L`);
+      socket.emit('error', `Not enough budget. Available: ${team.budget} points`);
       return;
     }
 
@@ -2178,6 +2358,14 @@ io.on('connection', (socket) => {
 
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+app.get('/simulator', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'simulator.html'));
+});
+
+app.get('/audience', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'audience.html'));
 });
 
 app.get('/api/players', (req, res) => {
@@ -2348,46 +2536,280 @@ app.get('/api/admin/report', requireAdmin, (req, res) => {
   });
 });
 
-// reset all team passwords (admin only)
+// Get public or admin teams list
+app.get('/api/teams', (req, res) => {
+  const isAdmin = isAdminPass(req.headers['x-admin-pass']);
+  const teams = Object.values(gameState.teams || {}).map((t) => {
+    const copy = { ...t };
+    if (!isAdmin) {
+      delete copy.password;
+    }
+    return copy;
+  });
+  return res.json({ success: true, teams });
+});
+
+// Upload team logo image
+const teamLogoStorage = multer.diskStorage({
+  destination(req, file, cb) {
+    cb(null, PERSISTENT_IMAGES_DIR);
+  },
+  filename(req, file, cb) {
+    const rawExt = path.extname(file.originalname || '').toLowerCase();
+    const ext = /^[.][a-z0-9]{1,10}$/.test(rawExt) ? rawExt : '.png';
+    cb(null, `team_logo_${Date.now()}_${randomUUID().slice(0, 8)}${ext}`);
+  },
+});
+const uploadTeamLogo = multer({ storage: teamLogoStorage });
+
+app.post('/api/teams/upload-logo', uploadTeamLogo.single('logo'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Logo file required' });
+  }
+  const fileUrl = `/images/${req.file.filename}`;
+  return res.json({ success: true, url: fileUrl });
+});
+
+// Register new team via public API
+app.post('/api/teams/register', (req, res) => {
+  const rawName = String(req.body.name || req.body.teamName || '').trim();
+  if (!rawName) {
+    return res.status(400).json({ error: 'Team name is required' });
+  }
+
+  const existingNames = Object.values(gameState.teams).map(t => (t.name || '').toLowerCase());
+  if (existingNames.includes(rawName.toLowerCase())) {
+    return res.status(409).json({ error: 'A team with this name already exists' });
+  }
+
+  const slug = rawName.toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 16);
+  const teamId = `team_${slug}_${Math.random().toString(36).substring(2, 6)}`;
+  let short = String(req.body.short || '').trim().toUpperCase();
+  if (!short) {
+    short = rawName.split(/\s+/).map(w => w[0]).join('').slice(0, 4).toUpperCase() || 'TEAM';
+  }
+
+  const leader = String(req.body.leader || req.body.leaderName || '').trim();
+  const rawMembers = Array.isArray(req.body.members)
+    ? req.body.members
+    : (typeof req.body.members === 'string' ? req.body.members.split(',').map(s => s.trim()).filter(Boolean) : []);
+  const members = rawMembers.map(m => String(m).trim()).filter(Boolean).slice(0, 5);
+  const logo = String(req.body.logo || req.body.image || '').trim();
+  const color = String(req.body.color || '#00e5ff').trim();
+  const icon = String(req.body.icon || '⚡').trim();
+  const password = String(req.body.password || req.body.code || Math.random().toString(36).substring(2, 8)).trim();
+  const customBudget = Number(req.body.budget);
+  const budget = Number.isFinite(customBudget) && customBudget > 0 ? customBudget : INITIAL_BUDGET;
+
+  const newTeam = {
+    id: teamId,
+    name: rawName,
+    short,
+    leader,
+    members,
+    color,
+    icon,
+    logo,
+    password,
+    budget,
+    verified: false,
+    players: [],
+    playingXI: {},
+    ownerId: null,
+    ownerName: rawName,
+    ownerIp: null,
+  };
+
+  gameState.teams[teamId] = newTeam;
+  saveState();
+
+  io.emit('teamRegistered', {
+    team: {
+      id: newTeam.id,
+      name: newTeam.name,
+      short: newTeam.short,
+      leader: newTeam.leader,
+      members: newTeam.members,
+      color: newTeam.color,
+      icon: newTeam.icon,
+      logo: newTeam.logo,
+      budget: newTeam.budget,
+      verified: newTeam.verified,
+      players: [],
+      playerCount: 0,
+    }
+  });
+  broadcastTeamsUpdate();
+
+  return res.json({
+    success: true,
+    teamId,
+    password,
+    team: newTeam,
+  });
+});
+
+// Admin Add Team
+app.post('/api/admin/teams/add', requireAdmin, (req, res) => {
+  const rawName = String(req.body.name || req.body.teamName || '').trim();
+  if (!rawName) {
+    return res.status(400).json({ error: 'Team name is required' });
+  }
+
+  const slug = rawName.toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 16);
+  const teamId = String(req.body.id || `team_${slug}_${Math.random().toString(36).substring(2, 6)}`).trim();
+  
+  let short = String(req.body.short || '').trim().toUpperCase();
+  if (!short) {
+    short = rawName.split(/\s+/).map(w => w[0]).join('').slice(0, 4).toUpperCase() || 'TEAM';
+  }
+
+  const leader = String(req.body.leader || req.body.leaderName || '').trim();
+  const rawMembers = Array.isArray(req.body.members)
+    ? req.body.members
+    : (typeof req.body.members === 'string' ? req.body.members.split(',').map(s => s.trim()).filter(Boolean) : []);
+  const members = rawMembers.map(m => String(m).trim()).filter(Boolean).slice(0, 5);
+  const color = String(req.body.color || '#00e5ff').trim();
+  const icon = String(req.body.icon || '⚡').trim();
+  const password = String(req.body.password || Math.random().toString(36).substring(2, 8)).trim();
+  const customBudget = Number(req.body.budget);
+  const budget = Number.isFinite(customBudget) && customBudget > 0 ? customBudget : INITIAL_BUDGET;
+
+  const newTeam = {
+    id: teamId,
+    name: rawName,
+    short,
+    leader,
+    members,
+    color,
+    icon,
+    logo: String(req.body.logo || '').trim(),
+    password,
+    budget,
+    verified: req.body.verified !== undefined ? Boolean(req.body.verified) : true,
+    players: [],
+    playingXI: {},
+    ownerId: null,
+    ownerName: rawName,
+    ownerIp: null,
+  };
+
+  gameState.teams[teamId] = newTeam;
+  saveState();
+  broadcastTeamsUpdate();
+
+  return res.json({ success: true, team: newTeam });
+});
+
+// Admin Verify / Approve Team
+app.post('/api/admin/teams/verify', requireAdmin, (req, res) => {
+  const teamId = String(req.body.id || req.body.teamId || '').trim();
+  if (!teamId || !gameState.teams[teamId]) {
+    return res.status(404).json({ error: 'Team not found' });
+  }
+  const verified = req.body.verified !== undefined ? Boolean(req.body.verified) : true;
+  gameState.teams[teamId].verified = verified;
+  saveState();
+  broadcastTeamsUpdate();
+  io.emit('teamVerified', { teamId, verified });
+  return res.json({ success: true, team: gameState.teams[teamId], verified });
+});
+
+// Admin Verify All Teams
+app.post('/api/admin/teams/verify-all', requireAdmin, (req, res) => {
+  const verified = req.body.verified !== undefined ? Boolean(req.body.verified) : true;
+  Object.values(gameState.teams).forEach((t) => {
+    t.verified = verified;
+  });
+  saveState();
+  broadcastTeamsUpdate();
+  io.emit('allTeamsVerified', { verified });
+  return res.json({ success: true, verified });
+});
+
+// Admin Edit Team
+app.post('/api/admin/teams/edit', requireAdmin, (req, res) => {
+  const teamId = String(req.body.id || '').trim();
+  if (!teamId || !gameState.teams[teamId]) {
+    return res.status(404).json({ error: 'Team not found' });
+  }
+
+  const t = gameState.teams[teamId];
+  if (req.body.name) t.name = String(req.body.name).trim();
+  if (req.body.short) t.short = String(req.body.short).trim().toUpperCase();
+  if (req.body.leader !== undefined) t.leader = String(req.body.leader).trim();
+  if (req.body.members !== undefined) {
+    const raw = Array.isArray(req.body.members) ? req.body.members : String(req.body.members).split(',').map(s => s.trim());
+    t.members = raw.filter(Boolean).slice(0, 5);
+  }
+  if (req.body.color) t.color = String(req.body.color).trim();
+  if (req.body.icon) t.icon = String(req.body.icon).trim();
+  if (req.body.logo !== undefined) t.logo = String(req.body.logo).trim();
+  if (req.body.password) t.password = String(req.body.password).trim();
+  if (req.body.verified !== undefined) t.verified = Boolean(req.body.verified);
+  if (req.body.budget !== undefined && Number.isFinite(Number(req.body.budget))) {
+    t.budget = Number(req.body.budget);
+  }
+
+  saveState();
+  broadcastTeamsUpdate();
+  return res.json({ success: true, team: t });
+});
+
+// Admin Delete Team
+app.post('/api/admin/teams/delete', requireAdmin, (req, res) => {
+  const teamId = String(req.body.id || '').trim();
+  if (!teamId || !gameState.teams[teamId]) {
+    return res.status(404).json({ error: 'Team not found' });
+  }
+
+  delete gameState.teams[teamId];
+  saveState();
+  broadcastTeamsUpdate();
+  return res.json({ success: true, deletedId: teamId });
+});
+
+// Admin Seed Starter Electronic Teams
+app.post('/api/admin/teams/seed', requireAdmin, (req, res) => {
+  seedDefaultTeams(gameState.teams);
+  saveState();
+  broadcastTeamsUpdate();
+  return res.json({ success: true, teams: gameState.teams });
+});
+
+// Admin Reset Starting Budget for All Teams
+app.post('/api/admin/teams/reset-budget', requireAdmin, (req, res) => {
+  const budget = Number(req.body.budget);
+  if (!Number.isFinite(budget) || budget <= 0) {
+    return res.status(400).json({ error: 'Valid budget number is required' });
+  }
+
+  Object.values(gameState.teams).forEach((t) => {
+    t.budget = budget;
+  });
+
+  saveState();
+  broadcastTeamsUpdate();
+  return res.json({ success: true, budget });
+});
+
+// Reset all team passwords (admin only)
 app.post('/api/admin/reset-passwords', requireAdmin, (req, res) => {
   const body = req.body || {};
   const manual = body.passwords && typeof body.passwords === 'object' ? body.passwords : null;
   const newPasswords = [];
-  if (manual) {
-    // apply provided map
-    Object.entries(manual).forEach(([id, pwd]) => {
-      const teamConfig = IPL_TEAMS.find(t => t.id === id);
-      if (teamConfig && String(pwd).trim()) {
-        teamConfig.password = String(pwd).trim();
-        newPasswords.push({ id, password: teamConfig.password, short: teamConfig.short });
-      }
-    });
-  } else {
-    // random reset
-    IPL_TEAMS.forEach(t => {
-      const pwd = Math.random().toString(36).substring(2, 8);
-      t.password = pwd;
-      newPasswords.push({ id: t.id, password: pwd, short: t.short });
-    });
-  }
-  // update existing gameState teams too
-  Object.values(gameState.teams || {}).forEach(t => {
-    const config = IPL_TEAMS.find(x => x.id === t.id);
-    if (config) t.password = config.password;
+
+  Object.values(gameState.teams || {}).forEach((t) => {
+    if (manual && manual[t.id]) {
+      t.password = String(manual[t.id]).trim();
+    } else {
+      t.password = Math.random().toString(36).substring(2, 8);
+    }
+    newPasswords.push({ id: t.id, name: t.name, short: t.short, password: t.password });
   });
+
   saveState();
   return res.json({ success: true, newPasses: newPasswords });
-});
-
-// endpoint to reset all team passwords (admin only)
-app.post('/api/admin/reset-passwords', requireAdmin, (req, res) => {
-  const newPasses = IPL_TEAMS.map((t) => {
-    const pwd = Math.random().toString(36).slice(-6);
-    t.password = pwd;
-    return { id: t.id, short: t.short, password: pwd };
-  });
-  saveState();
-  return res.json({ success: true, newPasses });
 });
 
 app.get('/api/admin/report.csv', requireAdmin, (req, res) => {
@@ -2396,7 +2818,7 @@ app.get('/api/admin/report.csv', requireAdmin, (req, res) => {
   const stamp = new Date(report.generatedAt).toISOString().replace(/[:.]/g, '-');
 
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-  res.setHeader('Content-Disposition', `attachment; filename="ipl-auction-report-${stamp}.csv"`);
+  res.setHeader('Content-Disposition', `attachment; filename="electro-auction-report-${stamp}.csv"`);
   return res.send(csv);
 });
 
@@ -2991,5 +3413,5 @@ app.post('/api/reset', requireAdmin, (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`IPL Auction server running on http://localhost:${PORT}`);
+  console.log(`Electro Auction (ECE Components) server running on http://localhost:${PORT}`);
 });

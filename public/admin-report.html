@@ -1,23 +1,24 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin 4 - Reports</title>
+  <title>Admin 4 - Logic Circuit Auction Technical Report</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;700;900&display=swap" rel="stylesheet">
   <style>
     :root {
       --gold: #ffd700;
-      --bg: #0f1628;
-      --panel: rgba(10, 16, 28, 0.9);
-      --line: rgba(255, 215, 0, 0.2);
-      --text: #e8eefb;
+      --bg: #0f1526;
+      --bg-soft: #1a2338;
+      --line: rgba(0, 229, 255, 0.2);
+      --text: #e9edf6;
       --muted: #9ea8bf;
-      --blue: #3498db;
-      --green: #27ae60;
+      --green: #00ff88;
+      --red: #ff4d4f;
+      --blue: #00e5ff;
       --orange: #f39c12;
-      --red: #e74c3c;
+      --purple: #a855f7;
     }
 
     * {
@@ -28,7 +29,7 @@
 
     body {
       font-family: 'Exo 2', sans-serif;
-      background: radial-gradient(circle at 20% 10%, #1f2a45 0%, #0f1628 58%);
+      background: radial-gradient(circle at 20% 10%, #1e2a47 0%, #0f1526 55%);
       color: var(--text);
       min-height: 100vh;
       padding: 16px;
@@ -47,13 +48,13 @@
     .unauthorized a {
       color: #fff;
       text-decoration: none;
-      background: var(--blue);
+      background: #0077b6;
       padding: 8px 14px;
       border-radius: 8px;
     }
 
     .shell {
-      max-width: 1650px;
+      max-width: 1700px;
       margin: 0 auto;
       display: grid;
       gap: 14px;
@@ -64,17 +65,17 @@
       align-items: center;
       justify-content: space-between;
       gap: 10px;
-      padding: 14px 16px;
+      background: rgba(10, 15, 28, 0.9);
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: var(--panel);
+      padding: 14px 16px;
     }
 
     .title {
       font-family: 'Bebas Neue', sans-serif;
-      color: var(--gold);
       font-size: clamp(24px, 2.5vw, 36px);
       letter-spacing: 2px;
+      color: var(--gold);
       line-height: 1;
     }
 
@@ -82,12 +83,12 @@
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
+      align-items: center;
       justify-content: flex-end;
     }
 
     .link-btn,
-    .logout-btn,
-    .btn {
+    .logout-btn {
       text-decoration: none;
       border: none;
       border-radius: 8px;
@@ -97,7 +98,12 @@
       font-size: 13px;
       cursor: pointer;
       color: #fff;
-      background: var(--blue);
+      background: #0077b6;
+      transition: all 0.2s;
+    }
+
+    .link-btn:hover {
+      background: #0096c7;
     }
 
     .logout-btn {
@@ -111,9 +117,23 @@
       align-items: center;
     }
 
-    .btn-refresh { background: linear-gradient(135deg, #3498db, #2877ac); }
-    .btn-csv { background: linear-gradient(135deg, #27ae60, #1f8b4d); }
-    .btn-pdf { background: linear-gradient(135deg, #f39c12, #c7810e); }
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-refresh { background: #2980b9; }
+    .btn-csv { background: #27ae60; }
+    .btn-pdf { background: #8e44ad; }
 
     .layout {
       display: grid;
@@ -123,15 +143,15 @@
     .card {
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: var(--panel);
-      min-height: 0;
+      background: rgba(10, 16, 28, 0.9);
+      overflow: hidden;
     }
 
     .card-head {
       padding: 12px 14px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       font-family: 'Rajdhani', sans-serif;
-      font-size: 13px;
+      font-size: 14px;
       letter-spacing: 1.4px;
       color: var(--gold);
       text-transform: uppercase;
@@ -139,40 +159,39 @@
     }
 
     .card-body {
-      padding: 12px;
+      padding: 14px;
       display: grid;
-      gap: 10px;
+      gap: 14px;
     }
 
     .meta-row {
       display: grid;
-      grid-template-columns: repeat(6, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 10px;
     }
 
     .metric {
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 10px;
-      background: rgba(255, 255, 255, 0.03);
-      padding: 10px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.02);
       display: grid;
-      gap: 4px;
-      min-height: 64px;
+      gap: 3px;
     }
 
     .metric .label {
-      color: var(--muted);
       font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 1px;
       text-transform: uppercase;
       font-family: 'Rajdhani', sans-serif;
-      letter-spacing: 1px;
       font-weight: 700;
     }
 
     .metric .value {
-      font-size: 20px;
-      font-weight: 700;
       font-family: 'Rajdhani', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
       color: #fff;
       line-height: 1.1;
     }
@@ -184,69 +203,53 @@
 
     .split {
       display: grid;
-      grid-template-columns: repeat(2, minmax(260px, 1fr));
-      gap: 10px;
-    }
-
-    .mini-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-
-    .mini-table th,
-    .mini-table td {
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 7px 6px;
-      text-align: left;
-      vertical-align: top;
-    }
-
-    .mini-table th {
-      color: var(--muted);
-      font-family: 'Rajdhani', sans-serif;
-      text-transform: uppercase;
-      font-size: 11px;
-      letter-spacing: 0.8px;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
     }
 
     .table-wrap {
-      overflow: auto;
-      max-height: 58vh;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
+      overflow-x: auto;
+      max-height: 480px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      min-width: 1120px;
       font-size: 12px;
+      min-width: 1000px;
     }
 
-    th,
-    td {
+    th, td {
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 8px 7px;
+      padding: 8px 10px;
       text-align: left;
-      vertical-align: top;
+      vertical-align: middle;
     }
 
     th {
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--muted);
+      color: var(--gold);
       font-family: 'Rajdhani', sans-serif;
+      letter-spacing: 1px;
       text-transform: uppercase;
       font-size: 11px;
-      letter-spacing: 0.8px;
       position: sticky;
       top: 0;
-      z-index: 2;
+      background: #111a2c;
+      z-index: 1;
+    }
+
+    .mini-table {
+      min-width: 0;
+      width: 100%;
+    }
+
+    .mini-table th {
+      font-size: 12px;
     }
 
     .pill {
       display: inline-block;
-      padding: 3px 6px;
+      padding: 2px 8px;
       border-radius: 999px;
       font-size: 10px;
       font-weight: 700;
@@ -255,7 +258,7 @@
       background: #4a627e;
     }
 
-    .pill.ok { background: var(--green); }
+    .pill.ok { background: var(--green); color: #04140c; }
     .pill.warn { background: var(--orange); color: #111; }
 
     .readonly {
@@ -289,26 +292,11 @@
       background: rgba(231, 76, 60, 0.96);
     }
 
-    @media (max-width: 1280px) {
-      .meta-row {
-        grid-template-columns: repeat(3, minmax(150px, 1fr));
-      }
-    }
-
     @media (max-width: 900px) {
       .topbar {
         flex-direction: column;
         align-items: flex-start;
       }
-
-      .top-actions {
-        justify-content: flex-start;
-      }
-
-      .meta-row {
-        grid-template-columns: repeat(2, minmax(140px, 1fr));
-      }
-
       .split {
         grid-template-columns: 1fr;
       }
@@ -320,26 +308,17 @@
         color: #111;
         padding: 0;
       }
-
-      .topbar,
-      .actions,
-      .flash {
+      .topbar, .actions, .flash {
         display: none !important;
       }
-
       .card {
         border: 1px solid #ccc;
         background: #fff;
         break-inside: avoid;
       }
-
       th {
         background: #f1f1f1 !important;
         color: #222;
-      }
-
-      .table-wrap {
-        max-height: none;
       }
     }
   </style>
@@ -348,23 +327,24 @@
   <div class="shell" id="appShell" style="display:none;">
     <header class="topbar">
       <div>
-        <div class="title">Admin 4 - Reports</div>
-        <div class="readonly">Read-only reporting view. Export to CSV or Print/Save as PDF.</div>
+        <div class="title">Admin 4 - Logic Circuit Technical Report</div>
+        <div class="readonly">Read-only live technical report. Export to CSV or Print as PDF.</div>
       </div>
       <div class="top-actions">
-        <a class="link-btn" href="/admin-panel.html">Admin 1</a>
-        <a class="link-btn" href="/admin-player.html">Admin 2</a>
-        <a class="link-btn" href="/admin-result.html">Admin 3</a>
+        <a class="link-btn" href="/simulator.html" target="_blank" style="background: linear-gradient(135deg, #a855f7, #7c3aed);">🧪 Circuit Simulator ↗</a>
+        <a class="link-btn" href="/admin-panel.html">Admin 1 Controls</a>
+        <a class="link-btn" href="/admin-player.html">Admin 2 Components</a>
+        <a class="link-btn" href="/admin-result.html">Admin 3 Results</a>
         <a class="link-btn" href="/admin-data.html">Admin Data</a>
-        <a class="link-btn" href="/audience.html">Audience</a>
+        <a class="link-btn" href="/audience.html" target="_blank">Audience Stage ↗</a>
         <button class="logout-btn" onclick="logout()">Logout</button>
       </div>
     </header>
 
     <div class="actions">
-      <button class="btn btn-refresh" onclick="loadReport(true)">Refresh</button>
-      <button class="btn btn-csv" onclick="downloadCsv()">Download CSV</button>
-      <button class="btn btn-pdf" onclick="window.print()">Print / Save PDF</button>
+      <button class="btn btn-refresh" onclick="loadReport(true)">🔄 Refresh</button>
+      <button class="btn btn-csv" onclick="downloadCsv()">📥 Download CSV</button>
+      <button class="btn btn-pdf" onclick="window.print()">🖨️ Print / Save PDF</button>
       <span class="readonly" id="reportStamp">Last update: --</span>
     </div>
 
@@ -385,31 +365,28 @@
       </section>
 
       <section class="card">
-        <div class="card-head">Team Technical Report (Read-only)</div>
+        <div class="card-head">Team Logic Hardware Report (Read-only)</div>
         <div class="card-body">
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Team</th>
-                  <th>Owner</th>
-                  <th>Connected</th>
-                  <th>Players</th>
-                  <th>Squad</th>
+                  <th>Leader / Members</th>
+                  <th>Status</th>
+                  <th>Components</th>
                   <th>Budget Used</th>
                   <th>Budget Left</th>
                   <th>Total Spent</th>
                   <th>Avg Spend</th>
-                  <th>Capped</th>
-                  <th>Uncapped</th>
-                  <th>Batter</th>
-                  <th>Batter/WK</th>
-                  <th>WK-Batter</th>
-                  <th>AR</th>
-                  <th>Fast</th>
-                  <th>Spin</th>
-                  <th>Other</th>
-                  <th>Event Sold</th>
+                  <th>Input</th>
+                  <th>Output</th>
+                  <th>Logic Gates</th>
+                  <th>Dec/Mux</th>
+                  <th>Sequential</th>
+                  <th>Annotation</th>
+                  <th>Misc</th>
+                  <th>Won Count</th>
                 </tr>
               </thead>
               <tbody id="teamsReportBody"></tbody>
@@ -425,8 +402,15 @@
   <script src="/socket.io/socket.io.js"></script>
   <script>
     const adminPass = localStorage.getItem('adminPass');
-    const ROLE_ORDER = ['Batter', 'Batter/WK', 'WK-Batter', 'All-Rounder', 'Fast Bowler', 'Spinner', 'Other'];
-    const socket = localStorage.getItem('adminAuth') && adminPass ? io({ auth: { adminPass } }) : null;
+    const ROLE_ORDER = [
+      'Input',
+      'Output',
+      'Logic Gates',
+      'Decoders / Data Selectors',
+      'Sequential Elements',
+      'Annotation',
+      'Misc Components'
+    ];
     let reportState = null;
     let pollTimer = null;
     let refreshTimer = null;
@@ -472,9 +456,9 @@
       return fetch(url, { ...options, headers });
     }
 
-    function formatLakh(value) {
+    function formatPts(value) {
       const num = Number(value) || 0;
-      return `${num.toLocaleString('en-IN')}L`;
+      return `${num.toLocaleString('en-US')} pts`;
     }
 
     function renderRoleTable(targetId, title, counts) {
@@ -482,7 +466,7 @@
       const rows = ROLE_ORDER.map((roleId) => `
         <tr>
           <th>${roleId}</th>
-          <td>${Number(counts && counts[roleId]) || 0}</td>
+          <td><strong>${Number(counts && counts[roleId]) || 0}</strong></td>
         </tr>
       `).join('');
       table.innerHTML = `
@@ -501,18 +485,15 @@
         ? `${report.auctionFlow.currentPlayer.name} (${report.auctionFlow.currentPlayer.role})`
         : 'None';
       const cards = [
-        ['Phase', String(report.phase || 'lobby').toUpperCase(), `Current bid: ${formatLakh(report.auctionFlow.currentBidL)}`],
-        ['Teams', report.summary.teamsJoined, `Connected ${report.summary.teamsWithOwners} / ${report.summary.teamsJoined}`],
-        ['Players', report.playerCatalog.totalPlayers, `Sold ${report.auctionFlow.soldPlayers} | Unsold ${report.auctionFlow.unsoldPlayers}`],
+        ['Phase', String(report.phase || 'lobby').toUpperCase(), `Current bid: ${formatPts(report.auctionFlow.currentBidL)}`],
+        ['Teams', report.summary.teamsJoined, `Verified: ${report.summary.teamsWithOwners} / Total: ${report.summary.teamsJoined}`],
+        ['Components', report.playerCatalog.totalPlayers, `Sold ${report.auctionFlow.soldPlayers} | Unsold ${report.auctionFlow.unsoldPlayers}`],
         ['Queue', report.auctionFlow.remainingPlayers, `Current: ${currentPlayerText}`],
-        ['Sold Amount', formatLakh(report.auctionFlow.soldAmountL), `Avg ${formatLakh(report.auctionFlow.averageSoldPriceL)}`],
-        ['Budget Left', formatLakh(report.financials.totalBudgetRemainingL), `Used ${formatLakh(report.financials.totalBudgetUsedL)}`],
-        ['Alerts', report.alerts.active, `Critical ${report.alerts.criticalActive} | Total ${report.alerts.total}`],
-        ['Full Squads', report.summary.fullSquads, `Incomplete ${report.summary.incompleteSquads}`],
-        ['Catalog Base', formatLakh(report.playerCatalog.totalBaseAmountL), `Capped ${report.playerCatalog.cappedPlayers} | Uncapped ${report.playerCatalog.uncappedPlayers}`],
-        ['Unsold Base', formatLakh(report.auctionFlow.unsoldBaseAmountL), `Remaining base ${formatLakh(report.auctionFlow.remainingBaseAmountL)}`],
-        ['Budget Pool', formatLakh(report.financials.totalBudgetPoolL), `Per team ${formatLakh(report.financials.initialBudgetPerTeamL)}`],
-        ['Generated', new Date(report.generatedAt).toLocaleTimeString(), new Date(report.generatedAt).toLocaleDateString()],
+        ['Sold Points', formatPts(report.auctionFlow.soldAmountL), `Avg ${formatPts(report.auctionFlow.averageSoldPriceL)}`],
+        ['Points Left', formatPts(report.financials.totalBudgetRemainingL), `Used ${formatPts(report.financials.totalBudgetUsedL)}`],
+        ['Catalog Base', formatPts(report.playerCatalog.totalBaseAmountL), `Flagship ${report.playerCatalog.cappedPlayers} | Lab ${report.playerCatalog.uncappedPlayers}`],
+        ['Remaining Base', formatPts(report.auctionFlow.remainingBaseAmountL), `Unsold base ${formatPts(report.auctionFlow.unsoldBaseAmountL)}`],
+        ['Generated At', new Date(report.generatedAt).toLocaleTimeString(), new Date(report.generatedAt).toLocaleDateString()],
       ];
 
       summaryCards.innerHTML = cards.map((card) => `
@@ -523,8 +504,8 @@
         </div>
       `).join('');
 
-      renderRoleTable('roleCatalogTable', 'Catalog Role Counts', report.playerCatalog.roleCounts || {});
-      renderRoleTable('roleSoldTable', 'Sold Role Counts', report.auctionFlow.soldRoleCounts || {});
+      renderRoleTable('roleCatalogTable', 'Catalog Component Counts', report.playerCatalog.roleCounts || {});
+      renderRoleTable('roleSoldTable', 'Sold Component Counts', report.auctionFlow.soldRoleCounts || {});
       document.getElementById('reportStamp').textContent = `Last update: ${new Date(report.generatedAt).toLocaleString()}`;
     }
 
@@ -532,31 +513,28 @@
       const tbody = document.getElementById('teamsReportBody');
       const teams = Array.isArray(report.teams) ? report.teams : [];
       if (!teams.length) {
-        tbody.innerHTML = '<tr><td colspan="19">No teams joined yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="16" style="text-align:center; padding:20px; color:#94a3b8;">No teams registered yet.</td></tr>';
         return;
       }
 
       tbody.innerHTML = teams.map((team) => `
         <tr>
-          <td><strong>${escapeHtml(team.short || 'TEAM')}</strong><br>${escapeHtml(team.name || '')}</td>
-          <td>${escapeHtml(team.ownerName || '--')}</td>
-          <td>${team.isConnected ? '<span class="pill ok">Connected</span>' : '<span class="pill warn">Offline</span>'}</td>
-          <td>${Number(team.playersCount) || 0}</td>
-          <td>${team.squadComplete ? '<span class="pill ok">Complete</span>' : '<span class="pill warn">Pending</span>'}</td>
-          <td>${formatLakh(team.budgetUsedL)}</td>
-          <td>${formatLakh(team.budgetRemainingL)}</td>
-          <td>${formatLakh(team.totalSpentL)}</td>
-          <td>${formatLakh(team.avgSpendL)}</td>
-          <td>${Number(team.cappedPlayers) || 0}</td>
-          <td>${Number(team.uncappedPlayers) || 0}</td>
-          <td>${Number(team.roleCounts && team.roleCounts['Batter']) || 0}</td>
-          <td>${Number(team.roleCounts && team.roleCounts['Batter/WK']) || 0}</td>
-          <td>${Number(team.roleCounts && team.roleCounts['WK-Batter']) || 0}</td>
-          <td>${Number(team.roleCounts && team.roleCounts['All-Rounder']) || 0}</td>
-          <td>${Number(team.roleCounts && team.roleCounts['Fast Bowler']) || 0}</td>
-          <td>${Number(team.roleCounts && team.roleCounts['Spinner']) || 0}</td>
-          <td>${Number(team.roleCounts && team.roleCounts['Other']) || 0}</td>
-          <td>${Number(team.soldEvents) || 0}</td>
+          <td><strong>${escapeHtml(team.short || 'TEAM')}</strong><br><span style="font-size:11px; color:#94a3b8;">${escapeHtml(team.name || '')}</span></td>
+          <td>${escapeHtml(team.ownerName || team.leader || '--')}</td>
+          <td>${team.isConnected ? '<span class="pill ok">Online</span>' : '<span class="pill warn">Offline</span>'}</td>
+          <td><strong>${Number(team.playersCount) || 0}</strong></td>
+          <td>${formatPts(team.budgetUsedL)}</td>
+          <td><strong style="color:var(--green);">${formatPts(team.budgetRemainingL)}</strong></td>
+          <td>${formatPts(team.totalSpentL)}</td>
+          <td>${formatPts(team.avgSpendL)}</td>
+          <td>${Number(team.roleCounts && team.roleCounts['Input']) || 0}</td>
+          <td>${Number(team.roleCounts && team.roleCounts['Output']) || 0}</td>
+          <td>${Number(team.roleCounts && team.roleCounts['Logic Gates']) || 0}</td>
+          <td>${Number(team.roleCounts && team.roleCounts['Decoders / Data Selectors']) || 0}</td>
+          <td>${Number(team.roleCounts && team.roleCounts['Sequential Elements']) || 0}</td>
+          <td>${Number(team.roleCounts && team.roleCounts['Annotation']) || 0}</td>
+          <td>${Number(team.roleCounts && team.roleCounts['Misc Components']) || 0}</td>
+          <td><strong>${Number(team.soldEvents) || 0}</strong></td>
         </tr>
       `).join('');
     }
@@ -593,13 +571,6 @@
       }
     }
 
-    function scheduleReportRefresh(delay = 80) {
-      clearTimeout(refreshTimer);
-      refreshTimer = setTimeout(() => {
-        loadReport(false);
-      }, delay);
-    }
-
     async function downloadCsv() {
       try {
         const response = await fetchWithAdmin('/api/admin/report.csv');
@@ -610,14 +581,10 @@
         }
 
         const blob = await response.blob();
-        const disposition = response.headers.get('content-disposition') || '';
-        const filenameMatch = disposition.match(/filename="?([^\"]+)"?/i);
-        const filename = filenameMatch && filenameMatch[1] ? filenameMatch[1] : 'ipl-auction-report.csv';
-
         const objectUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = objectUrl;
-        a.download = filename;
+        a.download = 'logic-circuit-auction-report.csv';
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -647,41 +614,8 @@
         loadReport(false);
         pollTimer = setInterval(() => {
           if (!document.hidden) loadReport(false);
-        }, 2200);
+        }, 2500);
       }
-    }).catch(() => logout());
-
-    if (socket) {
-      const refreshEvents = [
-        'stateUpdate',
-        'auctionStarted',
-        'auctionPaused',
-        'auctionResumed',
-        'auctionFinished',
-        'newPlayer',
-        'bidPlaced',
-        'playerSold',
-        'playerUnsold',
-        'teamsUpdate',
-        'queueUpdated',
-        'alertsUpdated',
-      ];
-
-      refreshEvents.forEach((eventName) => {
-        socket.on(eventName, () => scheduleReportRefresh(60));
-      });
-
-      socket.on('connect', () => scheduleReportRefresh(40));
-      socket.on('disconnect', () => showFlash('Socket disconnected', 'error'));
-    }
-
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) loadReport(false);
-    });
-
-    window.addEventListener('beforeunload', () => {
-      clearInterval(pollTimer);
-      clearTimeout(refreshTimer);
     });
   </script>
 </body>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin 2 - Player Management</title>
+  <title>Admin 2 - Component Management</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;700;900&display=swap" rel="stylesheet">
   <style>
@@ -249,24 +249,23 @@
     .deck-selected {
       display: grid;
       gap: 6px;
-      max-height: 130px;
+      max-height: 150px;
       overflow: auto;
     }
 
     .deck-chip {
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 7px;
-      background: rgba(255, 255, 255, 0.04);
-      padding: 7px 8px;
-      font-size: 12px;
-      color: var(--text);
-      line-height: 1.35;
+      border: 1px solid rgba(255, 215, 0, 0.25);
+      border-radius: 6px;
+      padding: 6px 8px;
+      background: rgba(255, 215, 0, 0.08);
+      font-size: 11px;
+      color: #fff;
     }
 
     .deck-candidates {
       display: grid;
       gap: 6px;
-      max-height: 240px;
+      max-height: 230px;
       overflow: auto;
       border-top: 1px dashed rgba(255, 255, 255, 0.12);
       padding-top: 8px;
@@ -283,14 +282,14 @@
     }
 
     .queue-item {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 8px;
-      align-items: center;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.03);
       padding: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
 
     .queue-item-main {
@@ -494,7 +493,7 @@
 <body>
   <div class="shell" id="appShell" style="display:none;">
     <header class="topbar">
-      <div class="title">Admin 2 - Player Management</div>
+      <div class="title">Admin 2 - Component Management</div>
       <div class="top-actions">
         <a class="link-btn" href="/admin-panel.html">Admin 1 Control</a>
         <a class="link-btn" href="/admin-result.html">Admin 3 Results</a>
@@ -507,53 +506,54 @@
     <main class="layout" id="adminLayout">
       <div class="left-stack">
         <section class="card editor-card" id="editorCard">
-          <div class="card-head">Add / Edit Player</div>
+          <div class="card-head">Add / Edit Component</div>
           <div class="manage-body">
             <div>
-              <label for="p_name">Player Name</label>
-              <input type="text" id="p_name" maxlength="40" />
+              <label for="p_name">Component Name</label>
+              <input type="text" id="p_name" maxlength="40" placeholder="e.g. ESP32-WROOM-32D" />
             </div>
 
             <div class="row-2">
               <div>
-                <label for="p_role">Role</label>
+                <label for="p_role">Category</label>
                 <select id="p_role">
-                  <option value="Batter">Batter</option>
-                  <option value="Batter/WK">Batter/WK</option>
-                  <option value="WK-Batter">WK-Batter</option>
-                  <option value="All-Rounder">All-Rounder</option>
-                  <option value="Fast Bowler">Fast Bowler</option>
-                  <option value="Spinner">Spinner</option>
+                  <option value="Input">Input</option>
+                  <option value="Output">Output</option>
+                  <option value="Logic Gates">Logic Gates</option>
+                  <option value="Decoders / Data Selectors">Decoders / Data Selectors</option>
+                  <option value="Sequential Elements">Sequential Elements</option>
+                  <option value="Annotation">Annotation</option>
+                  <option value="Misc Components">Misc Components</option>
                 </select>
               </div>
               <div>
-                <label for="p_country">Country</label>
-                <input type="text" id="p_country" value="India" maxlength="32" />
+                <label for="p_country">Manufacturer / Family</label>
+                <input type="text" id="p_country" value="Espressif Systems" maxlength="32" />
               </div>
             </div>
 
             <div class="row-2">
               <div>
-                <label for="p_price">Base Price (RsL)</label>
+                <label for="p_price">Base Price (₹ pts)</label>
                 <input type="number" id="p_price" min="1" value="10" />
               </div>
               <div>
-                <label for="p_image">Image URL</label>
-                <input type="text" id="p_image" placeholder="https://..." />
+                <label for="p_image">Image URL / Path</label>
+                <input type="text" id="p_image" placeholder="/images/comp_1.svg" />
               </div>
             </div>
 
             <label style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;text-transform:none;letter-spacing:0;">
-              <input type="checkbox" id="p_capped" style="width:auto;" /> Capped player
+              <input type="checkbox" id="p_capped" style="width:auto;" /> Flagship / Industrial Grade
             </label>
 
             <div class="form-actions">
-              <button class="btn btn-primary" id="saveBtn" onclick="savePlayer()">Add Player</button>
+              <button class="btn btn-primary" id="saveBtn" onclick="savePlayer()">Add Component</button>
               <button class="btn btn-secondary" onclick="resetForm()">Clear / Cancel</button>
             </div>
 
-            <p class="small-note" id="modeLabel">Mode: Add new player.</p>
-            <p class="small-note">Note: Player list is locked during active auction.</p>
+            <p class="small-note" id="modeLabel">Mode: Add new component.</p>
+            <p class="small-note">Note: Component catalog is locked during active auction.</p>
           </div>
         </section>
 
@@ -562,26 +562,29 @@
           <div class="manage-body">
             <div>
               <label for="q_search">Queue Search</label>
-              <input type="text" id="q_search" placeholder="Search queue by player / role / country" />
+              <input type="text" id="q_search" placeholder="Search queue by component / category / mfg" />
             </div>
 
             <div class="row-2">
               <div>
-                <label for="q_roleGroup">Player Type</label>
+                <label for="q_roleGroup">Category</label>
                 <select id="q_roleGroup">
-                  <option value="all">All Types</option>
-                  <option value="batsman">Batsman</option>
-                  <option value="wicketkeeper">Wicketkeeper</option>
-                  <option value="bowler">Bowler</option>
-                  <option value="allrounder">All-Rounder</option>
+                  <option value="all">All Categories</option>
+                  <option value="input">Input</option>
+                  <option value="output">Output</option>
+                  <option value="logic_gates">Logic Gates</option>
+                  <option value="decoders_selectors">Decoders / Selectors</option>
+                  <option value="sequential_elements">Sequential Elements</option>
+                  <option value="annotation">Annotation</option>
+                  <option value="misc_components">Misc Components</option>
                 </select>
               </div>
               <div>
-                <label for="q_capped">Capped Status</label>
+                <label for="q_capped">Grade</label>
                 <select id="q_capped">
                   <option value="all">All</option>
-                  <option value="capped">Capped</option>
-                  <option value="uncapped">Uncapped</option>
+                  <option value="capped">Flagship / Industrial</option>
+                  <option value="uncapped">Standard Lab</option>
                 </select>
               </div>
             </div>
@@ -592,34 +595,37 @@
             </div>
 
             <p class="small-note" id="queueMeta">Queue summary unavailable.</p>
-            <div class="queue-next" id="queueNext">Current and next player preview will appear here.</div>
+            <div class="queue-next" id="queueNext">Current and next component preview will appear here.</div>
             <div class="queue-preview" id="queuePreview"></div>
-            <p class="small-note">Use "Set Next" to bring a remaining player to the top of upcoming queue.</p>
+            <p class="small-note">Use "Set Next" to bring a remaining component to the top of upcoming queue.</p>
 
             <div class="deck-panel">
               <div class="deck-title">Deck 2 - Custom Queue Injection</div>
               <div class="queue-mode-note" id="queueModeNote">
-                Auction mode: hide catalog, focus queue. Deck supports only unsold + remaining players (not sold).
+                Auction mode: hide catalog, focus queue. Deck supports only unsold + remaining components (not sold).
               </div>
 
               <div class="row-2">
                 <div>
-                  <label for="deckRoleGroup">Deck Type</label>
+                  <label for="deckRoleGroup">Deck Category</label>
                   <select id="deckRoleGroup">
-                    <option value="all">All Types</option>
-                    <option value="batsman">Batsman</option>
-                    <option value="wicketkeeper">Wicketkeeper</option>
-                    <option value="bowler">Bowler</option>
-                    <option value="allrounder">All-Rounder</option>
+                    <option value="all">All Categories</option>
+                    <option value="input">Input</option>
+                    <option value="output">Output</option>
+                    <option value="logic_gates">Logic Gates</option>
+                    <option value="decoders_selectors">Decoders / Selectors</option>
+                    <option value="sequential_elements">Sequential Elements</option>
+                    <option value="annotation">Annotation</option>
+                    <option value="misc_components">Misc Components</option>
                     <option value="other">Other</option>
                   </select>
                 </div>
                 <div>
-                  <label for="deckCapped">Deck Capped</label>
+                  <label for="deckCapped">Deck Grade</label>
                   <select id="deckCapped">
                     <option value="all">All</option>
-                    <option value="capped">Capped</option>
-                    <option value="uncapped">Uncapped</option>
+                    <option value="capped">Flagship / Industrial</option>
+                    <option value="uncapped">Standard Lab</option>
                   </select>
                 </div>
               </div>
@@ -635,7 +641,7 @@
                 </div>
                 <div>
                   <label for="deckSearch">Deck Search</label>
-                  <input type="text" id="deckSearch" placeholder="Find particular player" />
+                  <input type="text" id="deckSearch" placeholder="Find particular component" />
                 </div>
               </div>
 
@@ -658,28 +664,29 @@
       </div>
 
       <section class="card players-panel" id="playersPanel">
-        <div class="card-head">Player Catalog</div>
+        <div class="card-head">Component Catalog</div>
         <div class="filter-box">
-          <input type="text" id="searchInput" placeholder="Search by name / role / country" />
+          <input type="text" id="searchInput" placeholder="Search by name / category / manufacturer" />
           <div class="row-2">
             <div>
-              <label for="catalogRoleFilter">Role</label>
+              <label for="catalogRoleFilter">Category</label>
               <select id="catalogRoleFilter">
-                <option value="all">All Roles</option>
-                <option value="Batter">Batter</option>
-                <option value="Batter/WK">Batter/WK</option>
-                <option value="WK-Batter">WK-Batter</option>
-                <option value="All-Rounder">All-Rounder</option>
-                <option value="Fast Bowler">Fast Bowler</option>
-                <option value="Spinner">Spinner</option>
+                <option value="all">All Categories</option>
+                <option value="Input">Input</option>
+                <option value="Output">Output</option>
+                <option value="Logic Gates">Logic Gates</option>
+                <option value="Decoders / Data Selectors">Decoders / Data Selectors</option>
+                <option value="Sequential Elements">Sequential Elements</option>
+                <option value="Annotation">Annotation</option>
+                <option value="Misc Components">Misc Components</option>
               </select>
             </div>
             <div>
-              <label for="catalogCappedFilter">Capped</label>
+              <label for="catalogCappedFilter">Grade</label>
               <select id="catalogCappedFilter">
                 <option value="all">All</option>
-                <option value="capped">Capped</option>
-                <option value="uncapped">Uncapped</option>
+                <option value="capped">Flagship / Industrial</option>
+                <option value="uncapped">Standard Lab</option>
               </select>
             </div>
           </div>
@@ -799,10 +806,13 @@
 
     function getRoleGroupFromPlayer(player) {
       const role = String(player && player.role || '').toLowerCase();
-      if (role.includes('all-rounder') || role.includes('all rounder')) return 'allrounder';
-      if (role.includes('wk') || role.includes('wicket')) return 'wicketkeeper';
-      if (role.includes('bowler') || role.includes('spinner')) return 'bowler';
-      if (role.includes('batter') || role.includes('batsman') || role.includes('bat')) return 'batsman';
+      if (role.includes('input')) return 'input';
+      if (role.includes('output')) return 'output';
+      if (role.includes('gate')) return 'logic_gates';
+      if (role.includes('decoder') || role.includes('selector') || role.includes('mux') || role.includes('demux')) return 'decoders_selectors';
+      if (role.includes('sequential') || role.includes('flip-flop') || role.includes('counter') || role.includes('register')) return 'sequential_elements';
+      if (role.includes('annotation') || role.includes('probe') || role.includes('label')) return 'annotation';
+      if (role.includes('misc') || role.includes('timer') || role.includes('relay')) return 'misc_components';
       return 'other';
     }
 
@@ -912,7 +922,7 @@
         else if (activeFilter.capped === false) cappedSelect.value = 'uncapped';
         else cappedSelect.value = 'all';
       }
-      metaEl.textContent = `Remaining ${Number(queueState.remaining) || 0} | Unsold ${Number(poolCounts && poolCounts.source && poolCounts.source.unsold) || 0} | Capped ${Number(counts.capped) || 0} | Uncapped ${Number(counts.uncapped) || 0} | Bat ${Number(roleCounts.batsman) || 0} | WK ${Number(roleCounts.wicketkeeper) || 0} | Bowl ${Number(roleCounts.bowler) || 0} | AR ${Number(roleCounts.allrounder) || 0}`;
+      metaEl.textContent = `Remaining ${Number(queueState.remaining) || 0} | Unsold ${Number(poolCounts && poolCounts.source && poolCounts.source.unsold) || 0} | Flagship ${Number(counts.capped) || 0} | Lab ${Number(counts.uncapped) || 0} | In ${Number(roleCounts.input) || 0} | Out ${Number(roleCounts.output) || 0} | Gate ${Number(roleCounts.logic_gates) || 0} | Dec ${Number(roleCounts.decoders_selectors) || 0} | Seq ${Number(roleCounts.sequential_elements) || 0}`;
 
       const current = queueState.currentPlayer;
       const next = queueState.nextPlayer;

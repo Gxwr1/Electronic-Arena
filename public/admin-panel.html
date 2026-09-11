@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin 1 - Auction Control</title>
+  <title>Admin 1 - Auction & Teams Control</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;700;900&display=swap" rel="stylesheet">
   <style>
@@ -11,12 +11,12 @@
       --gold: #ffd700;
       --bg: #0f1526;
       --bg-soft: #1a2338;
-      --line: rgba(255, 215, 0, 0.2);
+      --line: rgba(0, 229, 255, 0.2);
       --text: #e9edf6;
       --muted: #9ea8bf;
-      --green: #00c853;
+      --green: #00ff88;
       --red: #ff4d4f;
-      --blue: #3498db;
+      --blue: #00e5ff;
       --orange: #f39c12;
     }
 
@@ -47,13 +47,13 @@
     .unauthorized a {
       color: #fff;
       text-decoration: none;
-      background: var(--blue);
+      background: #0077b6;
       padding: 8px 14px;
       border-radius: 8px;
     }
 
     .shell {
-      max-width: 1400px;
+      max-width: 1500px;
       margin: 0 auto;
       display: grid;
       gap: 14px;
@@ -97,7 +97,12 @@
       font-size: 13px;
       cursor: pointer;
       color: #fff;
-      background: var(--blue);
+      background: #0077b6;
+      transition: all 0.2s;
+    }
+
+    .link-btn:hover {
+      background: #0096c7;
     }
 
     .logout-btn {
@@ -106,7 +111,7 @@
 
     .layout {
       display: grid;
-      grid-template-columns: minmax(320px, 370px) minmax(0, 1fr);
+      grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
       gap: 14px;
       min-height: calc(100vh - 130px);
     }
@@ -115,35 +120,43 @@
       background: rgba(10, 15, 28, 0.9);
       border: 1px solid var(--line);
       border-radius: 12px;
+      display: flex;
+      flex-direction: column;
     }
 
     .card-head {
       padding: 12px 14px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid var(--line);
       font-family: 'Rajdhani', sans-serif;
-      font-size: 13px;
-      letter-spacing: 1.4px;
-      color: var(--gold);
-      text-transform: uppercase;
       font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--blue);
+      text-transform: uppercase;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .controls {
-      padding: 12px;
+      padding: 14px;
       display: grid;
       gap: 12px;
-      align-content: start;
-      overflow: auto;
     }
 
     .control-group {
       display: grid;
       gap: 6px;
+      padding: 10px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .control-group h3 {
       font-family: 'Rajdhani', sans-serif;
-      font-size: 12px;
+      font-size: 11px;
+      font-weight: 700;
       color: var(--muted);
       letter-spacing: 1px;
       text-transform: uppercase;
@@ -169,7 +182,7 @@
     }
 
     .btn-start { background: linear-gradient(135deg, #27ae60, #1f8b4d); }
-    .btn-action { background: linear-gradient(135deg, #3498db, #2877ac); }
+    .btn-action { background: linear-gradient(135deg, #0077b6, #0096c7); }
     .btn-warn { background: linear-gradient(135deg, #f39c12, #c7810e); }
     .btn-danger { background: linear-gradient(135deg, #e74c3c, #bd3a2d); }
 
@@ -195,14 +208,13 @@
 
     .monitor {
       display: grid;
-      grid-template-rows: minmax(280px, 0.95fr) minmax(160px, auto) minmax(180px, 0.85fr);
+      grid-template-rows: minmax(260px, 0.9fr) minmax(220px, 1fr) minmax(160px, 0.8fr);
       gap: 14px;
       min-height: 0;
     }
 
     .spotlight-body {
-      height: calc(100% - 44px);
-      padding: 10px;
+      padding: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -220,83 +232,76 @@
       width: 100%;
       height: 100%;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 12px;
-      align-items: stretch;
-    }
-
-    .player-image-section,
-    .player-info-section {
-      display: flex;
+      grid-template-columns: 200px minmax(0, 1fr);
+      gap: 16px;
       align-items: center;
-      justify-content: center;
-      min-width: 0;
-      min-height: 0;
-      padding: 8px;
-    }
-
-    .player-info-section {
-      flex-direction: column;
-      gap: 10px;
-      text-align: center;
     }
 
     .player-image-wrapper {
-      width: min(100%, 330px);
-      aspect-ratio: 3 / 4;
+      width: 100%;
+      height: 180px;
       border-radius: 10px;
       overflow: hidden;
-      border: 2px solid var(--gold);
-      box-shadow: 0 0 20px rgba(255, 215, 0, 0.18);
-      background: #0f1526;
+      border: 2px solid var(--blue);
+      box-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.4);
     }
 
     .player-image {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+    }
+
+    .player-info-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
     }
 
     .player-name-display {
-      font-family: 'Bebas Neue', sans-serif;
-      color: var(--gold);
-      font-size: clamp(24px, 2.4vw, 34px);
-      letter-spacing: 1px;
-      line-height: 1;
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
     }
 
     .price-display {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(24px, 2.4vw, 34px);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
       color: var(--green);
-      line-height: 1;
     }
 
-    .role-display,
-    .leader-display {
-      color: var(--muted);
-      font-family: 'Rajdhani', sans-serif;
+    .role-display {
       font-size: 14px;
+      color: var(--blue);
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
+    }
+
+    .leader-display {
+      font-size: 14px;
+      color: var(--gold);
     }
 
     .teams-body {
       padding: 10px;
       display: grid;
-      gap: 8px;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      max-height: 210px;
-      overflow: auto;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 10px;
+      max-height: 280px;
+      overflow-y: auto;
     }
 
     .team-row {
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      padding: 8px;
       background: rgba(255, 255, 255, 0.04);
-      display: grid;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
       gap: 4px;
       font-size: 12px;
     }
@@ -312,11 +317,22 @@
     .team-sub {
       color: var(--muted);
       font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .team-pass-badge {
+      background: rgba(0, 229, 255, 0.15);
+      color: var(--blue);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 11px;
     }
 
     .feed {
       padding: 10px;
-      max-height: 220px;
+      max-height: 180px;
       overflow: auto;
       display: grid;
       gap: 6px;
@@ -332,16 +348,41 @@
       color: #dce4f3;
     }
 
-    .feed-item.sold {
-      border-left-color: var(--green);
+    .feed-item.sold { border-left-color: var(--green); }
+    .feed-item.unsold { border-left-color: var(--red); }
+    .feed-item.info { border-left-color: var(--orange); }
+
+    /* Team Action Buttons in Admin Panel */
+    .team-actions-bar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
     }
 
-    .feed-item.unsold {
-      border-left-color: var(--red);
+    .btn-xs {
+      padding: 4px 8px;
+      font-size: 11px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
     }
 
-    .feed-item.info {
-      border-left-color: var(--orange);
+    .btn-xs:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-xs-danger {
+      background: rgba(231, 76, 60, 0.3);
+      color: #ff8080;
+    }
+
+    .btn-xs-danger:hover {
+      background: rgba(231, 76, 60, 0.6);
     }
 
     @media (max-width: 1100px) {
@@ -349,28 +390,8 @@
         grid-template-columns: 1fr;
         min-height: 0;
       }
-
       .monitor {
         grid-template-rows: auto auto auto;
-      }
-    }
-
-    @media (max-width: 760px) {
-      body {
-        padding: 10px;
-      }
-
-      .player-card-inner {
-        grid-template-columns: 1fr;
-      }
-
-      .topbar {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-
-      .top-actions {
-        justify-content: flex-start;
       }
     }
   </style>
@@ -379,70 +400,86 @@
   <div class="shell" id="appShell" style="display:none;">
     <header class="topbar">
       <div>
-        <div class="title">Admin 1 - Auction Control</div>
+        <div class="title">Admin 1 - Auction & Dynamic Teams Control</div>
       </div>
       <div class="top-actions">
-        <a class="link-btn" href="/admin-player.html">Admin 2 Players</a>
+        <a class="link-btn" href="/simulator.html" target="_blank" style="background: linear-gradient(135deg, #a855f7, #7c3aed);">🧪 Circuit Simulator ↗</a>
+        <a class="link-btn" href="/admin-player.html">Admin 2 Components</a>
         <a class="link-btn" href="/admin-result.html">Admin 3 Results</a>
         <a class="link-btn" href="/admin-report.html">Admin 4 Report</a>
         <a class="link-btn" href="/admin-data.html">Admin Data</a>
-        <a class="link-btn" href="/audience.html">Audience</a>
+        <a class="link-btn" href="/audience.html" target="_blank">Audience Stage ↗</a>
         <button class="logout-btn" onclick="logout()">Logout</button>
       </div>
     </header>
 
     <main class="layout">
+      <!-- LEFT: AUCTION FLOW & TEAM CONTROLS -->
       <section class="card">
-        <div class="card-head">Control Panel</div>
+        <div class="card-head">Auction Controls</div>
         <div class="controls">
           <div class="control-group">
-            <h3>Start</h3>
+            <h3>Auction Flow</h3>
             <button class="btn btn-start" id="btnStart" onclick="startGame()">Start Auction</button>
           </div>
 
           <div class="control-group">
-            <h3>Player Flow</h3>
-            <button class="btn btn-action" id="btnNextPlayer" onclick="nextPlayer()" disabled>Next Player</button>
-            <button class="btn btn-action" id="btnSellPlayer" onclick="sellPlayer()" disabled>Sell Current</button>
-            <button class="btn btn-action" id="btnMarkUnsold" onclick="markUnsold()" disabled>Mark Unsold</button>
+            <h3>Component Actions</h3>
+            <button class="btn btn-action" id="btnNextPlayer" onclick="nextPlayer()" disabled>Next Component</button>
+            <button class="btn btn-action" id="btnSellPlayer" onclick="sellPlayer()" disabled>Confirm Sale to Highest Bidder</button>
+            <button class="btn btn-action" id="btnMarkUnsold" onclick="markUnsold()" disabled>Mark as Unsold</button>
           </div>
 
           <div class="control-group">
-            <h3>Auction State</h3>
-            <button class="btn btn-warn" id="btnPause" onclick="pauseAuction()" disabled>Pause</button>
-            <button class="btn btn-warn" id="btnResume" onclick="resumeAuction()" style="display:none;" disabled>Resume</button>
+            <h3>Auction Pause & Resume</h3>
+            <button class="btn btn-warn" id="btnPause" onclick="pauseAuction()" disabled>Pause Auction</button>
+            <button class="btn btn-warn" id="btnResume" onclick="resumeAuction()" style="display:none;" disabled>Resume Auction</button>
+          </div>
+
+          <div class="control-group">
+            <h3>Dynamic Teams Manager</h3>
+            <button class="btn btn-action" style="background:#00ff88; color:#04140c; font-weight:bold;" onclick="verifyAllTeams()">✅ Approve All Pending Teams</button>
+            <button class="btn btn-action" style="background:#00b4d8;" onclick="promptAddTeam()">➕ Add New Team</button>
+            <button class="btn btn-action" style="background:#0077b6;" onclick="resetAllPasswords()">🔑 Reset All Team Passwords</button>
+            <button class="btn btn-action" style="background:#023e8a;" onclick="setGlobalBudget()">💰 Set Global Team Budget</button>
           </div>
 
           <div class="control-group">
             <h3>Danger Zone</h3>
             <button class="btn btn-danger" onclick="endAuction()">End Auction</button>
-            <button class="btn btn-danger" onclick="resetAuction()">Reset Game</button>
+            <button class="btn btn-danger" onclick="resetAuction()">Reset Full State</button>
           </div>
 
           <div class="status">
             <div class="status-row"><span>Phase</span><strong id="statusPhase">LOBBY</strong></div>
-            <div class="status-row"><span>Current Bid</span><strong id="statusBid">Rs0L</strong></div>
-            <div class="status-row"><span>Teams</span><strong id="statusTeams">0</strong></div>
-            <div class="status-row"><span>Remaining</span><strong id="statusRemaining">0</strong></div>
+            <div class="status-row"><span>Current Bid</span><strong id="statusBid">0 pts</strong></div>
+            <div class="status-row"><span>Registered Teams</span><strong id="statusTeams">0</strong></div>
+            <div class="status-row"><span>Components Left</span><strong id="statusRemaining">0</strong></div>
           </div>
         </div>
       </section>
 
+      <!-- RIGHT: SPOTLIGHT, TEAMS SNAPSHOT & FEED -->
       <section class="monitor">
         <article class="card">
-          <div class="card-head">Current Player Spotlight</div>
+          <div class="card-head">Active Component Spotlight</div>
           <div class="spotlight-body" id="currentPlayerArea">
-            <div class="spotlight-empty">Waiting for next player...</div>
+            <div class="spotlight-empty">Waiting for next component...</div>
           </div>
         </article>
 
         <article class="card">
-          <div class="card-head">Teams Snapshot</div>
+          <div class="card-head">
+            <span>Dynamic Teams & Passcodes</span>
+            <div style="display:flex; gap:8px;">
+              <button class="btn-xs" style="background:#00ff88; color:#04140c; font-weight:bold;" onclick="verifyAllTeams()">Approve All</button>
+            </div>
+          </div>
           <div class="teams-body" id="teamsGrid"></div>
         </article>
 
         <article class="card">
-          <div class="card-head">Live Updates (Compact)</div>
+          <div class="card-head">Live Activity Feed</div>
           <div class="feed" id="feedContent"></div>
         </article>
       </section>
@@ -496,8 +533,7 @@
     }
 
     function fallbackImage(name) {
-      const safe = encodeURIComponent(String(name || 'Player').slice(0, 18));
-      return `https://via.placeholder.com/300x400?text=${safe}`;
+      return '/images/comp_1.svg';
     }
 
     function imageSource(player) {
@@ -524,12 +560,12 @@
       const area = document.getElementById('currentPlayerArea');
       const player = gameState && gameState.currentPlayer;
       if (!player) {
-        area.innerHTML = '<div class="spotlight-empty">Waiting for next player...</div>';
+        area.innerHTML = '<div class="spotlight-empty">Waiting for next component...</div>';
         return;
       }
 
       const leaderTeam = gameState.currentBidder && gameState.teams && gameState.teams[gameState.currentBidder]
-        ? gameState.teams[gameState.currentBidder].short
+        ? gameState.teams[gameState.currentBidder].name || gameState.teams[gameState.currentBidder].short
         : 'No bids yet';
       const currentBid = Number(gameState.currentBid) || Number(player.basePrice) || 0;
 
@@ -543,9 +579,10 @@
           </div>
           <div class="player-info-section">
             <div class="player-name-display">${escapeHtml(player.name)}</div>
-            <div class="price-display">Rs${currentBid}L</div>
-            <div class="role-display">${escapeHtml(player.role || 'Unknown')}</div>
-            <div class="leader-display">Leader: ${escapeHtml(leaderTeam)}</div>
+            ${player.symbolName ? `<div style="font-size:12px; color:var(--gold); font-family:monospace;">Symbol: <strong>${escapeHtml(player.symbolName)}</strong> [ ${escapeHtml(player.symbol || '')} ]</div>` : ''}
+            <div class="price-display">${currentBid} pts</div>
+            <div class="role-display">${escapeHtml(player.role || 'Component')}</div>
+            <div class="leader-display">Leading Team: <strong>${escapeHtml(leaderTeam)}</strong></div>
           </div>
         </div>
       `;
@@ -557,23 +594,45 @@
       teamsGrid.innerHTML = '';
 
       if (!teams.length) {
-        teamsGrid.innerHTML = '<div class="team-sub">No teams joined yet.</div>';
+        teamsGrid.innerHTML = '<div class="team-sub" style="padding:10px;">No teams registered yet. Teams can register from the participant page or click Add New Team above.</div>';
         return;
       }
 
       teams.forEach((team) => {
-        const players = Array.isArray(team.players) ? team.players.length : 0;
+        const componentsCount = Array.isArray(team.players) ? team.players.length : 0;
         const budget = Number(team.budget);
-        const budgetText = Number.isFinite(budget) ? `Rs${budget}L` : 'Hidden';
+        const budgetText = Number.isFinite(budget) ? `${budget} pts` : '0 pts';
+        const isVerified = Boolean(team.verified);
+        const membersList = Array.isArray(team.members) && team.members.length ? team.members.join(', ') : (team.leader || '--');
+
         const el = document.createElement('div');
         el.className = 'team-row';
+        el.style.borderLeft = `4px solid ${team.color || '#00e5ff'}`;
         el.innerHTML = `
           <div class="team-head">
-            <span style="color:${team.color || '#ffd700'}">${escapeHtml(team.short || team.name || 'TEAM')}</span>
-            <span>${budgetText}</span>
+            <div style="display:flex; align-items:center; gap:6px;">
+              ${team.logo ? `<img src="${team.logo}" style="width:22px; height:22px; border-radius:50%; object-fit:cover;" />` : `<span style="font-size:14px;">${escapeHtml(team.icon || '⚡')}</span>`}
+              <span style="color:${team.color || '#ffd700'}">${escapeHtml(team.name || team.short || 'TEAM')}</span>
+            </div>
+            <span style="color:var(--green); font-weight:bold;">${budgetText}</span>
           </div>
-          <div class="team-sub">Owner: ${escapeHtml(team.ownerName || '--')}</div>
-          <div class="team-sub">Players: ${players}</div>
+          <div class="team-sub" style="margin-top:2px;">
+            <span>Members (Max 5): <strong>${escapeHtml(membersList)}</strong></span>
+            <span>PIN: <span class="team-pass-badge">${escapeHtml(team.password || '--')}</span></span>
+          </div>
+          <div class="team-sub">
+            <span>Components: <strong>${componentsCount}</strong></span>
+            <span>Status: <strong style="color:${isVerified ? 'var(--green)' : 'var(--orange)'};">${isVerified ? '✅ Approved' : '⏳ Pending'}</strong></span>
+          </div>
+          <div class="team-actions-bar" style="display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;">
+            ${isVerified ? `
+              <button class="btn-xs" style="background:#475569;" onclick="verifyTeam('${team.id}', false)">Revoke Approval</button>
+            ` : `
+              <button class="btn-xs" style="background:#00ff88; color:#04140c; font-weight:bold;" onclick="verifyTeam('${team.id}', true)">✅ Approve Team</button>
+            `}
+            <button class="btn-xs" onclick="editTeamBudget('${team.id}')">Edit Budget</button>
+            <button class="btn-xs btn-xs-danger" onclick="deleteTeam('${team.id}')">Delete</button>
+          </div>
         `;
         teamsGrid.appendChild(el);
       });
@@ -599,7 +658,7 @@
     function updateUI() {
       if (!gameState) return;
       document.getElementById('statusPhase').textContent = String(gameState.phase || 'lobby').toUpperCase();
-      document.getElementById('statusBid').textContent = `Rs${Number(gameState.currentBid) || 0}L`;
+      document.getElementById('statusBid').textContent = `₹${Number(gameState.currentBid) || 0}`;
       document.getElementById('statusTeams').textContent = Object.keys(gameState.teams || {}).length;
       document.getElementById('statusRemaining').textContent = gameState.remainingInQueue ?? 0;
       syncControls();
@@ -618,22 +677,8 @@
     socket.on('init', ({ gameState: gs }) => {
       gameState = gs || {};
       updateUI();
-      addFeed('Admin 1 connected.', 'info');
+      addFeed('Admin connected.', 'info');
       startLiveStatePolling();
-    });
-
-    socket.on('teamJoined', ({ teams, user }) => {
-      if (!gameState) gameState = {};
-      gameState.teams = teams;
-      updateUI();
-      if (user && user.teamId) addFeed(`${user.teamId.toUpperCase()} joined.`, 'info');
-    });
-
-    socket.on('teamLeft', ({ teams, name }) => {
-      if (!gameState) gameState = {};
-      gameState.teams = teams;
-      updateUI();
-      addFeed(`${name || ''} left lobby.`, 'info');
     });
 
     socket.on('teamsUpdate', ({ teams }) => {
@@ -660,7 +705,7 @@
       gameState.currentBidder = null;
       gameState.remainingInQueue = remaining;
       updateUI();
-      addFeed(`New player: ${player.name} (${player.role})`, 'info');
+      addFeed(`New component: ${player.name} (${player.role})`, 'info');
     });
 
     socket.on('bidPlaced', ({ bid, bidderTeamId, teamName }) => {
@@ -668,11 +713,11 @@
       gameState.currentBid = bid;
       gameState.currentBidder = bidderTeamId;
       updateUI();
-      addFeed(`${teamName} bid Rs${bid}L`, 'sold');
+      addFeed(`${teamName} bid ₹${bid}`, 'sold');
     });
 
     socket.on('playerSold', ({ player, teamName, soldPrice }) => {
-      addFeed(`${player.name} sold to ${teamName} for Rs${soldPrice}L`, 'sold');
+      addFeed(`${player.name} sold to ${teamName} for ₹${soldPrice}`, 'sold');
       socket.emit('getState');
     });
 
@@ -705,13 +750,14 @@
       gameState.phase = 'finished';
       if (teams) gameState.teams = teams;
       updateUI();
-      addFeed('Auction finished. Move to Admin 3 for result validation.', 'info');
+      addFeed('Auction finished. Move to Admin Results for project kit score validation.', 'info');
     });
 
     socket.on('error', (msg) => {
       addFeed(msg, 'unsold');
     });
 
+    // Auction Controls
     function startGame() { socket.emit('startAuction'); }
     function nextPlayer() { socket.emit('nextPlayer'); }
     function sellPlayer() { socket.emit('sellPlayer'); }
@@ -726,7 +772,7 @@
     }
 
     function resetAuction() {
-      if (!window.confirm('Reset full game state?')) return;
+      if (!window.confirm('Reset full game state and auction queue?')) return;
       fetch('/api/reset', {
         method: 'POST',
         headers: { 'x-admin-pass': adminPass }
@@ -737,6 +783,150 @@
             location.reload();
           } else {
             alert(json && json.error ? json.error : 'Reset failed');
+          }
+        });
+    }
+
+    // Dynamic Teams Management
+    function promptAddTeam() {
+      const name = prompt('Enter Team Name:');
+      if (!name) return;
+      const leader = prompt('Enter Team Leader / Members (optional):') || '';
+      const password = prompt('Enter Team Login Passcode / PIN:', 'team_' + Math.random().toString(36).substring(2, 6));
+      if (!password) return;
+
+      fetch('/api/admin/teams/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': adminPass
+        },
+        body: JSON.stringify({ name, leader, password })
+      })
+        .then(res => res.json())
+        .then(res => {
+          if (res && res.success) {
+            addFeed(`Added team: ${name}`, 'sold');
+            socket.emit('getState');
+          } else {
+            alert((res && res.error) || 'Failed to add team');
+          }
+        });
+    }
+
+    function verifyTeam(teamId, verified) {
+      socket.emit('adminVerifyTeam', { teamId, verified });
+      fetch('/api/admin/teams/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': adminPass
+        },
+        body: JSON.stringify({ teamId, verified })
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res && res.success) {
+          addFeed(`Team verification updated: ${verified ? 'Approved' : 'Revoked'}`, 'sold');
+          socket.emit('getState');
+        }
+      });
+    }
+
+    function verifyAllTeams() {
+      if (!confirm('Approve and verify ALL pending teams for bidding?')) return;
+      socket.emit('adminVerifyAllTeams', { verified: true });
+      fetch('/api/admin/teams/verify-all', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': adminPass
+        },
+        body: JSON.stringify({ verified: true })
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res && res.success) {
+          addFeed('All registered teams have been verified and approved!', 'sold');
+          socket.emit('getState');
+        }
+      });
+    }
+
+    function resetAllPasswords() {
+      if (!confirm('Randomize passcodes for all teams?')) return;
+      fetch('/api/admin/reset-passwords', {
+        method: 'POST',
+        headers: { 'x-admin-pass': adminPass }
+      })
+        .then(res => res.json())
+        .then(res => {
+          if (res && res.success) {
+            addFeed('All team passwords have been reset', 'sold');
+            socket.emit('getState');
+          }
+        });
+    }
+
+    function setGlobalBudget() {
+      const b = prompt('Enter starting budget for all teams (₹ / Pts):', '10000');
+      const num = Number(b);
+      if (!num || num <= 0) return;
+
+      fetch('/api/admin/teams/reset-budget', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': adminPass
+        },
+        body: JSON.stringify({ budget: num })
+      })
+        .then(res => res.json())
+        .then(res => {
+          if (res && res.success) {
+            addFeed(`Global budget set to ₹${num}`, 'sold');
+            socket.emit('getState');
+          }
+        });
+    }
+
+    function editTeamBudget(teamId) {
+      const b = prompt('Enter new budget for this team:');
+      const num = Number(b);
+      if (!Number.isFinite(num)) return;
+
+      fetch('/api/admin/teams/edit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': adminPass
+        },
+        body: JSON.stringify({ id: teamId, budget: num })
+      })
+        .then(res => res.json())
+        .then(res => {
+          if (res && res.success) {
+            addFeed('Team budget updated', 'sold');
+            socket.emit('getState');
+          }
+        });
+    }
+
+    function deleteTeam(teamId) {
+      if (!confirm('Are you sure you want to delete this team?')) return;
+      fetch('/api/admin/teams/delete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': adminPass
+        },
+        body: JSON.stringify({ id: teamId })
+      })
+        .then(res => res.json())
+        .then(res => {
+          if (res && res.success) {
+            addFeed('Team deleted', 'unsold');
+            socket.emit('getState');
           }
         });
     }

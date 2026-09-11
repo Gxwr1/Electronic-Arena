@@ -66,7 +66,7 @@ try { if (!fetchFn) fetchFn = require('node-fetch'); } catch(e) {}
           'Content-Type': 'application/json',
           'x-admin-pass': adminPass,
         },
-        body: JSON.stringify({ name: dummyName, role: 'All-Rounder', basePrice: 10 }),
+        body: JSON.stringify({ name: dummyName, role: 'Sensor', basePrice: 10 }),
       });
       console.log('status', r.status);
       const added = await r.json();
