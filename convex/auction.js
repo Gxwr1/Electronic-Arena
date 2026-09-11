@@ -71,6 +71,7 @@ function getInitialState() {
     auctionQueue: [],
     soldHistory: [],
     unsoldPlayers: [],
+    lastSoldEvent: null,
     feed: [
       { id: "init", text: "⚡ Logic Circuit Arena initialized. Teams can register in lobby.", time: Date.now(), type: "info" }
     ],
@@ -113,30 +114,6 @@ export const getTeams = query({
       };
     }
     return map;
-  },
-});
-
-export const saveAuctionState = mutation({
-  args: { key: v.optional(v.string()), data: v.any() },
-  handler: async (ctx, args) => {
-    const key = args.key || "current_game";
-    const existing = await ctx.db
-      .query("auction_state")
-      .withIndex("by_key", (q) => q.eq("key", key))
-      .first();
-    if (existing) {
-      await ctx.db.patch(existing._id, {
-        data: args.data,
-        updatedAt: Date.now(),
-      });
-      return existing._id;
-    } else {
-      return await ctx.db.insert("auction_state", {
-        key,
-        data: args.data,
-        updatedAt: Date.now(),
-      });
-    }
   },
 });
 
@@ -198,7 +175,7 @@ export const registerTeam = mutation({
     const feed = currentState.feed || [];
     feed.unshift({
       id: "reg_" + Date.now(),
-      text: `👥 Team Registered: ${cleanName} (${members.length} members) — Pending Admin Approval`,
+      text: `👥 Team Registered: ${cleanName} (${members.length} members) — Pending Host Approval`,
       time: Date.now(),
       type: "info",
     });
@@ -225,15 +202,14 @@ export const verifyTeam = mutation({
 
     await ctx.db.patch(team._id, { verified: args.verified, updatedAt: Date.now() });
 
-    // Add feed
     const stateRecord = await ctx.db.query("auction_state").withIndex("by_key", (q) => q.eq("key", "current_game")).first();
     const currentState = stateRecord ? stateRecord.data : getInitialState();
     const feed = currentState.feed || [];
     feed.unshift({
       id: "v_" + Date.now(),
       text: args.verified
-        ? `✅ Admin APPROVED team: ${team.name} for bidding`
-        : `⚠️ Admin REVOKED approval for team: ${team.name}`,
+        ? `✅ Host APPROVED team: ${team.name} for bidding`
+        : `⚠️ Host REVOKED approval for team: ${team.name}`,
       time: Date.now(),
       type: args.verified ? "win" : "lost",
     });
@@ -318,8 +294,9 @@ export const startAuction = mutation({
       auctionQueue: remainingQueue,
       soldHistory: [],
       unsoldPlayers: [],
+      lastSoldEvent: null,
       feed: [
-        { id: "start_" + Date.now(), text: `🚀 AUCTION STARTED! Spotlighted #${firstComponent.id}: ${firstComponent.name} (${firstComponent.basePrice} pts)`, time: Date.now(), type: "info" }
+        { id: "start_" + Date.now(), text: `🚀 AUCTION STARTED! Spotlight on #${firstComponent.id}: ${firstComponent.name} (${firstComponent.basePrice} pts)`, time: Date.now(), type: "info" }
       ],
       lastAction: "started",
     };
@@ -345,7 +322,7 @@ export const placeBid = mutation({
   handler: async (ctx, args) => {
     const team = await ctx.db.query("teams").withIndex("by_teamId", (q) => q.eq("teamId", args.teamId)).first();
     if (!team || team.password !== args.password) throw new Error("Invalid team credentials");
-    if (!team.verified) throw new Error("Team is pending admin approval before bidding is enabled");
+    if (!team.verified) throw new Error("Team is pending host approval before bidding is enabled");
 
     const stateRecord = await ctx.db.query("auction_state").withIndex("by_key", (q) => q.eq("key", "current_game")).first();
     if (!stateRecord || stateRecord.data.phase !== "auction") throw new Error("Auction is not currently active");
@@ -392,6 +369,107 @@ export const placeBid = mutation({
   },
 });
 
+export const autoResolveTimer = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const stateRecord = await ctx.db.query("auction_state").withIndex("by_key", (q) => q.eq("key", "current_game")).first();
+    if (!stateRecord) return { success: false, reason: "No state" };
+
+    const state = stateRecord.data;
+    if (state.phase !== "auction" || !state.currentPlayer) {
+      return { success: false, reason: "Auction not active" };
+    }
+
+    const currentComp = state.currentPlayer;
+    const winnerId = state.currentBidder;
+
+    if (winnerId) {
+      // Award component to leading bidder
+      const winnerTeam = await ctx.db.query("teams").withIndex("by_teamId", (q) => q.eq("teamId", winnerId)).first();
+      const soldItem = {
+        ...currentComp,
+        soldPrice: state.currentBid,
+        soldTo: winnerId,
+        teamName: winnerTeam ? winnerTeam.name : "Winner",
+        teamLogo: winnerTeam ? winnerTeam.logo : "",
+        soldAt: Date.now(),
+      };
+
+      if (winnerTeam) {
+        const newBudget = Math.max(0, winnerTeam.budget - state.currentBid);
+        const players = winnerTeam.players || [];
+        players.push(soldItem);
+        await ctx.db.patch(winnerTeam._id, { budget: newBudget, players, updatedAt: Date.now() });
+      }
+
+      state.soldHistory = state.soldHistory || [];
+      state.soldHistory.push(soldItem);
+
+      state.lastSoldEvent = {
+        id: "ev_" + Date.now(),
+        winnerId: winnerId,
+        winnerName: winnerTeam ? winnerTeam.name : "Winner",
+        winnerLogo: winnerTeam ? winnerTeam.logo : "",
+        componentName: currentComp.name,
+        componentImage: currentComp.image,
+        soldPrice: state.currentBid,
+        isUnsold: false,
+        timestamp: Date.now(),
+      };
+
+      const feed = state.feed || [];
+      feed.unshift({
+        id: "sold_" + Date.now(),
+        text: `🏆 SOLD! ${soldItem.name} awarded to ${winnerTeam ? winnerTeam.name : winnerId} for ${state.currentBid} pts`,
+        time: Date.now(),
+        type: "sold",
+      });
+      state.feed = feed.slice(0, 50);
+    } else {
+      // Mark unsold
+      state.unsoldPlayers = state.unsoldPlayers || [];
+      state.unsoldPlayers.push({ ...currentComp, unsoldAt: Date.now() });
+
+      state.lastSoldEvent = {
+        id: "ev_" + Date.now(),
+        winnerId: null,
+        winnerName: null,
+        componentName: currentComp.name,
+        componentImage: currentComp.image,
+        soldPrice: currentComp.basePrice,
+        isUnsold: true,
+        timestamp: Date.now(),
+      };
+
+      const feed = state.feed || [];
+      feed.unshift({
+        id: "unsold_" + Date.now(),
+        text: `❌ UNSOLD: ${currentComp.name} passed with 0 bids`,
+        time: Date.now(),
+        type: "lost",
+      });
+      state.feed = feed.slice(0, 50);
+    }
+
+    // Advance queue
+    const queue = state.auctionQueue || [];
+    if (queue.length > 0) {
+      const nextItem = queue[0];
+      state.currentPlayer = nextItem;
+      state.currentBid = nextItem.basePrice;
+      state.currentBidder = null;
+      state.timerSeconds = BID_TIMER_SECONDS;
+      state.auctionQueue = queue.slice(1);
+    } else {
+      state.currentPlayer = null;
+      state.phase = "finished";
+    }
+
+    await ctx.db.patch(stateRecord._id, { data: state, updatedAt: Date.now() });
+    return { success: true, lastSoldEvent: state.lastSoldEvent };
+  },
+});
+
 export const sellComponent = mutation({
   args: {
     adminPass: v.string(),
@@ -416,7 +494,8 @@ export const sellComponent = mutation({
       ...state.currentPlayer,
       soldPrice: state.currentBid,
       soldTo: winnerId || null,
-      teamName: winnerTeam ? winnerTeam.name : "Admin",
+      teamName: winnerTeam ? winnerTeam.name : "Winner",
+      teamLogo: winnerTeam ? winnerTeam.logo : "",
       soldAt: Date.now(),
     };
 
@@ -429,6 +508,18 @@ export const sellComponent = mutation({
 
     state.soldHistory = state.soldHistory || [];
     state.soldHistory.push(soldItem);
+
+    state.lastSoldEvent = {
+      id: "ev_" + Date.now(),
+      winnerId: winnerId || null,
+      winnerName: winnerTeam ? winnerTeam.name : "Winner",
+      winnerLogo: winnerTeam ? winnerTeam.logo : "",
+      componentName: state.currentPlayer.name,
+      componentImage: state.currentPlayer.image,
+      soldPrice: state.currentBid,
+      isUnsold: false,
+      timestamp: Date.now(),
+    };
 
     const feed = state.feed || [];
     feed.unshift({
@@ -476,6 +567,17 @@ export const markUnsold = mutation({
 
     state.unsoldPlayers = state.unsoldPlayers || [];
     state.unsoldPlayers.push({ ...state.currentPlayer, unsoldAt: Date.now() });
+
+    state.lastSoldEvent = {
+      id: "ev_" + Date.now(),
+      winnerId: null,
+      winnerName: null,
+      componentName: state.currentPlayer.name,
+      componentImage: state.currentPlayer.image,
+      soldPrice: state.currentPlayer.basePrice,
+      isUnsold: true,
+      timestamp: Date.now(),
+    };
 
     const feed = state.feed || [];
     feed.unshift({

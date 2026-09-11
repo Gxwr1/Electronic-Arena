@@ -1,8 +1,7 @@
 import React from 'react';
-import { Zap, Cpu, Trophy, LogOut, ShieldCheck } from 'lucide-react';
+import { Zap, Trophy, LogOut, ShieldCheck } from 'lucide-react';
 
-export function Navbar({ activeTab, setActiveTab, currentTeam, onLogout, isAdmin, onOpenAdminLogin }) {
-  // If we are on landing page and not logged in as team or admin, keep navbar minimal or hidden
+export function Navbar({ activeTab, setActiveTab, currentTeam, onLogout, isAdmin }) {
   return (
     <header className="sticky top-0 z-50 border-b border-cyan-500/20 bg-slate-950/80 backdrop-blur-xl px-4 py-3 sm:px-6">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
@@ -25,8 +24,8 @@ export function Navbar({ activeTab, setActiveTab, currentTeam, onLogout, isAdmin
           </div>
         </div>
 
-        {/* Navigation Tabs (Only when in Auction, Simulator, or Leaderboard) */}
-        {(currentTeam || isAdmin || activeTab === 'simulator' || activeTab === 'leaderboard') && (
+        {/* Navigation Tabs (Only when in Auction or Leaderboard) */}
+        {(currentTeam || isAdmin || activeTab === 'leaderboard') && (
           <nav className="flex items-center gap-1 sm:gap-2">
             <button
               onClick={() => setActiveTab(currentTeam ? 'preview' : 'landing')}
@@ -53,18 +52,6 @@ export function Navbar({ activeTab, setActiveTab, currentTeam, onLogout, isAdmin
             </button>
 
             <button
-              onClick={() => setActiveTab('simulator')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-rajdhani font-bold transition-all ${
-                activeTab === 'simulator'
-                  ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40 shadow-sm shadow-purple-500/20'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-              }`}
-            >
-              <Cpu className="h-4 w-4" />
-              <span>Simulator</span>
-            </button>
-
-            <button
               onClick={() => setActiveTab('leaderboard')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-rajdhani font-bold transition-all ${
                 activeTab === 'leaderboard'
@@ -78,7 +65,7 @@ export function Navbar({ activeTab, setActiveTab, currentTeam, onLogout, isAdmin
           </nav>
         )}
 
-        {/* User / Team Actions & Admin (Hidden unless authenticated) */}
+        {/* User / Team Actions & Admin */}
         <div className="flex items-center gap-2">
           {currentTeam && (
             <div className="flex items-center gap-2 rounded-xl bg-slate-900/90 border border-cyan-500/30 p-1.5 sm:px-3">

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { ShieldCheck, ShieldAlert, Cpu, Layers, LogOut, Users, Sparkles, CheckCircle2, Clock } from 'lucide-react';
-import { COMPONENTS, CATEGORIES, CATEGORY_ICONS } from '../data/components';
+import { CheckCircle2, Clock, Layers, LogOut } from 'lucide-react';
+import { COMPONENTS, CATEGORIES } from '../data/components';
 
-export function PreviewRoom({ currentTeam, gameState, onLogout, onOpenSimulator }) {
+export function PreviewRoom({ currentTeam, onLogout }) {
   const [selectedCat, setSelectedCat] = useState('All');
   const isApproved = Boolean(currentTeam && currentTeam.verified);
   const members = currentTeam?.members || [currentTeam?.leader || 'Leader'];
@@ -83,27 +83,6 @@ export function PreviewRoom({ currentTeam, gameState, onLogout, onOpenSimulator 
             </div>
           )}
         </div>
-      </div>
-
-      {/* Simulator Quick Launch */}
-      <div className="rounded-3xl border border-purple-500/30 bg-slate-900/80 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 backdrop-blur-xl">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30">
-            <Cpu className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="font-rajdhani font-bold text-sm text-slate-100">Test Your Circuit Designs While Waiting</h3>
-            <p className="text-xs text-slate-400 font-rajdhani">Practice wiring logic gates and testing 60Hz simulations in real time</p>
-          </div>
-        </div>
-
-        <button
-          onClick={onOpenSimulator}
-          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 px-4 py-2 text-xs font-rajdhani font-bold text-slate-100 shadow-md shadow-purple-500/20 transition-all self-start sm:self-center"
-        >
-          <Cpu className="h-4 w-4" />
-          <span>Launch Circuit Simulator</span>
-        </button>
       </div>
 
       {/* 53 Component Preview Showcase */}

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Zap, KeyRound, UserPlus, Upload, Sparkles, ShieldAlert, Cpu, ArrowRight, Lock } from 'lucide-react';
+import { KeyRound, UserPlus, Upload, Sparkles, ShieldAlert, ArrowRight, Lock } from 'lucide-react';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 
-export function LandingView({ teams, onLoginSuccess, onOpenSimulator, onSecretAdminTrigger, showToast }) {
+export function LandingView({ teams, onLoginSuccess, onSecretAdminTrigger, showToast }) {
   const [activeTab, setActiveTab] = useState('code'); // 'code' | 'register'
 
   // Code entry state
@@ -116,7 +116,7 @@ export function LandingView({ teams, onLoginSuccess, onOpenSimulator, onSecretAd
           </h1>
 
           <p className="text-sm font-rajdhani text-slate-300 max-w-md mx-auto">
-            Real-Time Hardware Bidding & 60Hz Interactive Circuit Simulation Platform
+            Real-Time Hardware Bidding Arena
           </p>
         </div>
 
@@ -312,23 +312,14 @@ export function LandingView({ teams, onLoginSuccess, onOpenSimulator, onSecretAd
           )}
         </div>
 
-        {/* Bottom Utility Links */}
-        <div className="flex items-center justify-center gap-4 text-xs font-rajdhani text-slate-400">
-          <button
-            onClick={onOpenSimulator}
-            className="flex items-center gap-1.5 rounded-xl bg-purple-950/40 border border-purple-500/30 hover:border-purple-400/50 hover:bg-purple-900/40 px-3.5 py-1.5 text-purple-300 font-bold transition-all"
-          >
-            <Cpu className="h-3.5 w-3.5" />
-            <span>🧪 Open Logic Circuit Simulator</span>
-          </button>
-
-          {/* Discrete subtle admin trigger */}
+        {/* Discrete secret admin trigger */}
+        <div className="flex justify-center pt-2">
           <button
             onClick={onSecretAdminTrigger}
-            className="opacity-20 hover:opacity-100 transition-opacity p-1 text-slate-500 hover:text-amber-400"
+            className="opacity-20 hover:opacity-100 transition-opacity p-2 text-slate-600 hover:text-amber-400"
             title="Admin Console"
           >
-            <Lock className="h-3 w-3" />
+            <Lock className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>

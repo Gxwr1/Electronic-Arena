@@ -7,9 +7,9 @@ import { LandingView } from './components/LandingView';
 import { PreviewRoom } from './components/PreviewRoom';
 import { AuctionStage } from './components/AuctionStage';
 import { AdminPanel } from './components/AdminPanel';
-import { CircuitSimulator } from './components/CircuitSimulator';
 import { LeaderboardView } from './components/LeaderboardView';
 import { AdminLoginModal } from './components/AdminLoginModal';
+import { SoldCelebrationModal } from './components/SoldCelebrationModal';
 import { Toast } from './components/Toast';
 
 function getTabFromUrl() {
@@ -17,7 +17,6 @@ function getTabFromUrl() {
   const hash = window.location.hash.toLowerCase();
 
   if (path.includes('admin') || hash.includes('admin')) return 'admin';
-  if (path.includes('simulator') || hash.includes('simulator')) return 'simulator';
   if (path.includes('leaderboard') || path.includes('standing') || hash.includes('leaderboard')) return 'leaderboard';
   return 'landing';
 }
@@ -189,6 +188,9 @@ export function App() {
       {/* 60fps Electric PCB Background Animation */}
       <ElectricBackground />
 
+      {/* Real-time Global Sold Celebration Overlay (Green for Winner, Red for Losers) */}
+      <SoldCelebrationModal lastSoldEvent={gameState?.lastSoldEvent} currentTeam={currentTeam} />
+
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -196,13 +198,6 @@ export function App() {
         currentTeam={currentTeam}
         onLogout={handleLogout}
         isAdmin={isAdmin}
-        onOpenAdminLogin={() => {
-          if (isAdmin) {
-            changeTab('admin');
-          } else {
-            setIsAdminLoginOpen(true);
-          }
-        }}
       />
 
       {/* Main App Screens */}
@@ -212,7 +207,6 @@ export function App() {
           <LandingView
             teams={teams}
             onLoginSuccess={handleLoginSuccess}
-            onOpenSimulator={() => changeTab('simulator')}
             onSecretAdminTrigger={() => setIsAdminLoginOpen(true)}
             showToast={showToast}
           />
@@ -222,9 +216,7 @@ export function App() {
         {activeTab === 'preview' && currentTeam && (
           <PreviewRoom
             currentTeam={currentTeam}
-            gameState={gameState}
             onLogout={handleLogout}
-            onOpenSimulator={() => changeTab('simulator')}
           />
         )}
 
@@ -236,19 +228,10 @@ export function App() {
             currentTeam={currentTeam}
             showToast={showToast}
             onOpenLogin={() => changeTab('landing')}
-            onOpenRegister={() => changeTab('landing')}
           />
         )}
 
-        {/* 4. Interactive 60Hz Circuit Simulator */}
-        {activeTab === 'simulator' && (
-          <CircuitSimulator
-            currentTeam={currentTeam}
-            showToast={showToast}
-          />
-        )}
-
-        {/* 5. Standings & Detailed Team Inventory Leaderboard */}
+        {/* 4. Standings & Detailed Team Inventory Leaderboard */}
         {activeTab === 'leaderboard' && (
           <LeaderboardView
             teams={teams}
@@ -257,7 +240,7 @@ export function App() {
           />
         )}
 
-        {/* 6. Admin Control Console (Accessible via /admin) */}
+        {/* 5. Admin Control Console (Accessible via /admin or Ctrl+Shift+A) */}
         {activeTab === 'admin' && (
           <AdminPanel
             gameState={gameState}
