@@ -752,6 +752,12 @@
         document.getElementById('appShell').style.display = '';
         loadPlayers();
         loadQueueState();
+        setInterval(() => {
+          if (!document.hidden) {
+            loadPlayers();
+            loadQueueState();
+          }
+        }, 2000);
       }
     }).catch(() => logout());
 

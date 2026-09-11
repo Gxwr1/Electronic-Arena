@@ -224,6 +224,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// Handle Socket.IO requests inside Express to prevent 404s on serverless hosts
+app.all('/socket.io/*', (req, res) => {
+  if (io && io.engine) {
+    try {
+      io.engine.handleRequest(req, res);
+    } catch (e) {
+      res.status(200).send('ok');
+    }
+  } else {
+    res.status(200).send('ok');
+  }
+});
+
 app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 

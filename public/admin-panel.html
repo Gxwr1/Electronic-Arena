@@ -677,17 +677,42 @@
       renderTeams();
     }
 
+    async function fetchLiveState() {
+      try {
+        const res = await fetch('/api/sync', {
+          headers: { 'x-admin-pass': adminPass }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.success) {
+          const gs = data.gameState || {};
+          gameState = {
+            ...gs,
+            teams: data.teams || {},
+            players: data.allPlayers || [],
+            remainingInQueue: data.queueState ? data.queueState.remaining : (gs.remainingInQueue || 0),
+          };
+          updateUI();
+        }
+      } catch (err) {
+        // silent catch
+      }
+    }
+
     function startLiveStatePolling() {
       if (statePollTimer) return;
       statePollTimer = setInterval(() => {
         if (document.hidden) return;
-        socket.emit('getState');
-      }, 700);
+        fetchLiveState();
+      }, 800);
+      fetchLiveState();
     }
 
     socket.on('init', ({ gameState: gs }) => {
-      gameState = gs || {};
-      updateUI();
+      if (gs) {
+        gameState = { ...(gameState || {}), ...gs };
+        updateUI();
+      }
       addFeed('Admin connected.', 'info');
       startLiveStatePolling();
     });
@@ -699,14 +724,17 @@
     });
 
     socket.on('stateUpdate', (gs) => {
-      gameState = gs || {};
-      updateUI();
+      if (gs) {
+        gameState = { ...(gameState || {}), ...gs };
+        updateUI();
+      }
     });
 
     socket.on('auctionStarted', ({ gameState: gs }) => {
-      gameState = gs || {};
+      if (gs) gameState = { ...(gameState || {}), ...gs };
       updateUI();
       addFeed('Auction started.', 'info');
+      fetchLiveState();
     });
 
     socket.on('newPlayer', ({ player, startingBid, remaining }) => {
@@ -724,17 +752,17 @@
       gameState.currentBid = bid;
       gameState.currentBidder = bidderTeamId;
       updateUI();
-      addFeed(`${teamName} bid ₹${bid}`, 'sold');
+      addFeed(`${teamName} bid ${bid} pts`, 'sold');
     });
 
     socket.on('playerSold', ({ player, teamName, soldPrice }) => {
-      addFeed(`${player.name} sold to ${teamName} for ₹${soldPrice}`, 'sold');
-      socket.emit('getState');
+      addFeed(`${player.name} sold to ${teamName} for ${soldPrice} pts`, 'sold');
+      fetchLiveState();
     });
 
     socket.on('playerUnsold', ({ player }) => {
       addFeed(`${player.name} marked unsold`, 'unsold');
-      socket.emit('getState');
+      fetchLiveState();
     });
 
     socket.on('playerUpdated', ({ player }) => {
@@ -745,15 +773,17 @@
     });
 
     socket.on('auctionPaused', ({ gameState: gs }) => {
-      gameState = gs || {};
+      if (gs) gameState = { ...(gameState || {}), ...gs };
       updateUI();
       addFeed('Auction paused.', 'info');
+      fetchLiveState();
     });
 
     socket.on('auctionResumed', ({ gameState: gs }) => {
-      gameState = gs || {};
+      if (gs) gameState = { ...(gameState || {}), ...gs };
       updateUI();
       addFeed('Auction resumed.', 'info');
+      fetchLiveState();
     });
 
     socket.on('auctionFinished', ({ teams }) => {
@@ -761,24 +791,42 @@
       gameState.phase = 'finished';
       if (teams) gameState.teams = teams;
       updateUI();
-      addFeed('Auction finished. Move to Admin Results for project kit score validation.', 'info');
+      addFeed('Auction finished. Move to Admin Results for validation.', 'info');
+      fetchLiveState();
     });
 
     socket.on('error', (msg) => {
       addFeed(msg, 'unsold');
     });
 
-    // Auction Controls
-    function startGame() { socket.emit('startAuction'); }
-    function nextPlayer() { socket.emit('nextPlayer'); }
-    function sellPlayer() { socket.emit('sellPlayer'); }
-    function markUnsold() { socket.emit('markUnsold'); }
-    function pauseAuction() { socket.emit('pauseAuction'); }
-    function resumeAuction() { socket.emit('resumeAuction'); }
+    // Auction Controls (Dual-Channel REST + Socket)
+    function executeAdminAction(endpoint, socketEvent) {
+      if (socket && typeof socket.emit === 'function') {
+        socket.emit(socketEvent);
+      }
+      fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-pass': adminPass,
+        },
+        body: JSON.stringify({ adminPass }),
+      })
+        .then(r => r.json())
+        .then(() => fetchLiveState())
+        .catch(() => {});
+    }
+
+    function startGame() { executeAdminAction('/api/auction/start', 'startAuction'); }
+    function nextPlayer() { executeAdminAction('/api/auction/next', 'nextPlayer'); }
+    function sellPlayer() { executeAdminAction('/api/auction/sell', 'sellPlayer'); }
+    function markUnsold() { executeAdminAction('/api/auction/unsold', 'markUnsold'); }
+    function pauseAuction() { executeAdminAction('/api/auction/pause', 'pauseAuction'); }
+    function resumeAuction() { executeAdminAction('/api/auction/resume', 'resumeAuction'); }
 
     function endAuction() {
       if (window.confirm('End auction now?')) {
-        socket.emit('stopAuction');
+        executeAdminAction('/api/auction/stop', 'stopAuction');
       }
     }
 
@@ -818,7 +866,7 @@
         .then(res => {
           if (res && res.success) {
             addFeed(`Added team: ${name}`, 'sold');
-            socket.emit('getState');
+            fetchLiveState();
           } else {
             alert((res && res.error) || 'Failed to add team');
           }
@@ -826,27 +874,31 @@
     }
 
     function verifyTeam(teamId, verified) {
-      socket.emit('adminVerifyTeam', { teamId, verified });
+      if (socket && typeof socket.emit === 'function') {
+        socket.emit('adminVerifyTeam', { teamId, verified });
+      }
       fetch('/api/admin/teams/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-admin-pass': adminPass
         },
-        body: JSON.stringify({ teamId, verified })
+        body: JSON.stringify({ teamId, id: teamId, verified })
       })
       .then(r => r.json())
       .then(res => {
         if (res && res.success) {
           addFeed(`Team verification updated: ${verified ? 'Approved' : 'Revoked'}`, 'sold');
-          socket.emit('getState');
+          fetchLiveState();
         }
       });
     }
 
     function verifyAllTeams() {
       if (!confirm('Approve and verify ALL pending teams for bidding?')) return;
-      socket.emit('adminVerifyAllTeams', { verified: true });
+      if (socket && typeof socket.emit === 'function') {
+        socket.emit('adminVerifyAllTeams', { verified: true });
+      }
       fetch('/api/admin/teams/verify-all', {
         method: 'POST',
         headers: {
@@ -859,7 +911,7 @@
       .then(res => {
         if (res && res.success) {
           addFeed('All registered teams have been verified and approved!', 'sold');
-          socket.emit('getState');
+          fetchLiveState();
         }
       });
     }
@@ -874,13 +926,13 @@
         .then(res => {
           if (res && res.success) {
             addFeed('All team passwords have been reset', 'sold');
-            socket.emit('getState');
+            fetchLiveState();
           }
         });
     }
 
     function setGlobalBudget() {
-      const b = prompt('Enter starting budget for all teams (₹ / Pts):', '10000');
+      const b = prompt('Enter starting budget for all teams (pts):', '500');
       const num = Number(b);
       if (!num || num <= 0) return;
 
@@ -895,8 +947,8 @@
         .then(res => res.json())
         .then(res => {
           if (res && res.success) {
-            addFeed(`Global budget set to ₹${num}`, 'sold');
-            socket.emit('getState');
+            addFeed(`Global budget set to ${num} pts`, 'sold');
+            fetchLiveState();
           }
         });
     }
@@ -918,7 +970,7 @@
         .then(res => {
           if (res && res.success) {
             addFeed('Team budget updated', 'sold');
-            socket.emit('getState');
+            fetchLiveState();
           }
         });
     }
@@ -937,7 +989,7 @@
         .then(res => {
           if (res && res.success) {
             addFeed('Team deleted', 'unsold');
-            socket.emit('getState');
+            fetchLiveState();
           }
         });
     }
@@ -950,7 +1002,7 @@
 
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
-        socket.emit('getState');
+        fetchLiveState();
       }
     });
 

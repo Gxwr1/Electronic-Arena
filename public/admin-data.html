@@ -201,12 +201,23 @@
         logout();
       } else {
         // create socket now that admin is verified
-        socket = io({ auth: { adminPass } });
+        const isVercelHost = typeof window !== 'undefined' && (window.location.hostname.includes('vercel.app') || window.location.hostname.includes('now.sh'));
+        socket = typeof io !== 'undefined'
+          ? io({ auth: { adminPass }, transports: isVercelHost ? ['polling'] : ['websocket', 'polling'], reconnection: !isVercelHost, timeout: 5000 })
+          : { on: () => {}, emit: () => {} };
+        if (socket && typeof socket.on === 'function') {
+          socket.on('connect_error', () => {});
+        }
         document.getElementById('appShell').style.display = '';
         // now start data synchronization
-        if (socket) {
+        loadData();
+        setInterval(() => {
+          if (!document.hidden) loadData();
+        }, 2000);
+
+        if (socket && typeof socket.on === 'function') {
           socket.on('init', (payload) => {
-            if (Array.isArray(payload.availableTeams)) {
+            if (payload && Array.isArray(payload.availableTeams)) {
               availableTeams = payload.availableTeams;
             }
             loadData();
@@ -215,8 +226,6 @@
           socket.on('playerSold', loadData);
           socket.on('teamsUpdate', loadData);
           socket.on('auctionFinished', loadData);
-        } else {
-          loadData();
         }
       }
     }).catch(() => logout());
