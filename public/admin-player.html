@@ -727,8 +727,11 @@
     }
 
     const socket = typeof io !== 'undefined'
-      ? io({ auth: { adminPass }, transports: ['polling', 'websocket'], reconnection: true })
+      ? io({ auth: { adminPass }, transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: 10, timeout: 6000 })
       : { on: () => {}, emit: () => {} };
+    if (socket && typeof socket.on === 'function') {
+      socket.on('connect_error', () => {});
+    }
     let players = [];
     let gameState = null;
     let editingPlayerId = null;

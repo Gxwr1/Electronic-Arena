@@ -13,7 +13,16 @@ var showToast = window.showToast;
 
 var socket = null;
 if (typeof io !== 'undefined') {
-  socket = io({ transports: ['polling', 'websocket'], reconnection: true });
+  socket = io({
+    transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1000,
+    timeout: 6000,
+  });
+  socket.on('connect_error', () => {
+    // Silent fallback to HTTP polling without spamming console
+  });
 } else {
   console.warn('Socket.IO library not yet ready, using dummy socket fallback.');
   socket = { on: () => {}, emit: () => {}, close: () => {} };
@@ -992,12 +1001,34 @@ function placeBid(increment) {
     return;
   }
 
-  const match = increment.match(/\+(\d+)/);
+  const match = String(increment).match(/\+?(\d+)/);
   if (!match) return;
 
   const addAmount = parseInt(match[1], 10);
   const newBid = (gameState.currentBid || 0) + addAmount;
-  socket.emit('placeBid', { amount: newBid });
+
+  // 1. Send via WebSocket if connected
+  if (window.socket && window.socket.connected) {
+    socket.emit('placeBid', { amount: newBid });
+  }
+
+  // 2. Also send via REST API for serverless/Vercel guarantee
+  fetch('/api/auction/bid', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      teamId: myTeamId,
+      password: myPass,
+      amount: newBid,
+    }),
+  })
+    .then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Bid rejected', 'error');
+      }
+    })
+    .catch(() => {});
 }
 
 function placeCustomBid() {
@@ -1020,7 +1051,30 @@ function placeCustomBid() {
     showToast('Enter a valid bid amount (pts)', 'error');
     return;
   }
-  socket.emit('placeBid', { amount: val });
+
+  // 1. Send via WebSocket if connected
+  if (window.socket && window.socket.connected) {
+    socket.emit('placeBid', { amount: val });
+  }
+
+  // 2. Also send via REST API
+  fetch('/api/auction/bid', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      teamId: myTeamId,
+      password: myPass,
+      amount: val,
+    }),
+  })
+    .then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Bid rejected', 'error');
+      }
+    })
+    .catch(() => {});
+
   document.getElementById('customBidInput').value = '';
 }
 
@@ -1139,6 +1193,84 @@ function resetGame() {
 }
 
 
+// Real-time State Synchronization Polling Loop (ensures sync on serverless / Vercel)
+let syncInterval = null;
+let lastRenderedPhase = null;
+
+async function syncStateFromApi() {
+  try {
+    const res = await fetch('/api/sync');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || !data.success) return;
+
+    const gs = data.gameState || {};
+    const teams = data.teams || {};
+
+    if (!gameState) gameState = {};
+
+    // Update player spotlight
+    if (gs.currentPlayer && (!gameState.currentPlayer || gameState.currentPlayer.id !== gs.currentPlayer.id)) {
+      gameState.currentPlayer = gs.currentPlayer;
+      renderPlayerSpotlight(gs.currentPlayer, gs.currentBid || gs.currentPlayer.basePrice || 0);
+    } else if (!gs.currentPlayer && gameState.currentPlayer) {
+      gameState.currentPlayer = null;
+    }
+
+    // Update bid display
+    if (typeof gs.currentBid === 'number' && (gs.currentBid !== gameState.currentBid || gs.currentBidder !== gameState.currentBidder)) {
+      gameState.currentBid = gs.currentBid;
+      gameState.currentBidder = gs.currentBidder;
+      const bidderTeam = teams[gs.currentBidder];
+      updateBidDisplay(gs.currentBid, gs.currentBidder, bidderTeam ? (bidderTeam.short || bidderTeam.name) : '');
+    }
+
+    // Update timer
+    if (typeof gs.timerSeconds === 'number' && gs.phase === 'auction') {
+      updateTimer(gs.timerSeconds);
+    }
+
+    // Phase transitions
+    if (gs.phase && gs.phase !== gameState.phase) {
+      gameState.phase = gs.phase;
+      if (gs.phase === 'auction') {
+        showAuctionScreen();
+      } else if (gs.phase === 'finished' && lastRenderedPhase !== 'finished') {
+        lastRenderedPhase = 'finished';
+        renderFinishedScreen(teams, gs.soldHistory || [], gs.unsoldPlayers || [], data.resultReview);
+        switchScreen('finishedScreen');
+      }
+    }
+
+    gameState.teams = teams;
+    gameState.soldHistory = gs.soldHistory || [];
+    gameState.unsoldPlayers = gs.unsoldPlayers || [];
+    if (data.allPlayers && Array.isArray(data.allPlayers)) {
+      gameState.players = data.allPlayers;
+    }
+
+    if (myTeamId && teams[myTeamId]) {
+      gameState.myTeamFull = teams[myTeamId];
+      const balEl = document.getElementById('myBalance');
+      if (balEl) balEl.textContent = `${teams[myTeamId].budget} pts`;
+      renderMyPlayersDashboard();
+      updateVerificationBanner();
+    }
+
+    renderTeamsOverview();
+    renderJoinedTeams();
+    updateVerificationBanner();
+  } catch (err) {
+    // silently catch offline/poll errors
+  }
+}
+
+function startSyncLoop() {
+  if (syncInterval) clearInterval(syncInterval);
+  syncInterval = setInterval(syncStateFromApi, 1000);
+  syncStateFromApi();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const customBidInput = document.getElementById('customBidInput');
   if (customBidInput) {
@@ -1153,4 +1285,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (event.key === 'Enter') joinGame();
     });
   }
+
+  // Start real-time sync polling loop
+  startSyncLoop();
 });
+

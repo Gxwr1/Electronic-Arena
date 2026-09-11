@@ -1098,7 +1098,12 @@
     }
   </script>
   <script>
-    const socket = typeof io !== 'undefined' ? io({ transports: ['polling', 'websocket'], reconnection: true }) : { on: () => {}, emit: () => {} };
+    const socket = typeof io !== 'undefined'
+      ? io({ transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: 10, timeout: 6000 })
+      : { on: () => {}, emit: () => {} };
+    if (socket && typeof socket.on === 'function') {
+      socket.on('connect_error', () => {});
+    }
     let currentGameState = {};
     let soundEnabled = true;
     let selectedTeamColor = '#00e5ff';
@@ -1573,6 +1578,28 @@
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
     }
+
+    // Auto-Sync loop for real-time audience screen
+    async function syncAudienceState() {
+      try {
+        const res = await fetch('/api/sync');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !data.success) return;
+
+        if (data.gameState) {
+          renderState(data.gameState);
+        }
+        if (data.teams) {
+          renderTeams(data.teams);
+        }
+        if (data.queueState && data.queueState.remaining !== undefined) {
+          updateRemainingCount(data.queueState.remaining);
+        }
+      } catch (err) {}
+    }
+    setInterval(syncAudienceState, 1000);
+    syncAudienceState();
   </script>
 </body>
 </html>

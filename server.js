@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -5,9 +6,10 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const { randomUUID } = require('crypto');
+const db = require('./db');
 const playersData = require('./data/players');
 const PLAYERS_DATA_FILE = path.join(__dirname, 'data', 'players.js');
-const STATE_FILE = path.join(__dirname, 'storage', 'auction_state.json');
+const STATE_FILE = db.FALLBACK_STATE_FILE;
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'aiml';
 const INITIAL_BUDGET = 500;
@@ -148,30 +150,35 @@ function saveState() {
       auctionQueue: gameState.auctionQueue,
       resultReview: gameState.resultReview,
       reconnectSessions: reconnectSessions,
+      currentBid: gameState.currentBid,
+      currentPlayer: gameState.currentPlayer,
+      currentBidder: gameState.currentBidder,
+      timerSeconds: gameState.timerSeconds,
+      timestamp: Date.now(),
     };
-    if (!fs.existsSync(path.dirname(STATE_FILE))) {
-      fs.mkdirSync(path.dirname(STATE_FILE), { recursive: true });
-    }
-    fs.writeFileSync(STATE_FILE, JSON.stringify(dataToSave, null, 2), 'utf8');
+    db.saveAuctionState(dataToSave);
   } catch (error) {
     console.error('Failed to save state:', error);
   }
 }
 
-
 const connectedUsers = {};
 const reconnectSessions = {};
 
-function loadState() {
+async function loadState() {
   try {
-    if (fs.existsSync(STATE_FILE)) {
-      const saved = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    const saved = await db.loadAuctionState();
+    if (saved) {
       gameState.phase = saved.phase || 'lobby';
       gameState.teams = saved.teams || {};
       gameState.soldHistory = saved.soldHistory || [];
       gameState.unsoldPlayers = saved.unsoldPlayers || [];
       gameState.auctionQueue = saved.auctionQueue || [];
       gameState.resultReview = saved.resultReview || createInitialResultReview();
+      gameState.currentBid = saved.currentBid || 0;
+      gameState.currentPlayer = saved.currentPlayer || null;
+      gameState.currentBidder = saved.currentBidder || null;
+      gameState.timerSeconds = Number.isFinite(saved.timerSeconds) ? saved.timerSeconds : BID_TIMER_SECONDS;
       
       if (saved.reconnectSessions) {
         Object.assign(reconnectSessions, saved.reconnectSessions);
@@ -186,7 +193,7 @@ function loadState() {
         team.ownerId = null;
       });
       
-      console.log('Auction state loaded from disk');
+      console.log('Auction state loaded from Database / storage');
     }
   } catch (error) {
     console.error('Failed to load state:', error);
@@ -2572,25 +2579,254 @@ app.get('/api/teams', (req, res) => {
   return res.json({ success: true, teams });
 });
 
-// Upload team logo image
-const teamLogoStorage = multer.diskStorage({
-  destination(req, file, cb) {
-    cb(null, PERSISTENT_IMAGES_DIR);
-  },
-  filename(req, file, cb) {
-    const rawExt = path.extname(file.originalname || '').toLowerCase();
-    const ext = /^[.][a-z0-9]{1,10}$/.test(rawExt) ? rawExt : '.png';
-    cb(null, `team_logo_${Date.now()}_${randomUUID().slice(0, 8)}${ext}`);
-  },
+// Upload team logo image (Base64 Memory Storage + Resilient Serverless Support)
+const memoryStorage = multer.memoryStorage();
+const uploadMemory = multer({
+  storage: memoryStorage,
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
 });
-const uploadTeamLogo = multer({ storage: teamLogoStorage });
 
-app.post('/api/teams/upload-logo', uploadTeamLogo.single('logo'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'Logo file required' });
+app.post('/api/teams/upload-logo', uploadMemory.single('logo'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Logo file required' });
+    }
+    const mime = req.file.mimetype || 'image/png';
+    const base64Data = req.file.buffer.toString('base64');
+    const dataUrl = `data:${mime};base64,${base64Data}`;
+    return res.json({
+      success: true,
+      url: dataUrl,
+      logoUrl: dataUrl,
+    });
+  } catch (error) {
+    console.error('Error in upload-logo:', error);
+    return res.status(500).json({ error: error.message || 'Failed to upload logo' });
   }
-  const fileUrl = `/images/${req.file.filename}`;
-  return res.json({ success: true, url: fileUrl });
+});
+
+// Full Real-time State Synchronization Endpoint
+app.get('/api/sync', (req, res) => {
+  res.json({
+    success: true,
+    timestamp: Date.now(),
+    db: db.getDbHealth(),
+    gameState: getSafeState(),
+    teams: getSanitizedTeams(),
+    allPlayers: gameState.players,
+    queueState: getQueueStatePayload(),
+    alertsState: getAlertsStatePayload(),
+    resultReview: getPublicResultReview(),
+  });
+});
+
+app.get('/api/db/health', (req, res) => {
+  res.json(db.getDbHealth());
+});
+
+app.get('/api/db/status', (req, res) => {
+  res.json(db.getDbHealth());
+});
+
+// REST Bidding API
+app.post('/api/auction/bid', (req, res) => {
+  const { teamId, password, passcode, code, amount, increment } = req.body || {};
+  const effectivePass = password || passcode || code || '';
+  
+  if (!teamId || !gameState.teams[teamId]) {
+    return res.status(404).json({ error: 'Team not found' });
+  }
+
+  const team = gameState.teams[teamId];
+  if (team.password && effectivePass && team.password.toLowerCase() !== String(effectivePass).trim().toLowerCase()) {
+    return res.status(401).json({ error: 'Incorrect team passcode' });
+  }
+
+  if (gameState.phase !== 'auction' || !gameState.currentPlayer) {
+    return res.status(400).json({ error: 'Auction is not active or waiting for next component' });
+  }
+
+  if (team.verified === false) {
+    return res.status(403).json({ error: 'Team is pending approval by admin' });
+  }
+
+  if (isTeamSquadFull(team)) {
+    return res.status(400).json({ error: `Squad full (${MAX_SQUAD_SIZE}). Cannot buy more components` });
+  }
+
+  let bidAmount = parseInt(amount, 10);
+  if (increment) {
+    bidAmount = gameState.currentBid + parseInt(increment, 10);
+  } else if (Number.isFinite(bidAmount) && bidAmount > 0 && bidAmount <= 10 && gameState.currentBid > 0 && bidAmount <= gameState.currentBid) {
+    bidAmount = gameState.currentBid + bidAmount;
+  }
+
+  if (!Number.isFinite(bidAmount) || bidAmount <= gameState.currentBid) {
+    return res.status(400).json({ error: `Bid must be higher than ${gameState.currentBid} points` });
+  }
+
+  if (bidAmount > team.budget) {
+    return res.status(400).json({ error: `Not enough budget. Available: ${team.budget} points` });
+  }
+
+  gameState.currentBid = bidAmount;
+  gameState.currentBidder = teamId;
+  resetBidTimer();
+
+  const bidPayload = {
+    bid: bidAmount,
+    bidderTeamId: teamId,
+    bidderName: team.ownerName || team.name,
+    teamName: team.name,
+    timerSeconds: gameState.timerSeconds,
+  };
+
+  io.emit('bidPlaced', bidPayload);
+  saveState();
+
+  return res.json({ success: true, ...bidPayload });
+});
+
+// REST Admin Auction Control APIs
+app.post('/api/auction/start', (req, res) => {
+  const pass = req.headers['x-admin-pass'] || (req.body && req.body.adminPass);
+  if (!isAdminPass(pass)) return res.status(401).json({ error: 'Unauthorized' });
+
+  if (gameState.phase !== 'lobby' && gameState.phase !== 'finished') {
+    return res.json({ success: true, gameState: getSafeState() });
+  }
+
+  if (Object.keys(gameState.teams).length < 1) {
+    return res.status(400).json({ error: 'Need at least 1 registered team to start' });
+  }
+
+  gameState.phase = 'auction';
+  gameState.auctionQueue = [...gameState.players].sort(() => Math.random() - 0.5);
+  gameState.queueFilter = normalizeQueueFilter(null);
+  gameState.timerSeconds = BID_TIMER_SECONDS;
+  gameState.resultReview = createInitialResultReview();
+  
+  io.emit('auctionStarted', { gameState: getSafeState(), hostSocketId: null });
+  emitQueueUpdate();
+  saveState();
+
+  setTimeout(() => {
+    if (gameState.phase === 'auction') {
+      nextPlayer();
+    }
+  }, 800);
+
+  return res.json({ success: true, gameState: getSafeState() });
+});
+
+app.post('/api/auction/pause', (req, res) => {
+  const pass = req.headers['x-admin-pass'] || (req.body && req.body.adminPass);
+  if (!isAdminPass(pass)) return res.status(401).json({ error: 'Unauthorized' });
+
+  if (gameState.phase !== 'auction') {
+    return res.json({ success: true, gameState: getSafeState() });
+  }
+
+  clearBidTimer();
+  gameState.phase = 'paused';
+  io.emit('auctionPaused', { gameState: getSafeState() });
+  emitQueueUpdate();
+  saveState();
+  return res.json({ success: true, gameState: getSafeState() });
+});
+
+app.post('/api/auction/resume', (req, res) => {
+  const pass = req.headers['x-admin-pass'] || (req.body && req.body.adminPass);
+  if (!isAdminPass(pass)) return res.status(401).json({ error: 'Unauthorized' });
+
+  if (gameState.phase !== 'paused') {
+    return res.json({ success: true, gameState: getSafeState() });
+  }
+
+  gameState.phase = 'auction';
+  startBidTimer();
+  io.emit('auctionResumed', { gameState: getSafeState() });
+  emitQueueUpdate();
+  saveState();
+  return res.json({ success: true, gameState: getSafeState() });
+});
+
+app.post('/api/auction/next', (req, res) => {
+  const pass = req.headers['x-admin-pass'] || (req.body && req.body.adminPass);
+  if (!isAdminPass(pass)) return res.status(401).json({ error: 'Unauthorized' });
+
+  gameState.phase = 'auction';
+  nextPlayer();
+  return res.json({ success: true, gameState: getSafeState() });
+});
+
+app.post('/api/auction/sell', (req, res) => {
+  const pass = req.headers['x-admin-pass'] || (req.body && req.body.adminPass);
+  if (!isAdminPass(pass)) return res.status(401).json({ error: 'Unauthorized' });
+
+  if (gameState.phase !== 'auction') return res.status(400).json({ error: 'Auction not active' });
+  clearBidTimer();
+  sealBid();
+  return res.json({ success: true, gameState: getSafeState() });
+});
+
+app.post('/api/auction/unsold', (req, res) => {
+  const pass = req.headers['x-admin-pass'] || (req.body && req.body.adminPass);
+  if (!isAdminPass(pass)) return res.status(401).json({ error: 'Unauthorized' });
+
+  if (gameState.phase !== 'auction') return res.status(400).json({ error: 'Auction not active' });
+  clearBidTimer();
+  const player = gameState.currentPlayer;
+  if (player) {
+    gameState.unsoldPlayers.push({ ...player });
+    io.emit('playerUnsold', { player });
+    gameState.currentPlayer = null;
+    gameState.currentBid = 0;
+    gameState.currentBidder = null;
+    gameState.timerSeconds = 0;
+    emitQueueUpdate();
+    saveState();
+  }
+  return res.json({ success: true, gameState: getSafeState() });
+});
+
+app.post('/api/auction/stop', (req, res) => {
+  const pass = req.headers['x-admin-pass'] || (req.body && req.body.adminPass);
+  if (!isAdminPass(pass)) return res.status(401).json({ error: 'Unauthorized' });
+
+  endAuction();
+  return res.json({ success: true, gameState: getSafeState() });
+});
+
+app.post('/api/admin/verify-team', (req, res) => {
+  const pass = req.headers['x-admin-pass'] || (req.body && req.body.adminPass);
+  if (!isAdminPass(pass)) return res.status(401).json({ error: 'Unauthorized' });
+
+  const { teamId, verified } = req.body || {};
+  if (!teamId || !gameState.teams[teamId]) {
+    return res.status(404).json({ error: 'Team not found' });
+  }
+
+  const isVerified = verified !== undefined ? Boolean(verified) : true;
+  gameState.teams[teamId].verified = isVerified;
+  saveState();
+  broadcastTeamsUpdate();
+  io.emit('teamVerified', { teamId, verified: isVerified });
+  return res.json({ success: true, teamId, verified: isVerified });
+});
+
+app.post('/api/admin/verify-all-teams', (req, res) => {
+  const pass = req.headers['x-admin-pass'] || (req.body && req.body.adminPass);
+  if (!isAdminPass(pass)) return res.status(401).json({ error: 'Unauthorized' });
+
+  const isVerified = req.body && req.body.verified !== undefined ? Boolean(req.body.verified) : true;
+  Object.values(gameState.teams).forEach((t) => {
+    t.verified = isVerified;
+  });
+  saveState();
+  broadcastTeamsUpdate();
+  io.emit('allTeamsVerified', { verified: isVerified });
+  return res.json({ success: true, verified: isVerified });
 });
 
 // Register new team via public API
@@ -3352,45 +3588,37 @@ app.post('/api/admin/update-player-image', requireAdmin, (req, res) => {
   return res.json({ success: true, player });
 });
 
-app.post('/api/admin/upload-player-image', requireAdmin, upload.single('image'), (req, res) => {
-  const playerId = req.body.playerId;
-  if (!playerId) {
-    removeFileIfExists(req.file && req.file.path);
-    return res.status(400).json({ error: 'playerId required' });
+app.post('/api/admin/upload-player-image', requireAdmin, uploadMemory.single('image'), (req, res) => {
+  const playerId = Number(req.body.playerId);
+  if (!playerId || !Number.isFinite(playerId) || playerId <= 0) {
+    return res.status(400).json({ error: 'Valid playerId required' });
   }
 
   if (!req.file) {
-    return res.status(400).json({ error: 'image file required' });
+    return res.status(400).json({ error: 'Image file required' });
   }
 
-  const numericPlayerId = Number(playerId);
-  if (!Number.isFinite(numericPlayerId) || numericPlayerId <= 0) {
-    removeFileIfExists(req.file.path);
-    return res.status(400).json({ error: 'Invalid playerId' });
-  }
+  const mime = req.file.mimetype || 'image/png';
+  const dataUrl = `data:${mime};base64,${req.file.buffer.toString('base64')}`;
 
-  const fileUrl = `/images/${req.file.filename}`;
-
-  const player = gameState.players.find((item) => item.id === numericPlayerId);
+  const player = gameState.players.find((item) => item.id === playerId);
   if (!player) {
-    removeFileIfExists(req.file.path);
     return res.status(404).json({ error: 'Player not found' });
   }
 
   const previousImage = player.image;
-  player.image = fileUrl;
+  player.image = dataUrl;
 
   try {
     syncPlayersDataFromState();
   } catch (error) {
     player.image = previousImage;
-    removeFileIfExists(req.file.path);
     console.error('Failed to persist uploaded player image:', error);
     return res.status(500).json({ error: 'Failed to save uploaded image permanently' });
   }
 
   io.emit('playerUpdated', { player });
-  return res.json({ success: true, player, url: fileUrl });
+  return res.json({ success: true, player, url: dataUrl });
 });
 
 app.post('/api/admin/flag-duplicate', requireAdmin, (req, res) => {

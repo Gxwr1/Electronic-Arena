@@ -3,8 +3,11 @@
  * High-performance digital logic evaluation engine & interactive canvas
  */
 const socket = typeof io !== 'undefined'
-  ? io({ transports: ['polling', 'websocket'], reconnection: true })
+  ? io({ transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: 10, timeout: 6000 })
   : { on: () => {}, emit: () => {}, close: () => {} };
+if (socket && typeof socket.on === 'function') {
+  socket.on('connect_error', () => {});
+}
 // ─── STATE & CONFIG ───
 let allCatalog = [];
 let myTeam = null;
