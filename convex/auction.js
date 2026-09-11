@@ -2,7 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 const ADMIN_PASSWORD = "aiml";
-const INITIAL_BUDGET = 500;
+const INITIAL_BUDGET = 250;
 const BID_TIMER_SECONDS = 15;
 
 const DEFAULT_COMPONENTS = [
@@ -253,6 +253,23 @@ export const updateTeamBudget = mutation({
 
     await ctx.db.patch(team._id, { budget: args.budget, updatedAt: Date.now() });
     return { success: true, budget: args.budget };
+  },
+});
+
+export const updateAllTeamsBudget = mutation({
+  args: {
+    budget: v.number(),
+    adminPass: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (args.adminPass !== ADMIN_PASSWORD) throw new Error("Unauthorized admin credentials");
+
+    const allTeams = await ctx.db.query("teams").collect();
+    for (const t of allTeams) {
+      await ctx.db.patch(t._id, { budget: args.budget, updatedAt: Date.now() });
+    }
+
+    return { success: true, count: allTeams.length, budget: args.budget };
   },
 });
 

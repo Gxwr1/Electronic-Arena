@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Pause, FastForward, CheckCircle, XCircle, RotateCcw, ShieldCheck, Trash2, Edit3, Plus, Users, Zap, Layers, Eye, Download, FileText, ArrowRight, SkipForward, FileDown } from 'lucide-react';
+import { Play, Pause, FastForward, CheckCircle, XCircle, RotateCcw, ShieldCheck, Trash2, Edit3, Plus, Users, Zap, Layers, Eye, Download, FileText, ArrowRight, SkipForward, FileDown, Coins } from 'lucide-react';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { downloadTeamReportPDF, downloadAllTeamsPDF } from '../utils/pdfGenerator';
@@ -8,6 +8,7 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
   const [activeTab, setActiveTab] = useState('controls'); // 'controls' | 'preview' | 'data'
   const [editingBudgetTeam, setEditingBudgetTeam] = useState(null);
   const [newBudgetVal, setNewBudgetVal] = useState('');
+  const [bulkPointsVal, setBulkPointsVal] = useState('250');
 
   const startAuctionMutation = useMutation(api.auction.startAuction);
   const pauseAuctionMutation = useMutation(api.auction.pauseAuction);
@@ -20,6 +21,7 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
   const verifyTeamMutation = useMutation(api.auction.verifyTeam);
   const verifyAllTeamsMutation = useMutation(api.auction.verifyAllTeams);
   const updateTeamBudgetMutation = useMutation(api.auction.updateTeamBudget);
+  const updateAllTeamsBudgetMutation = useMutation(api.auction.updateAllTeamsBudget);
   const deleteTeamMutation = useMutation(api.auction.deleteTeam);
 
   const teamList = Object.values(teams || {});
@@ -90,10 +92,10 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
   };
 
   const handleReset = async () => {
-    if (!window.confirm('WARNING: Reset full auction queue, clear bids, restore 500 team budgets, and return to lobby?')) return;
+    if (!window.confirm('WARNING: Reset full auction queue, clear bids, restore starting budgets, and return to lobby?')) return;
     try {
       await resetAuctionMutation({ adminPass });
-      showToast('🔄 Auction state reset to lobby. All team budgets restored to 500 pts.', 'info');
+      showToast('🔄 Auction state reset to lobby.', 'info');
     } catch (err) {
       showToast(err.message || 'Reset failed', 'error');
     }
@@ -112,6 +114,20 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
     try {
       await verifyAllTeamsMutation({ verified, adminPass });
       showToast(verified ? '✅ Approved all registered teams!' : 'Revoked approval for all teams', 'info');
+    } catch (err) {
+      showToast(err.message || 'Bulk update failed', 'error');
+    }
+  };
+
+  const handleBulkSetPoints = async (amount) => {
+    const pts = parseInt(amount, 10);
+    if (isNaN(pts) || pts < 0) {
+      showToast('Please enter a valid points amount', 'error');
+      return;
+    }
+    try {
+      await updateAllTeamsBudgetMutation({ budget: pts, adminPass });
+      showToast(`⚡ Set all ${teamList.length} teams to ${pts} Points!`, 'success');
     } catch (err) {
       showToast(err.message || 'Bulk update failed', 'error');
     }
@@ -202,7 +218,7 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
                 activeTab === 'controls' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Controls
+              Controls & Points
             </button>
             <button
               onClick={() => setActiveTab('preview')}
@@ -231,10 +247,60 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
         </div>
       </div>
 
-      {/* TAB 1: MASTER CONTROLS */}
+      {/* TAB 1: MASTER CONTROLS & POINTS MANAGER */}
       {activeTab === 'controls' && (
         <div className="space-y-6">
-          {/* Stage Action Controls Grid */}
+          {/* 1. POINTS / BUDGET MANAGER */}
+          <div className="rounded-3xl border border-emerald-500/40 bg-gradient-to-r from-slate-950 via-emerald-950/20 to-slate-950 p-5 sm:p-6 shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <Coins className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="font-bebas text-2xl tracking-wider text-emerald-400 leading-tight">
+                    POINTS (PTS) & BUDGET MANAGER
+                  </h2>
+                  <p className="text-xs font-rajdhani text-slate-400">
+                    Change starting points in bulk for all registered teams instantly
+                  </p>
+                </div>
+              </div>
+
+              {/* Points Quick Buttons */}
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => handleBulkSetPoints(250)}
+                  className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3.5 py-2 text-xs font-rajdhani font-bold shadow-md shadow-emerald-500/20 transition-all"
+                >
+                  ⚡ Set All to 250 Pts
+                </button>
+                <button
+                  onClick={() => handleBulkSetPoints(500)}
+                  className="rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 px-3 py-2 text-xs font-rajdhani font-bold transition-colors"
+                >
+                  Set All to 500 Pts
+                </button>
+                <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-xl p-1">
+                  <input
+                    type="number"
+                    value={bulkPointsVal}
+                    onChange={(e) => setBulkPointsVal(e.target.value)}
+                    placeholder="pts"
+                    className="w-20 bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs font-mono-code text-center text-slate-100 focus:outline-none focus:border-emerald-400"
+                  />
+                  <button
+                    onClick={() => handleBulkSetPoints(bulkPointsVal)}
+                    className="rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 text-xs font-rajdhani font-bold transition-colors"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Stage Action Controls Grid */}
           <div className="rounded-3xl border border-slate-800 bg-slate-900/90 backdrop-blur-xl p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="font-bebas text-2xl tracking-wider text-slate-100 flex items-center gap-2">
@@ -318,7 +384,7 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
             </div>
           </div>
 
-          {/* Team Approval & Management */}
+          {/* 3. Team Approval & Management */}
           <div className="rounded-3xl border border-slate-800 bg-slate-900/90 backdrop-blur-xl p-6 shadow-xl space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
@@ -539,7 +605,7 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
           <div className="space-y-4">
             {teamList.map((team) => {
               const won = team.players || [];
-              const spent = 500 - team.budget;
+              const spent = Math.max(0, (team.initialBudget || 250) - team.budget);
 
               return (
                 <div

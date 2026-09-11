@@ -19,9 +19,9 @@ export function downloadTeamReportPDF(team) {
   const margin = 14;
 
   const wonItems = team.players || [];
-  const initialBudget = 500;
-  const remainingBudget = team.budget ?? initialBudget;
-  const pointsSpent = initialBudget - remainingBudget;
+  const pointsSpent = wonItems.reduce((sum, item) => sum + (item.soldPrice || item.basePrice || 0), 0);
+  const remainingBudget = team.budget ?? 250;
+  const initialBudget = remainingBudget + pointsSpent;
   const members = team.members || [team.leader || 'Leader'];
 
   // Top Dark Header Banner
@@ -244,7 +244,7 @@ export function downloadAllTeamsPDF(teamList, soldHistory = [], unsoldPlayers = 
 
   const summaryData = sortedTeams.map((t, idx) => {
     const wonCount = (t.players || []).length;
-    const spent = 500 - t.budget;
+    const spent = (t.players || []).reduce((sum, item) => sum + (item.soldPrice || item.basePrice || 0), 0);
     return [
       idx + 1,
       t.name,
@@ -301,9 +301,9 @@ export function downloadAllTeamsPDF(teamList, soldHistory = [], unsoldPlayers = 
     const currentPage = teamIndex + 2;
 
     const wonItems = team.players || [];
-    const initialBudget = 500;
-    const remainingBudget = team.budget ?? initialBudget;
-    const pointsSpent = initialBudget - remainingBudget;
+    const pointsSpent = wonItems.reduce((sum, item) => sum + (item.soldPrice || item.basePrice || 0), 0);
+    const remainingBudget = team.budget ?? 250;
+    const initialBudget = remainingBudget + pointsSpent;
     const members = team.members || [team.leader || 'Leader'];
 
     // Header Banner

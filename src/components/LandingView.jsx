@@ -109,7 +109,7 @@ export function LandingView({ teams, onLoginSuccess, showToast }) {
         <div className="space-y-3">
           <div className="inline-flex items-center gap-2 rounded-full bg-cyan-500/10 border border-cyan-500/30 px-3.5 py-1 text-xs font-mono-code text-cyan-300 shadow-sm shadow-cyan-500/20">
             <Sparkles className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
-            <span>53 Logic Components • 500 Pts Starting Budget</span>
+            <span>53 Logic Components • 250 Pts Starting Budget</span>
           </div>
 
           <h1 className="font-bebas text-5xl sm:text-7xl tracking-wider text-slate-100 leading-none glow-text-cyan">
@@ -315,7 +315,7 @@ export function LandingView({ teams, onLoginSuccess, showToast }) {
               {/* Notice */}
               <div className="flex items-start gap-2 rounded-xl bg-amber-950/30 border border-amber-500/30 p-2.5 text-amber-300 text-xs font-rajdhani leading-snug">
                 <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>Starts with <strong>500 Points</strong>. Bidding unlocks once verified by Host.</span>
+                <span>Starts with <strong>250 Points</strong>. Bidding unlocks once verified by Host.</span>
               </div>
 
               <button
@@ -323,7 +323,7 @@ export function LandingView({ teams, onLoginSuccess, showToast }) {
                 disabled={loading}
                 className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 py-3 text-sm font-rajdhani font-bold text-slate-950 tracking-wider shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50"
               >
-                <span>{loading ? 'REGISTERING TEAM...' : 'CONFIRM REGISTRATION (500 PTS)'}</span>
+                <span>{loading ? 'REGISTERING TEAM...' : 'CONFIRM REGISTRATION (250 PTS)'}</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
             </form>

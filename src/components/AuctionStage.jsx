@@ -24,9 +24,8 @@ export function AuctionStage({ gameState, teams, currentTeam, showToast, onOpenL
   const isAuctionPhase = gameState?.phase === 'auction';
   const isPausedPhase = gameState?.phase === 'paused';
 
-  const teamList = Object.values(teams || {});
   const myWonItems = currentTeam?.players || [];
-  const totalSpent = 500 - (currentTeam?.budget ?? 500);
+  const totalSpent = myWonItems.reduce((sum, item) => sum + (item.soldPrice || item.basePrice || 0), 0);
 
   // Sync timer with gameState
   useEffect(() => {

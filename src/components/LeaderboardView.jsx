@@ -80,7 +80,7 @@ export function LeaderboardView({ teams, soldHistory, unsoldPlayers }) {
           <div className="space-y-4">
             {teamList.map((team, idx) => {
               const won = team.players || [];
-              const spent = 500 - team.budget;
+              const spent = won.reduce((sum, item) => sum + (item.soldPrice || item.basePrice || 0), 0);
               const isTop = idx === 0 && won.length > 0;
 
               return (
