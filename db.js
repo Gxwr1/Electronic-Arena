@@ -10,8 +10,9 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// Resolve Convex URL from environment variables
+// Resolve Convex URL & State Key from environment variables
 const CONVEX_URL = process.env.CONVEX_URL || process.env.VITE_CONVEX_URL || 'https://dapper-akita-326.convex.cloud';
+const AUCTION_STATE_KEY = process.env.AUCTION_STATE_KEY || 'current_game';
 
 let convexClient = null;
 let api = null;
@@ -68,7 +69,7 @@ async function saveAuctionState(stateData) {
   if (isConvexAvailable && convexClient && api && api.auction) {
     try {
       await convexClient.mutation(api.auction.saveAuctionState, {
-        key: 'current_game',
+        key: AUCTION_STATE_KEY,
         data: stateData,
       });
     } catch (err) {
@@ -86,7 +87,7 @@ async function loadAuctionState() {
   if (isConvexAvailable && convexClient && api && api.auction) {
     try {
       const data = await convexClient.query(api.auction.getAuctionState, {
-        key: 'current_game',
+        key: AUCTION_STATE_KEY,
       });
       if (data && typeof data === 'object') {
         return data;

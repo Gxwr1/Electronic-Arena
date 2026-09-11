@@ -669,7 +669,7 @@
     function updateUI() {
       if (!gameState) return;
       document.getElementById('statusPhase').textContent = String(gameState.phase || 'lobby').toUpperCase();
-      document.getElementById('statusBid').textContent = `₹${Number(gameState.currentBid) || 0}`;
+      document.getElementById('statusBid').textContent = `${Number(gameState.currentBid) || 0} pts`;
       document.getElementById('statusTeams').textContent = Object.keys(gameState.teams || {}).length;
       document.getElementById('statusRemaining').textContent = gameState.remainingInQueue ?? 0;
       syncControls();
@@ -839,7 +839,8 @@
         .then((res) => res.json())
         .then((json) => {
           if (json && json.success) {
-            location.reload();
+            addFeed('🔄 Auction reset completed successfully.', 'info');
+            fetchLiveState();
           } else {
             alert(json && json.error ? json.error : 'Reset failed');
           }

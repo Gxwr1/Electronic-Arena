@@ -602,8 +602,12 @@ socket.on('gameReset', ({ message }) => {
   myTeamId = null;
   myPass = null;
   selectedTeamId = null;
-  showToast(message || 'Auction reset', 'info');
-  setTimeout(() => window.location.reload(), 1500);
+  unlockLobbyControls();
+  showLobbyJoinScreen();
+  setMyTeamBadge();
+  updateVerificationBanner();
+  renderLobby();
+  showToast(message || 'Auction reset by administrator', 'info', 4000);
 });
 
 socket.on('auctionPaused', ({ gameState: gs }) => {
@@ -1231,7 +1235,8 @@ function resetGame() {
     .then((res) => res.json())
     .then((json) => {
       if (json && json.success) {
-        location.reload();
+        showToast('Auction reset successfully', 'success');
+        syncStateFromApi();
       } else {
         showToast(json && json.error ? json.error : 'Reset failed', 'error');
       }
