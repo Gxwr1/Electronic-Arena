@@ -1,4 +1,24 @@
-const socket = io();
+var toastTimeout = null;
+window.showToast = function(msg, type = 'info', duration = 3000) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.className = `toast ${type} show`;
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => {
+    toast.classList.remove('show');
+  }, duration);
+};
+var showToast = window.showToast;
+
+var socket = null;
+if (typeof io !== 'undefined') {
+  socket = io({ transports: ['polling', 'websocket'], reconnection: true });
+} else {
+  console.warn('Socket.IO library not yet ready, using dummy socket fallback.');
+  socket = { on: () => {}, emit: () => {}, close: () => {} };
+}
+window.socket = socket;
 
 // automatically try to recover saved session when socket reconnects
 socket.on('connect', () => {
@@ -1118,17 +1138,6 @@ function resetGame() {
     });
 }
 
-let toastTimeout;
-function showToast(msg, type = 'info', duration = 3000) {
-  const toast = document.getElementById('toast');
-  if (!toast) return;
-  toast.textContent = msg;
-  toast.className = `toast ${type} show`;
-  clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => {
-    toast.classList.remove('show');
-  }, duration);
-}
 
 document.addEventListener('DOMContentLoaded', () => {
   const customBidInput = document.getElementById('customBidInput');

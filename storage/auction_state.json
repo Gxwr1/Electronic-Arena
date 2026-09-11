@@ -1,366 +1,92 @@
 {
-  "phase": "paused",
+  "phase": "auction",
   "teams": {
-    "team_gxwr1_i7ky": {
-      "id": "team_gxwr1_i7ky",
-      "name": "Gxwr1",
-      "short": "G",
-      "leader": "Malar",
+    "team_logic_knights_q46v": {
+      "id": "team_logic_knights_q46v",
+      "name": "Logic Knights",
+      "short": "LK",
+      "leader": "Alice",
       "members": [
-        "Malar",
-        "Rishi",
-        "Tharun",
-        "Oviya",
-        "Narkis"
+        "Alice",
+        "Bob",
+        "Charlie"
       ],
       "color": "#00e5ff",
       "icon": "⚡",
-      "logo": "/images/team_logo_1789140282200_11831332.jpeg",
-      "password": "172",
+      "logo": "",
+      "password": "knight_pass_123",
       "budget": 482,
       "verified": true,
       "players": [
         {
-          "id": 49,
-          "name": "Buffer",
+          "id": 45,
+          "name": "Adder",
           "role": "Misc Components",
-          "country": "Signal Conditioning",
-          "basePrice": 3,
-          "team": null,
-          "soldPrice": 4,
-          "isCapped": false,
-          "image": "/images/comp_49.svg"
-        },
-        {
-          "id": 27,
-          "name": "Priority Encoder (4:2)",
-          "role": "Decoders / Data Selectors",
-          "country": "Binary Encoding",
+          "country": "Arithmetic Unit",
           "basePrice": 10,
           "team": null,
-          "soldPrice": 11,
+          "soldPrice": 18,
           "isCapped": false,
-          "image": "/images/comp_27.svg"
-        },
-        {
-          "id": 39,
-          "name": "Arrow",
-          "role": "Annotation",
-          "country": "Directional Vector",
-          "basePrice": 2,
-          "team": null,
-          "soldPrice": 3,
-          "isCapped": false,
-          "image": "/images/comp_39.svg"
+          "image": "/images/comp_45.svg"
         }
       ],
       "playingXI": {},
       "ownerId": null,
-      "ownerName": "Gxwr1",
+      "ownerName": "Logic Knights",
       "ownerIp": "127.0.0.1"
     },
-    "team_aa_jg0p": {
-      "id": "team_aa_jg0p",
-      "name": "AA",
-      "short": "A",
-      "leader": "",
-      "members": [],
-      "color": "#00e5ff",
-      "icon": "⚡",
-      "logo": "/images/team_logo_1789140401646_7aabae72.avif",
-      "password": "!",
+    "team_circuit_breakers_qtc5": {
+      "id": "team_circuit_breakers_qtc5",
+      "name": "Circuit Breakers",
+      "short": "CB",
+      "leader": "David",
+      "members": [
+        "David",
+        "Emma"
+      ],
+      "color": "#ffb700",
+      "icon": "🤖",
+      "logo": "",
+      "password": "breaker_pass_456",
       "budget": 500,
       "verified": true,
       "players": [],
       "playingXI": {},
-      "ownerId": "S8KBGpULJqdnXaWTAAAj",
-      "ownerName": "AA",
-      "ownerIp": "192.168.56.1"
+      "ownerId": null,
+      "ownerName": "Circuit Breakers",
+      "ownerIp": "127.0.0.1"
     }
   },
   "soldHistory": [
     {
       "player": {
-        "id": 49,
-        "name": "Buffer",
+        "id": 45,
+        "name": "Adder",
         "role": "Misc Components",
-        "country": "Signal Conditioning",
-        "basePrice": 3,
-        "team": null,
-        "soldPrice": null,
-        "isCapped": false,
-        "image": "/images/comp_49.svg"
-      },
-      "soldTo": "team_gxwr1_i7ky",
-      "soldPrice": 4,
-      "teamName": "Gxwr1"
-    },
-    {
-      "player": {
-        "id": 27,
-        "name": "Priority Encoder (4:2)",
-        "role": "Decoders / Data Selectors",
-        "country": "Binary Encoding",
+        "country": "Arithmetic Unit",
         "basePrice": 10,
         "team": null,
         "soldPrice": null,
         "isCapped": false,
-        "image": "/images/comp_27.svg"
+        "image": "/images/comp_45.svg"
       },
-      "soldTo": "team_gxwr1_i7ky",
-      "soldPrice": 11,
-      "teamName": "Gxwr1"
-    },
-    {
-      "player": {
-        "id": 39,
-        "name": "Arrow",
-        "role": "Annotation",
-        "country": "Directional Vector",
-        "basePrice": 2,
-        "team": null,
-        "soldPrice": null,
-        "isCapped": false,
-        "image": "/images/comp_39.svg"
-      },
-      "soldTo": "team_gxwr1_i7ky",
-      "soldPrice": 3,
-      "teamName": "Gxwr1"
+      "soldTo": "team_logic_knights_q46v",
+      "soldPrice": 18,
+      "teamName": "Logic Knights"
     }
   ],
-  "unsoldPlayers": [
-    {
-      "id": 14,
-      "name": "Sixteen Segment Display",
-      "role": "Output",
-      "country": "Alphanumeric Display",
-      "basePrice": 12,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": true,
-      "image": "/images/comp_14.svg"
-    },
-    {
-      "id": 48,
-      "name": "Tunnel",
-      "role": "Misc Components",
-      "country": "Net Label",
-      "basePrice": 4,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_48.svg"
-    },
-    {
-      "id": 22,
-      "name": "NOT Gate",
-      "role": "Logic Gates",
-      "country": "Logic Inverter",
-      "basePrice": 2,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_22.svg"
-    },
-    {
-      "id": 9,
-      "name": "RGB Light",
-      "role": "Output",
-      "country": "Visual Display",
-      "basePrice": 10,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_9.svg"
-    },
-    {
-      "id": 12,
-      "name": "Hex Display",
-      "role": "Output",
-      "country": "Digital Display",
-      "basePrice": 15,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": true,
-      "image": "/images/comp_12.svg"
-    },
-    {
-      "id": 43,
-      "name": "Flag",
-      "role": "Misc Components",
-      "country": "Status Register",
-      "basePrice": 2,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_43.svg"
-    }
-  ],
+  "unsoldPlayers": [],
   "auctionQueue": [
     {
-      "id": 45,
-      "name": "Adder",
-      "role": "Misc Components",
-      "country": "Arithmetic Unit",
-      "basePrice": 10,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_45.svg"
-    },
-    {
-      "id": 32,
-      "name": "JK Flip-Flop",
-      "role": "Sequential Elements",
-      "country": "Universal Flip-Flop",
-      "basePrice": 18,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": true,
-      "image": "/images/comp_32.svg"
-    },
-    {
-      "id": 41,
-      "name": "Text",
-      "role": "Annotation",
-      "country": "Label / Comment",
-      "basePrice": 2,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_41.svg"
-    },
-    {
-      "id": 6,
-      "name": "Stepper Motor",
+      "id": 2,
+      "name": "Button (Red)",
       "role": "Input",
-      "country": "Electromechanical",
-      "basePrice": 15,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": true,
-      "image": "/images/comp_6.svg"
-    },
-    {
-      "id": 26,
-      "name": "MSB / LSB Indicator",
-      "role": "Decoders / Data Selectors",
-      "country": "Bit Significance",
-      "basePrice": 3,
+      "country": "Mechanical Switch",
+      "basePrice": 6,
       "team": null,
       "soldPrice": null,
       "isCapped": false,
-      "image": "/images/comp_26.svg"
-    },
-    {
-      "id": 29,
-      "name": "D Flip-Flop",
-      "role": "Sequential Elements",
-      "country": "Edge-Triggered",
-      "basePrice": 15,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": true,
-      "image": "/images/comp_29.svg"
-    },
-    {
-      "id": 28,
-      "name": "Decoder (2:4)",
-      "role": "Decoders / Data Selectors",
-      "country": "Binary Decoding",
-      "basePrice": 8,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_28.svg"
-    },
-    {
-      "id": 16,
-      "name": "AND Gate",
-      "role": "Logic Gates",
-      "country": "Combinational Logic",
-      "basePrice": 2,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_16.svg"
-    },
-    {
-      "id": 7,
-      "name": "Counter",
-      "role": "Input",
-      "country": "Sequential Logic",
-      "basePrice": 12,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": true,
-      "image": "/images/comp_7.svg"
-    },
-    {
-      "id": 24,
-      "name": "Demultiplexer (1:2)",
-      "role": "Decoders / Data Selectors",
-      "country": "Data Distribution",
-      "basePrice": 12,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": true,
-      "image": "/images/comp_24.svg"
-    },
-    {
-      "id": 38,
-      "name": "Rectangle",
-      "role": "Annotation",
-      "country": "Schematic Markup",
-      "basePrice": 2,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_38.svg"
-    },
-    {
-      "id": 13,
-      "name": "Seven Segment Display",
-      "role": "Output",
-      "country": "Numeric Display",
-      "basePrice": 8,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_13.svg"
-    },
-    {
-      "id": 4,
-      "name": "Constant Value",
-      "role": "Input",
-      "country": "Constant Source",
-      "basePrice": 5,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_4.svg"
-    },
-    {
-      "id": 17,
-      "name": "OR Gate",
-      "role": "Logic Gates",
-      "country": "Combinational Logic",
-      "basePrice": 2,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_17.svg"
-    },
-    {
-      "id": 25,
-      "name": "Bit Selector",
-      "role": "Decoders / Data Selectors",
-      "country": "Bit Level Selection",
-      "basePrice": 8,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_25.svg"
+      "image": "/images/comp_2.svg"
     },
     {
       "id": 40,
@@ -374,72 +100,6 @@
       "image": "/images/comp_40.svg"
     },
     {
-      "id": 20,
-      "name": "NOR Gate",
-      "role": "Logic Gates",
-      "country": "Universal Gate",
-      "basePrice": 3,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_20.svg"
-    },
-    {
-      "id": 51,
-      "name": "Test Bench Input",
-      "role": "Misc Components",
-      "country": "Test & Verification",
-      "basePrice": 5,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_51.svg"
-    },
-    {
-      "id": 11,
-      "name": "Variable LED",
-      "role": "Output",
-      "country": "Analog Visual",
-      "basePrice": 7,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_11.svg"
-    },
-    {
-      "id": 10,
-      "name": "LED Light",
-      "role": "Output",
-      "country": "Visual Indicator",
-      "basePrice": 4,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_10.svg"
-    },
-    {
-      "id": 31,
-      "name": "T Flip-Flop",
-      "role": "Sequential Elements",
-      "country": "Edge-Triggered",
-      "basePrice": 15,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": true,
-      "image": "/images/comp_31.svg"
-    },
-    {
-      "id": 37,
-      "name": "ROM (8×8)",
-      "role": "Sequential Elements",
-      "country": "Non-Volatile Memory",
-      "basePrice": 18,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": true,
-      "image": "/images/comp_37.svg"
-    },
-    {
       "id": 3,
       "name": "Power (+V)",
       "role": "Input",
@@ -449,94 +109,6 @@
       "soldPrice": null,
       "isCapped": true,
       "image": "/images/comp_3.svg"
-    },
-    {
-      "id": 42,
-      "name": "Two's Complement",
-      "role": "Misc Components",
-      "country": "Arithmetic Logic",
-      "basePrice": 6,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_42.svg"
-    },
-    {
-      "id": 47,
-      "name": "Tristate Flip-Flop",
-      "role": "Misc Components",
-      "country": "Bus Driver",
-      "basePrice": 14,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": true,
-      "image": "/images/comp_47.svg"
-    },
-    {
-      "id": 35,
-      "name": "Keyboard (4×4)",
-      "role": "Sequential Elements",
-      "country": "Matrix Input",
-      "basePrice": 12,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": true,
-      "image": "/images/comp_35.svg"
-    },
-    {
-      "id": 18,
-      "name": "XOR Gate",
-      "role": "Logic Gates",
-      "country": "Combinational Logic",
-      "basePrice": 3,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_18.svg"
-    },
-    {
-      "id": 52,
-      "name": "Test Bench Output",
-      "role": "Misc Components",
-      "country": "Test & Verification",
-      "basePrice": 5,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_52.svg"
-    },
-    {
-      "id": 44,
-      "name": "Splitter",
-      "role": "Misc Components",
-      "country": "Bus / Routing",
-      "basePrice": 3,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_44.svg"
-    },
-    {
-      "id": 8,
-      "name": "Random",
-      "role": "Input",
-      "country": "Stochastic Signal",
-      "basePrice": 10,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_8.svg"
-    },
-    {
-      "id": 36,
-      "name": "Clock",
-      "role": "Sequential Elements",
-      "country": "Oscillator Source",
-      "basePrice": 6,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_36.svg"
     },
     {
       "id": 46,
@@ -550,59 +122,26 @@
       "image": "/images/comp_46.svg"
     },
     {
-      "id": 30,
-      "name": "D Latch",
-      "role": "Sequential Elements",
-      "country": "Level-Sensitive",
-      "basePrice": 12,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": true,
-      "image": "/images/comp_30.svg"
-    },
-    {
-      "id": 19,
-      "name": "NAND Gate",
-      "role": "Logic Gates",
-      "country": "Universal Gate",
-      "basePrice": 3,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_19.svg"
-    },
-    {
-      "id": 53,
-      "name": "Force Gate",
-      "role": "Misc Components",
-      "country": "Signal Override",
-      "basePrice": 9,
-      "team": null,
-      "soldPrice": null,
-      "isCapped": false,
-      "image": "/images/comp_53.svg"
-    },
-    {
-      "id": 1,
-      "name": "Input",
+      "id": 4,
+      "name": "Constant Value",
       "role": "Input",
-      "country": "Digital Input",
-      "basePrice": 4,
+      "country": "Constant Source",
+      "basePrice": 5,
       "team": null,
       "soldPrice": null,
       "isCapped": false,
-      "image": "/images/comp_1.svg"
+      "image": "/images/comp_4.svg"
     },
     {
-      "id": 34,
-      "name": "SR Latch",
-      "role": "Sequential Elements",
-      "country": "Asynchronous Latch",
-      "basePrice": 10,
+      "id": 11,
+      "name": "Variable LED",
+      "role": "Output",
+      "country": "Analog Visual",
+      "basePrice": 7,
       "team": null,
       "soldPrice": null,
       "isCapped": false,
-      "image": "/images/comp_34.svg"
+      "image": "/images/comp_11.svg"
     },
     {
       "id": 5,
@@ -616,26 +155,279 @@
       "image": "/images/comp_5.svg"
     },
     {
-      "id": 2,
-      "name": "Button (Red)",
-      "role": "Input",
-      "country": "Mechanical Switch",
+      "id": 28,
+      "name": "Decoder (2:4)",
+      "role": "Decoders / Data Selectors",
+      "country": "Binary Decoding",
+      "basePrice": 8,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_28.svg"
+    },
+    {
+      "id": 13,
+      "name": "Seven Segment Display",
+      "role": "Output",
+      "country": "Numeric Display",
+      "basePrice": 8,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_13.svg"
+    },
+    {
+      "id": 38,
+      "name": "Rectangle",
+      "role": "Annotation",
+      "country": "Schematic Markup",
+      "basePrice": 2,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_38.svg"
+    },
+    {
+      "id": 26,
+      "name": "MSB / LSB Indicator",
+      "role": "Decoders / Data Selectors",
+      "country": "Bit Significance",
+      "basePrice": 3,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_26.svg"
+    },
+    {
+      "id": 32,
+      "name": "JK Flip-Flop",
+      "role": "Sequential Elements",
+      "country": "Universal Flip-Flop",
+      "basePrice": 18,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": true,
+      "image": "/images/comp_32.svg"
+    },
+    {
+      "id": 42,
+      "name": "Two's Complement",
+      "role": "Misc Components",
+      "country": "Arithmetic Logic",
       "basePrice": 6,
       "team": null,
       "soldPrice": null,
       "isCapped": false,
-      "image": "/images/comp_2.svg"
+      "image": "/images/comp_42.svg"
     },
     {
-      "id": 23,
-      "name": "Multiplexer (2:1)",
+      "id": 52,
+      "name": "Test Bench Output",
+      "role": "Misc Components",
+      "country": "Test & Verification",
+      "basePrice": 5,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_52.svg"
+    },
+    {
+      "id": 18,
+      "name": "XOR Gate",
+      "role": "Logic Gates",
+      "country": "Combinational Logic",
+      "basePrice": 3,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_18.svg"
+    },
+    {
+      "id": 53,
+      "name": "Force Gate",
+      "role": "Misc Components",
+      "country": "Signal Override",
+      "basePrice": 9,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_53.svg"
+    },
+    {
+      "id": 20,
+      "name": "NOR Gate",
+      "role": "Logic Gates",
+      "country": "Universal Gate",
+      "basePrice": 3,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_20.svg"
+    },
+    {
+      "id": 21,
+      "name": "XNOR Gate",
+      "role": "Logic Gates",
+      "country": "Equivalence Gate",
+      "basePrice": 4,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_21.svg"
+    },
+    {
+      "id": 47,
+      "name": "Tristate Flip-Flop",
+      "role": "Misc Components",
+      "country": "Bus Driver",
+      "basePrice": 14,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": true,
+      "image": "/images/comp_47.svg"
+    },
+    {
+      "id": 37,
+      "name": "ROM (8×8)",
+      "role": "Sequential Elements",
+      "country": "Non-Volatile Memory",
+      "basePrice": 18,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": true,
+      "image": "/images/comp_37.svg"
+    },
+    {
+      "id": 22,
+      "name": "NOT Gate",
+      "role": "Logic Gates",
+      "country": "Logic Inverter",
+      "basePrice": 2,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_22.svg"
+    },
+    {
+      "id": 17,
+      "name": "OR Gate",
+      "role": "Logic Gates",
+      "country": "Combinational Logic",
+      "basePrice": 2,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_17.svg"
+    },
+    {
+      "id": 34,
+      "name": "SR Latch",
+      "role": "Sequential Elements",
+      "country": "Asynchronous Latch",
+      "basePrice": 10,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_34.svg"
+    },
+    {
+      "id": 27,
+      "name": "Priority Encoder (4:2)",
       "role": "Decoders / Data Selectors",
-      "country": "Data Routing",
+      "country": "Binary Encoding",
+      "basePrice": 10,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_27.svg"
+    },
+    {
+      "id": 25,
+      "name": "Bit Selector",
+      "role": "Decoders / Data Selectors",
+      "country": "Bit Level Selection",
+      "basePrice": 8,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_25.svg"
+    },
+    {
+      "id": 15,
+      "name": "RGB LED Matrix (5×5)",
+      "role": "Output",
+      "country": "Matrix Display",
+      "basePrice": 20,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": true,
+      "image": "/images/comp_15.svg"
+    },
+    {
+      "id": 6,
+      "name": "Stepper Motor",
+      "role": "Input",
+      "country": "Electromechanical",
+      "basePrice": 15,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": true,
+      "image": "/images/comp_6.svg"
+    },
+    {
+      "id": 51,
+      "name": "Test Bench Input",
+      "role": "Misc Components",
+      "country": "Test & Verification",
+      "basePrice": 5,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_51.svg"
+    },
+    {
+      "id": 41,
+      "name": "Text",
+      "role": "Annotation",
+      "country": "Label / Comment",
+      "basePrice": 2,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_41.svg"
+    },
+    {
+      "id": 36,
+      "name": "Clock",
+      "role": "Sequential Elements",
+      "country": "Oscillator Source",
+      "basePrice": 6,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_36.svg"
+    },
+    {
+      "id": 7,
+      "name": "Counter",
+      "role": "Input",
+      "country": "Sequential Logic",
       "basePrice": 12,
       "team": null,
       "soldPrice": null,
       "isCapped": true,
-      "image": "/images/comp_23.svg"
+      "image": "/images/comp_7.svg"
+    },
+    {
+      "id": 31,
+      "name": "T Flip-Flop",
+      "role": "Sequential Elements",
+      "country": "Edge-Triggered",
+      "basePrice": 15,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": true,
+      "image": "/images/comp_31.svg"
     },
     {
       "id": 50,
@@ -649,6 +441,105 @@
       "image": "/images/comp_50.svg"
     },
     {
+      "id": 8,
+      "name": "Random",
+      "role": "Input",
+      "country": "Stochastic Signal",
+      "basePrice": 10,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_8.svg"
+    },
+    {
+      "id": 16,
+      "name": "AND Gate",
+      "role": "Logic Gates",
+      "country": "Combinational Logic",
+      "basePrice": 2,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_16.svg"
+    },
+    {
+      "id": 12,
+      "name": "Hex Display",
+      "role": "Output",
+      "country": "Digital Display",
+      "basePrice": 15,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": true,
+      "image": "/images/comp_12.svg"
+    },
+    {
+      "id": 24,
+      "name": "Demultiplexer (1:2)",
+      "role": "Decoders / Data Selectors",
+      "country": "Data Distribution",
+      "basePrice": 12,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": true,
+      "image": "/images/comp_24.svg"
+    },
+    {
+      "id": 44,
+      "name": "Splitter",
+      "role": "Misc Components",
+      "country": "Bus / Routing",
+      "basePrice": 3,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_44.svg"
+    },
+    {
+      "id": 43,
+      "name": "Flag",
+      "role": "Misc Components",
+      "country": "Status Register",
+      "basePrice": 2,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_43.svg"
+    },
+    {
+      "id": 35,
+      "name": "Keyboard (4×4)",
+      "role": "Sequential Elements",
+      "country": "Matrix Input",
+      "basePrice": 12,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": true,
+      "image": "/images/comp_35.svg"
+    },
+    {
+      "id": 9,
+      "name": "RGB Light",
+      "role": "Output",
+      "country": "Visual Display",
+      "basePrice": 10,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_9.svg"
+    },
+    {
+      "id": 23,
+      "name": "Multiplexer (2:1)",
+      "role": "Decoders / Data Selectors",
+      "country": "Data Routing",
+      "basePrice": 12,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": true,
+      "image": "/images/comp_23.svg"
+    },
+    {
       "id": 33,
       "name": "SR Flip-Flop",
       "role": "Sequential Elements",
@@ -660,15 +551,92 @@
       "image": "/images/comp_33.svg"
     },
     {
-      "id": 15,
-      "name": "RGB LED Matrix (5×5)",
+      "id": 39,
+      "name": "Arrow",
+      "role": "Annotation",
+      "country": "Directional Vector",
+      "basePrice": 2,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_39.svg"
+    },
+    {
+      "id": 49,
+      "name": "Buffer",
+      "role": "Misc Components",
+      "country": "Signal Conditioning",
+      "basePrice": 3,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_49.svg"
+    },
+    {
+      "id": 14,
+      "name": "Sixteen Segment Display",
       "role": "Output",
-      "country": "Matrix Display",
-      "basePrice": 20,
+      "country": "Alphanumeric Display",
+      "basePrice": 12,
       "team": null,
       "soldPrice": null,
       "isCapped": true,
-      "image": "/images/comp_15.svg"
+      "image": "/images/comp_14.svg"
+    },
+    {
+      "id": 30,
+      "name": "D Latch",
+      "role": "Sequential Elements",
+      "country": "Level-Sensitive",
+      "basePrice": 12,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": true,
+      "image": "/images/comp_30.svg"
+    },
+    {
+      "id": 48,
+      "name": "Tunnel",
+      "role": "Misc Components",
+      "country": "Net Label",
+      "basePrice": 4,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_48.svg"
+    },
+    {
+      "id": 10,
+      "name": "LED Light",
+      "role": "Output",
+      "country": "Visual Indicator",
+      "basePrice": 4,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_10.svg"
+    },
+    {
+      "id": 29,
+      "name": "D Flip-Flop",
+      "role": "Sequential Elements",
+      "country": "Edge-Triggered",
+      "basePrice": 15,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": true,
+      "image": "/images/comp_29.svg"
+    },
+    {
+      "id": 19,
+      "name": "NAND Gate",
+      "role": "Logic Gates",
+      "country": "Universal Gate",
+      "basePrice": 3,
+      "team": null,
+      "soldPrice": null,
+      "isCapped": false,
+      "image": "/images/comp_19.svg"
     }
   ],
   "resultReview": {
@@ -684,17 +652,13 @@
     "manualOverride": null
   },
   "reconnectSessions": {
-    "0f353a52-49bb-4fcc-9a54-cc7e26175584": {
-      "teamId": "team_gxwr1_i7ky",
-      "name": "Gxwr1"
+    "9151b6b2-2f9c-4a06-acba-87b9c7456559": {
+      "teamId": "team_logic_knights_q46v",
+      "name": "Logic Knights"
     },
-    "b59d19d6-ff88-43a1-a2d2-300d60bc72de": {
-      "teamId": "team_aa_jg0p",
-      "name": "AA"
-    },
-    "83cf9a84-4cb7-4ffe-9c1f-23be0a65c297": {
-      "teamId": "team_aa_jg0p",
-      "name": "AA"
+    "b5391b85-f433-4ff0-98fc-75f333bfe0d4": {
+      "teamId": "team_circuit_breakers_qtc5",
+      "name": "Circuit Breakers"
     }
   }
 }

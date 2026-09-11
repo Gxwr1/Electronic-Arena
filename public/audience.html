@@ -1091,9 +1091,14 @@
   </div>
 
   <!-- SOUND FX & SOCKET SCRIPT -->
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script>
-    const socket = io();
+    if (typeof io === 'undefined') {
+      document.write('<script src="/socket.io/socket.io.js"><\/script>');
+    }
+  </script>
+  <script>
+    const socket = typeof io !== 'undefined' ? io({ transports: ['polling', 'websocket'], reconnection: true }) : { on: () => {}, emit: () => {} };
     let currentGameState = {};
     let soundEnabled = true;
     let selectedTeamColor = '#00e5ff';

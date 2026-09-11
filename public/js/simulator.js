@@ -2,9 +2,9 @@
  * Digital Logic Circuit Simulator
  * High-performance digital logic evaluation engine & interactive canvas
  */
-
-const socket = io();
-
+const socket = typeof io !== 'undefined'
+  ? io({ transports: ['polling', 'websocket'], reconnection: true })
+  : { on: () => {}, emit: () => {}, close: () => {} };
 // ─── STATE & CONFIG ───
 let allCatalog = [];
 let myTeam = null;

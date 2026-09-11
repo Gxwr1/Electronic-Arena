@@ -197,9 +197,32 @@ loadState();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true,
+  },
+  transports: ['polling', 'websocket'],
+});
 
-app.use(express.json());
+// Enable CORS for all incoming API & asset requests
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-admin-pass');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+
+app.get('/favicon.ico', (req, res) => {
+  res.type('image/svg+xml').send('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⚡</text></svg>');
+});
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const LEGACY_IMAGES_DIR = path.join(PUBLIC_DIR, 'images');
@@ -3412,6 +3435,14 @@ app.post('/api/reset', requireAdmin, (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Electro Auction (ECE Components) server running on http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
+  server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Electro Auction (ECE Components) server running on http://localhost:${PORT}`);
+  });
+} else if (process.env.VERCEL) {
+  server.listen(PORT);
+}
+
+module.exports = app;
+module.exports.server = server;
+module.exports.io = io;

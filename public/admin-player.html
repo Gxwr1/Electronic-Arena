@@ -702,7 +702,12 @@
 
   <div class="flash" id="flashMsg"></div>
 
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    if (typeof io === 'undefined') {
+      document.write('<script src="/socket.io/socket.io.js"><\/script>');
+    }
+  </script>
   <script>
     const adminPass = localStorage.getItem('adminPass');
 
@@ -721,7 +726,9 @@
       throw new Error('Unauthorized admin access');
     }
 
-    const socket = io({ auth: { adminPass } });
+    const socket = typeof io !== 'undefined'
+      ? io({ auth: { adminPass }, transports: ['polling', 'websocket'], reconnection: true })
+      : { on: () => {}, emit: () => {} };
     let players = [];
     let gameState = null;
     let editingPlayerId = null;

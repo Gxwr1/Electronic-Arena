@@ -425,7 +425,13 @@
 
 <div id="toast" class="toast"></div>
 
-<script src="/socket.io/socket.io.js"></script>
+<!-- Socket.IO loaded from CDN with fallback -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+  if (typeof io === 'undefined') {
+    document.write('<script src="/socket.io/socket.io.js"><\/script>');
+  }
+</script>
 <script src="/js/app.js"></script>
 <script>
   function switchJoinTab(tab) {
