@@ -1,6 +1,6 @@
 /**
  * Electronic-Arena Database Layer (db.js)
- * Powered by Convex Cloud Database (https://neighborly-moose-165.convex.cloud)
+ * Powered by Convex Cloud Database (https://dapper-akita-326.convex.cloud)
  * with Automatic Offline / Serverless File Storage Fallback.
  */
 
@@ -11,7 +11,7 @@ const path = require('path');
 const os = require('os');
 
 // Resolve Convex URL from environment variables
-const CONVEX_URL = process.env.CONVEX_URL || process.env.VITE_CONVEX_URL || 'https://neighborly-moose-165.convex.cloud';
+const CONVEX_URL = process.env.CONVEX_URL || process.env.VITE_CONVEX_URL || 'https://dapper-akita-326.convex.cloud';
 
 let convexClient = null;
 let api = null;

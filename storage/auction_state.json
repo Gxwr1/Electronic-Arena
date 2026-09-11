@@ -1,43 +1,5 @@
 {
   "phase": "lobby",
-  "teams": {
-    "team_logic_knights_b7bk": {
-      "id": "team_logic_knights_b7bk",
-      "name": "Logic Knights",
-      "short": "LK",
-      "leader": "Alex",
-      "members": [
-        "Alex",
-        "Brian",
-        "Chloe"
-      ],
-      "color": "#00ff88",
-      "icon": "⚡",
-      "logo": "",
-      "password": "pass",
-      "budget": 500,
-      "verified": false,
-      "players": [],
-      "playingXI": {},
-      "ownerId": null,
-      "ownerName": "Logic Knights",
-      "ownerIp": null
-    }
-  },
-  "soldHistory": [],
-  "unsoldPlayers": [],
-  "auctionQueue": [],
-  "resultReview": {
-    "validated": false,
-    "validatedAt": null,
-    "standings": [],
-    "revealedPlaces": {
-      "1": false,
-      "2": false,
-      "3": false
-    },
-    "revealedAt": {},
-    "manualOverride": null
-  },
-  "reconnectSessions": {}
+  "verified_deployment": "dapper-akita-326",
+  "time": 1789143619395
 }
