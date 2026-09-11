@@ -1,22 +1,32 @@
 {
   "name": "electro-auction",
   "version": "1.0.0",
+  "type": "module",
   "description": "Electronic Components & Hardware Auction Multiplayer Platform",
   "main": "server.js",
   "scripts": {
-    "dev": "node --watch server.js",
-    "start": "node server.js",
-    "test:smoke": "node test/e2e-smoke.js"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "server": "node server.js"
   },
   "dependencies": {
+    "canvas-confetti": "^1.9.4",
     "convex": "^1.45.0",
     "dotenv": "^17.4.2",
     "express": "^4.18.2",
+    "lucide-react": "^1.45.0",
     "mongodb": "^7.6.0",
     "multer": "^2.0.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "socket.io": "^4.6.1"
   },
   "devDependencies": {
-    "socket.io-client": "^4.8.3"
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "^6.1.1",
+    "socket.io-client": "^4.8.3",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.0"
   }
 }
