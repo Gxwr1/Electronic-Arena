@@ -488,7 +488,7 @@
     .catch(() => showToast('Logo upload failed', 'error'));
   }
 
-  function registerAndJoinDirect() {
+  async function registerAndJoinDirect() {
     const name = document.getElementById('directTeamName').value.trim();
     const leader = document.getElementById('directLeader').value.trim();
     const m2 = document.getElementById('member2').value.trim();
@@ -509,21 +509,59 @@
       return;
     }
 
-    socket.emit('registerTeam', {
-      name,
-      leader,
-      members,
-      logo,
-      password,
-    }, (res) => {
-      if (res && res.success) {
-        showToast('Team registered! Logging in...', 'success');
-        myPass = password;
-        socket.emit('joinGame', { teamId: res.teamId, password });
-      } else {
-        showToast((res && res.error) || 'Failed to register team', 'error');
+    const regBtn = document.querySelector('#joinRegForm .btn-join');
+    if (regBtn) {
+      regBtn.disabled = true;
+      regBtn.textContent = 'REGISTERING TEAM...';
+    }
+
+    try {
+      const res = await fetch('/api/teams/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          leader,
+          members,
+          logo,
+          password,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        showToast(data.error || 'Failed to register team', 'error');
+        if (regBtn) {
+          regBtn.disabled = false;
+          regBtn.textContent = 'REGISTER TEAM & ENTER';
+        }
+        return;
       }
-    });
+
+      showToast('🎉 Team registered successfully! Entering room...', 'success');
+      myPass = password;
+      myTeamId = data.teamId;
+
+      if (typeof window.handleJoinSuccess === 'function') {
+        window.handleJoinSuccess({
+          teamId: data.teamId,
+          password: password,
+          team: data.team,
+          reconnected: false,
+        });
+      }
+
+      if (window.socket && window.socket.connected) {
+        socket.emit('joinGame', { teamId: data.teamId, password });
+      }
+    } catch (err) {
+      showToast('Network error registering team', 'error');
+    } finally {
+      if (regBtn) {
+        regBtn.disabled = false;
+        regBtn.textContent = 'REGISTER TEAM & ENTER';
+      }
+    }
   }
 </script>
 </body>

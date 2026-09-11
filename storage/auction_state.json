@@ -1,5 +1,52 @@
 {
   "phase": "lobby",
-  "verified_deployment": "dapper-akita-326",
-  "time": 1789143619395
+  "teams": {
+    "team_circuit_breakers_4e0b": {
+      "id": "team_circuit_breakers_4e0b",
+      "name": "Circuit Breakers 1789143919199",
+      "short": "CB1",
+      "leader": "Samantha",
+      "members": [
+        "Samantha",
+        "Devon"
+      ],
+      "color": "#00e5ff",
+      "icon": "⚡",
+      "logo": "",
+      "password": "cbpass",
+      "budget": 500,
+      "verified": false,
+      "players": [],
+      "playingXI": {},
+      "ownerId": null,
+      "ownerName": "Circuit Breakers 1789143919199",
+      "ownerIp": null
+    }
+  },
+  "soldHistory": [],
+  "unsoldPlayers": [],
+  "auctionQueue": [],
+  "resultReview": {
+    "validated": false,
+    "validatedAt": null,
+    "standings": [],
+    "revealedPlaces": {
+      "1": false,
+      "2": false,
+      "3": false
+    },
+    "revealedAt": {},
+    "manualOverride": null
+  },
+  "reconnectSessions": {
+    "3d93dcc3-185c-4ae5-b8be-f8a11426048e": {
+      "teamId": "team_circuit_breakers_4e0b",
+      "name": "Circuit Breakers 1789143919199"
+    }
+  },
+  "currentBid": 0,
+  "currentPlayer": null,
+  "currentBidder": null,
+  "timerSeconds": 15,
+  "timestamp": 1789143919284
 }

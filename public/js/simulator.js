@@ -2,8 +2,9 @@
  * Digital Logic Circuit Simulator
  * High-performance digital logic evaluation engine & interactive canvas
  */
+const isVercelHost = typeof window !== 'undefined' && (window.location.hostname.includes('vercel.app') || window.location.hostname.includes('now.sh'));
 const socket = typeof io !== 'undefined'
-  ? io({ transports: ['websocket', 'polling'], reconnection: true, reconnectionAttempts: 10, timeout: 6000 })
+  ? io({ transports: isVercelHost ? ['polling'] : ['websocket', 'polling'], reconnection: !isVercelHost, reconnectionAttempts: 5, timeout: 5000 })
   : { on: () => {}, emit: () => {}, close: () => {} };
 if (socket && typeof socket.on === 'function') {
   socket.on('connect_error', () => {});

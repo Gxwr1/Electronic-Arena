@@ -2908,6 +2908,69 @@ app.post('/api/teams/register', (req, res) => {
   });
 });
 
+// Join / Authenticate team via public REST API
+app.post(['/api/teams/join', '/api/teams/login'], (req, res) => {
+  const { teamId: rawTeamId, password: rawPassword, passcode } = req.body || {};
+  const searchKey = String(rawTeamId || req.body.name || req.body.code || '').trim();
+  const password = String(rawPassword || passcode || '').trim();
+
+  if (!searchKey && !password) {
+    return res.status(400).json({ error: 'Team passcode or name is required' });
+  }
+
+  let team = null;
+  if (searchKey && gameState.teams[searchKey]) {
+    team = gameState.teams[searchKey];
+  } else {
+    const teamsList = Object.values(gameState.teams);
+    team = teamsList.find(t => 
+      (t.password && password && t.password.toLowerCase() === password.toLowerCase()) ||
+      (t.password && searchKey && t.password.toLowerCase() === searchKey.toLowerCase()) ||
+      (t.id && searchKey && t.id.toLowerCase() === searchKey.toLowerCase()) ||
+      (t.short && searchKey && t.short.toLowerCase() === searchKey.toLowerCase()) ||
+      (t.name && searchKey && t.name.toLowerCase() === searchKey.toLowerCase())
+    );
+  }
+
+  if (!team) {
+    return res.status(404).json({ error: 'Invalid team passcode or name' });
+  }
+
+  if (team.password && password && team.password.toLowerCase() !== password.toLowerCase()) {
+    return res.status(401).json({ error: 'Incorrect team passcode' });
+  }
+
+  const reconnectToken = randomUUID();
+  reconnectSessions[reconnectToken] = {
+    teamId: team.id,
+    name: team.name,
+  };
+
+  saveState();
+
+  return res.json({
+    success: true,
+    teamId: team.id,
+    name: team.name,
+    password: team.password,
+    reconnectToken,
+    team: {
+      id: team.id,
+      name: team.name,
+      short: team.short,
+      leader: team.leader,
+      members: team.members,
+      color: team.color,
+      icon: team.icon,
+      logo: team.logo,
+      budget: team.budget,
+      verified: Boolean(team.verified),
+      players: team.players || [],
+      playingXI: team.playingXI || {},
+    },
+  });
+});
+
 // Admin Add Team
 app.post('/api/admin/teams/add', requireAdmin, (req, res) => {
   const rawName = String(req.body.name || req.body.teamName || '').trim();

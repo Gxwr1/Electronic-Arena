@@ -11,17 +11,18 @@ window.showToast = function(msg, type = 'info', duration = 3000) {
 };
 var showToast = window.showToast;
 
+var isVercelHost = typeof window !== 'undefined' && (window.location.hostname.includes('vercel.app') || window.location.hostname.includes('now.sh'));
 var socket = null;
 if (typeof io !== 'undefined') {
   socket = io({
-    transports: ['websocket', 'polling'],
-    reconnection: true,
-    reconnectionAttempts: 10,
+    transports: isVercelHost ? ['polling'] : ['websocket', 'polling'],
+    reconnection: !isVercelHost,
+    reconnectionAttempts: 5,
     reconnectionDelay: 1000,
-    timeout: 6000,
+    timeout: 5000,
   });
   socket.on('connect_error', () => {
-    // Silent fallback to HTTP polling without spamming console
+    // Graceful fallback to HTTP sync polling
   });
 } else {
   console.warn('Socket.IO library not yet ready, using dummy socket fallback.');
@@ -312,7 +313,7 @@ function showTeamReveal(team) {
   }, 2200);
 }
 
-socket.on('joinSuccess', ({ teamId, password, reconnectToken, reconnected, team }) => {
+function handleJoinSuccess({ teamId, password, reconnectToken, reconnected, team }) {
   myPass = password;
   myTeamId = teamId;
   selectedTeamId = teamId;
@@ -351,11 +352,13 @@ socket.on('joinSuccess', ({ teamId, password, reconnectToken, reconnected, team 
         showJoinedScreen();
         renderPlayersGallery((gameState && gameState.players) ? gameState.players : []);
       }
-    }, 2000);
+    }, 1800);
   }
 
-  showToast(reconnected ? `Reconnected` : `Joined`, 'success');
-});
+  showToast(reconnected ? `Reconnected` : `Joined as ${team ? (team.name || team.short) : teamId}`, 'success');
+}
+window.handleJoinSuccess = handleJoinSuccess;
+socket.on('joinSuccess', handleJoinSuccess);
 
 socket.on('reconnectFailed', ({ reason }) => {
   clearSession();
@@ -673,7 +676,7 @@ function renderJoinedTeams() {
   });
 }
 
-function joinGame() {
+async function joinGame() {
   if (myTeamId) {
     showToast('You are already joined', 'info');
     return;
@@ -685,8 +688,51 @@ function joinGame() {
     return;
   }
 
+  const joinBtn = document.getElementById('joinBtn');
+  if (joinBtn) {
+    joinBtn.disabled = true;
+    joinBtn.textContent = 'ENTERING ROOM...';
+  }
+
   myPass = code;
-  socket.emit('joinGame', { password: code });
+
+  // 1. Emit via socket if connected
+  if (window.socket && window.socket.connected) {
+    socket.emit('joinGame', { password: code });
+  }
+
+  // 2. Also authenticate via HTTP REST API for serverless/Vercel guarantee
+  try {
+    const res = await fetch('/api/teams/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: code }),
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      handleJoinSuccess({
+        teamId: data.teamId,
+        password: code,
+        reconnectToken: data.reconnectToken,
+        reconnected: false,
+        team: data.team,
+      });
+    } else {
+      if (!window.socket || !window.socket.connected) {
+        showToast(data.error || 'Invalid team passcode', 'error');
+      }
+    }
+  } catch (err) {
+    if (!window.socket || !window.socket.connected) {
+      showToast('Network error connecting to team', 'error');
+    }
+  } finally {
+    if (joinBtn) {
+      joinBtn.disabled = false;
+      joinBtn.textContent = 'ENTER AUCTION ROOM';
+    }
+  }
 }
 
 function leaveGame() {
