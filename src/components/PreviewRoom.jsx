@@ -1,14 +1,37 @@
 import React, { useState } from 'react';
-import { CheckCircle2, Clock, Layers, LogOut, Sparkles, FileDown } from 'lucide-react';
+import { CheckCircle2, Clock, Layers, LogOut, Sparkles, FileDown, Camera, Upload } from 'lucide-react';
+import { useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import { COMPONENTS, CATEGORIES } from '../data/components';
 import { downloadTeamReportPDF } from '../utils/pdfGenerator';
+import { processImageUpload } from '../utils/imageHelper';
 
 export function PreviewRoom({ currentTeam, onLogout }) {
   const [selectedCat, setSelectedCat] = useState('All');
+  const [isUpdatingLogo, setIsUpdatingLogo] = useState(false);
   const isApproved = Boolean(currentTeam && currentTeam.verified);
   const members = currentTeam?.members || [currentTeam?.leader || 'Leader'];
 
+  const updateTeamLogoMutation = useMutation(api.auction.updateTeamLogo);
   const filtered = COMPONENTS.filter((c) => selectedCat === 'All' || c.role === selectedCat);
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUpdatingLogo(true);
+    try {
+      const dataUrl = await processImageUpload(file, 25);
+      await updateTeamLogoMutation({
+        teamId: currentTeam.id,
+        password: currentTeam.password,
+        logo: dataUrl,
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsUpdatingLogo(false);
+    }
+  };
 
   return (
     <div className="relative z-10 h-[calc(100vh-4.25rem)] flex flex-col overflow-hidden max-w-7xl mx-auto px-4 py-4 sm:px-6">
@@ -16,18 +39,32 @@ export function PreviewRoom({ currentTeam, onLogout }) {
       <div className="shrink-0 rounded-2xl border border-cyan-500/30 bg-slate-900/95 backdrop-blur-xl p-4 shadow-xl mb-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* Team Profile & Logo */}
-          <div className="flex items-center gap-3">
-            {currentTeam.logo ? (
-              <img
-                src={currentTeam.logo}
-                alt=""
-                className="h-12 w-12 rounded-xl object-cover border-2 border-cyan-400 shadow-md shadow-cyan-500/20"
-              />
-            ) : (
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-800 border-2 border-cyan-400 text-2xl shadow-md shadow-cyan-500/20">
-                {currentTeam.icon || '⚡'}
-              </div>
-            )}
+          <div className="flex items-center gap-3.5">
+            <div className="relative group cursor-pointer">
+              <label className="cursor-pointer block">
+                {currentTeam.logo ? (
+                  <img
+                    src={currentTeam.logo}
+                    alt=""
+                    className="h-14 w-14 rounded-2xl object-cover border-2 border-cyan-400 shadow-md shadow-cyan-500/20 group-hover:opacity-80 transition-all"
+                  />
+                ) : (
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-800 border-2 border-cyan-400 text-2xl shadow-md shadow-cyan-500/20 group-hover:border-cyan-300 transition-all">
+                    {currentTeam.icon || '⚡'}
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/60 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Camera className="h-5 w-5 text-cyan-300" />
+                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  disabled={isUpdatingLogo}
+                  className="hidden"
+                />
+              </label>
+            </div>
 
             <div>
               <div className="flex items-center gap-2">

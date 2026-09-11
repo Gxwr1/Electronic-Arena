@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { KeyRound, UserPlus, Upload, Sparkles, ShieldAlert, ArrowRight, Users, CheckCircle2, Clock } from 'lucide-react';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { processImageUpload } from '../utils/imageHelper';
 
 export function LandingView({ teams, onLoginSuccess, showToast }) {
   const [activeTab, setActiveTab] = useState('code'); // 'code' | 'register'
@@ -42,18 +43,17 @@ export function LandingView({ teams, onLoginSuccess, showToast }) {
     }
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      showToast('Logo image must be under 2MB', 'error');
-      return;
+    try {
+      showToast('Processing logo image...', 'info');
+      const dataUrl = await processImageUpload(file, 25);
+      setLogo(dataUrl);
+      showToast('Logo image loaded successfully!', 'success');
+    } catch (err) {
+      showToast(err.message || 'Image processing failed', 'error');
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setLogo(event.target?.result || '');
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleRegisterSubmit = async (e) => {

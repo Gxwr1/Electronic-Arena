@@ -273,6 +273,26 @@ export const updateAllTeamsBudget = mutation({
   },
 });
 
+export const updateTeamLogo = mutation({
+  args: {
+    teamId: v.string(),
+    logo: v.string(),
+    password: v.optional(v.string()),
+    adminPass: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const team = await ctx.db.query("teams").withIndex("by_teamId", (q) => q.eq("teamId", args.teamId)).first();
+    if (!team) throw new Error("Team not found");
+
+    if (args.adminPass !== ADMIN_PASSWORD && team.password !== args.password) {
+      throw new Error("Unauthorized to update team logo");
+    }
+
+    await ctx.db.patch(team._id, { logo: args.logo, updatedAt: Date.now() });
+    return { success: true, logo: args.logo };
+  },
+});
+
 export const deleteTeam = mutation({
   args: {
     teamId: v.string(),
