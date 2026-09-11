@@ -12,8 +12,19 @@ import { TeamLoginModal } from './components/TeamLoginModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { Toast } from './components/Toast';
 
+function getTabFromUrl() {
+  const path = window.location.pathname.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+
+  if (path.includes('admin') || hash.includes('admin')) return 'admin';
+  if (path.includes('simulator') || hash.includes('simulator')) return 'simulator';
+  if (path.includes('team') || path.includes('lobby') || hash.includes('team') || hash.includes('lobby')) return 'teams';
+  if (path.includes('leaderboard') || path.includes('standing') || hash.includes('leaderboard')) return 'leaderboard';
+  return 'auction';
+}
+
 export function App() {
-  const [activeTab, setActiveTab] = useState('auction');
+  const [activeTab, setActiveTab] = useState(getTabFromUrl());
   const [currentTeam, setCurrentTeam] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminPass, setAdminPass] = useState('aiml');
@@ -38,7 +49,7 @@ export function App() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Direct Reactive Convex Queries (Zero Polling, Zero Websocket Handshake 404s!)
+  // Direct Reactive Convex Queries
   const gameState = useQuery(api.auction.getAuctionState, { key: 'current_game' });
   const teams = useQuery(api.auction.getTeams);
 
@@ -49,7 +60,7 @@ export function App() {
     }
   }, [teams]);
 
-  // Load session from localStorage on mount
+  // Load session from localStorage on mount and sync URL routing
   useEffect(() => {
     try {
       const savedPin = localStorage.getItem('teamPin');
@@ -58,11 +69,56 @@ export function App() {
         if (match) setCurrentTeam(match);
       }
       const savedAdmin = localStorage.getItem('isAdminAuth');
-      if (savedAdmin === 'true') {
+      const isAdminSaved = savedAdmin === 'true';
+      if (isAdminSaved) {
         setIsAdmin(true);
+      }
+
+      // Check initial URL
+      const initialTab = getTabFromUrl();
+      if (initialTab === 'admin') {
+        if (!isAdminSaved) {
+          setIsAdminLoginOpen(true);
+        } else {
+          setActiveTab('admin');
+        }
+      } else {
+        setActiveTab(initialTab);
       }
     } catch (e) {}
   }, [teams]);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const newTab = getTabFromUrl();
+      if (newTab === 'admin' && !isAdmin && localStorage.getItem('isAdminAuth') !== 'true') {
+        setIsAdminLoginOpen(true);
+      } else {
+        setActiveTab(newTab);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('hashchange', handlePopState);
+    };
+  }, [isAdmin]);
+
+  const changeTab = (tab) => {
+    if (tab === 'admin' && !isAdmin) {
+      setIsAdminLoginOpen(true);
+      return;
+    }
+
+    setActiveTab(tab);
+    const targetPath = tab === 'auction' ? '/' : `/${tab}`;
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState(null, '', targetPath);
+    }
+  };
 
   const handleLoginSuccess = (team) => {
     setCurrentTeam(team);
@@ -80,13 +136,16 @@ export function App() {
     setAdminPass('aiml');
     localStorage.setItem('isAdminAuth', 'true');
     setActiveTab('admin');
+    if (window.location.pathname !== '/admin') {
+      window.history.pushState(null, '', '/admin');
+    }
   };
 
   const handleAdminLogout = () => {
     setIsAdmin(false);
     localStorage.removeItem('isAdminAuth');
     showToast('Exited Admin Mode', 'info');
-    setActiveTab('auction');
+    changeTab('auction');
   };
 
   return (
@@ -94,7 +153,7 @@ export function App() {
       {/* Top Navigation */}
       <Navbar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={changeTab}
         currentTeam={currentTeam}
         onLogout={handleLogout}
         onOpenLogin={() => setIsTeamLoginOpen(true)}
@@ -102,7 +161,7 @@ export function App() {
         isAdmin={isAdmin}
         onOpenAdminLogin={() => {
           if (isAdmin) {
-            setActiveTab('admin');
+            changeTab('admin');
           } else {
             setIsAdminLoginOpen(true);
           }
@@ -176,7 +235,12 @@ export function App() {
 
       <AdminLoginModal
         isOpen={isAdminLoginOpen}
-        onClose={() => setIsAdminLoginOpen(false)}
+        onClose={() => {
+          setIsAdminLoginOpen(false);
+          if (activeTab === 'admin' && !isAdmin) {
+            changeTab('auction');
+          }
+        }}
         onSuccess={handleAdminSuccess}
         showToast={showToast}
       />
