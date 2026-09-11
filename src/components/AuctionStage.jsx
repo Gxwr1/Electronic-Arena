@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Zap, Clock, ShieldCheck, ShieldAlert, Award, Flame, Layers, Users, Sparkles, Pause, ArrowRight } from 'lucide-react';
+import { Zap, Clock, ShieldCheck, ShieldAlert, Award, Flame, Layers, Users, Sparkles, Pause, ArrowRight, FileDown } from 'lucide-react';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { SoldCelebrationModal } from './SoldCelebrationModal';
+import { downloadTeamReportPDF } from '../utils/pdfGenerator';
 
 export function AuctionStage({ gameState, teams, currentTeam, showToast, onOpenLogin }) {
   const [customBid, setCustomBid] = useState('');
@@ -192,9 +193,20 @@ export function AuctionStage({ gameState, teams, currentTeam, showToast, onOpenL
               <Layers className="h-4 w-4 text-emerald-400" />
               <h3 className="font-bebas text-lg text-slate-100 tracking-wider">MY ACQUIRED ITEMS</h3>
             </div>
-            <span className="text-xs font-mono-code text-emerald-400 font-bold">
-              {myWonItems.length} items
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono-code text-emerald-400 font-bold">
+                {myWonItems.length} items
+              </span>
+              {currentTeam && (
+                <button
+                  onClick={() => downloadTeamReportPDF(currentTeam)}
+                  className="p-1 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/40 transition-colors"
+                  title="Download Team 1-Page PDF Report"
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1">

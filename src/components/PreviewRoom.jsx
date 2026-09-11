@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { CheckCircle2, Clock, Layers, LogOut, Sparkles } from 'lucide-react';
+import { CheckCircle2, Clock, Layers, LogOut, Sparkles, FileDown } from 'lucide-react';
 import { COMPONENTS, CATEGORIES } from '../data/components';
+import { downloadTeamReportPDF } from '../utils/pdfGenerator';
 
 export function PreviewRoom({ currentTeam, onLogout }) {
   const [selectedCat, setSelectedCat] = useState('All');
@@ -62,6 +63,16 @@ export function PreviewRoom({ currentTeam, onLogout }) {
               <Sparkles className="h-4 w-4 text-cyan-400 animate-spin" />
               <span>⏳ Waiting for Host to start the Live Auction...</span>
             </div>
+
+            {/* Download Team PDF */}
+            <button
+              onClick={() => downloadTeamReportPDF(currentTeam)}
+              className="flex items-center gap-1.5 rounded-xl bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/40 px-3 py-2 text-xs font-rajdhani font-bold transition-all"
+              title="Download 1-Page PDF Summary"
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              <span>Team PDF</span>
+            </button>
 
             <button
               onClick={onLogout}

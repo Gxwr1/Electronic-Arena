@@ -204,8 +204,10 @@ export function App() {
       {/* 60fps Electric PCB Background Animation */}
       <ElectricBackground />
 
-      {/* Real-time Global Sold Celebration Overlay (Green for Winner, Red for Losers) */}
-      <SoldCelebrationModal lastSoldEvent={gameState?.lastSoldEvent} currentTeam={currentTeam} />
+      {/* Real-time Global Sold Celebration Overlay (Shown for participants, suppressed in Admin console) */}
+      {activeTab !== 'admin' && (
+        <SoldCelebrationModal lastSoldEvent={gameState?.lastSoldEvent} currentTeam={currentTeam} />
+      )}
 
       {/* Top Navbar */}
       <Navbar

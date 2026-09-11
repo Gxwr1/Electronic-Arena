@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Play, Pause, FastForward, CheckCircle, XCircle, RotateCcw, ShieldCheck, Trash2, Edit3, Plus, Users, Zap, Layers, Eye, Download, FileText, ArrowRight, SkipForward } from 'lucide-react';
+import { Play, Pause, FastForward, CheckCircle, XCircle, RotateCcw, ShieldCheck, Trash2, Edit3, Plus, Users, Zap, Layers, Eye, Download, FileText, ArrowRight, SkipForward, FileDown } from 'lucide-react';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { downloadTeamReportPDF, downloadAllTeamsPDF } from '../utils/pdfGenerator';
 
 export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToast }) {
   const [activeTab, setActiveTab] = useState('controls'); // 'controls' | 'preview' | 'data'
@@ -138,6 +139,24 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
     }
   };
 
+  const handleDownloadTeamPDF = (team) => {
+    try {
+      downloadTeamReportPDF(team);
+      showToast(`📄 Downloaded PDF report for ${team.name}`, 'success');
+    } catch (e) {
+      showToast('Failed to generate PDF', 'error');
+    }
+  };
+
+  const handleDownloadOverallPDF = () => {
+    try {
+      downloadAllTeamsPDF(teamList, gameState?.soldHistory, gameState?.unsoldPlayers);
+      showToast('📥 Downloaded Overall Master Tournament PDF', 'success');
+    } catch (e) {
+      showToast('Failed to generate overall PDF', 'error');
+    }
+  };
+
   const exportJSON = () => {
     const data = {
       timestamp: new Date().toISOString(),
@@ -199,7 +218,7 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
                 activeTab === 'data' ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              📊 Data Evaluate
+              📊 Data Evaluate (PDF)
             </button>
           </div>
 
@@ -356,16 +375,26 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
                             </span>
                           </div>
                           <p className="text-xs text-slate-400 font-rajdhani">
-                            Members: <strong className="text-slate-200">{members.join(', ')}</strong>
+                            Leader: <strong className="text-slate-200">{team.leader || members[0]}</strong> • Members: <strong className="text-slate-300">{members.join(', ')}</strong>
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 self-end md:self-center">
-                        <div className="text-right">
+                      <div className="flex items-center gap-2.5 self-end md:self-center">
+                        <div className="text-right mr-2">
                           <div className="text-xs font-mono-code text-emerald-400 font-bold">{team.budget} pts</div>
                           <div className="text-[10px] font-mono-code text-slate-400">{(team.players || []).length} items</div>
                         </div>
+
+                        {/* Individual PDF Download */}
+                        <button
+                          onClick={() => handleDownloadTeamPDF(team)}
+                          className="flex items-center gap-1 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/40 px-2.5 py-1.5 text-xs font-rajdhani font-bold transition-colors"
+                          title="Download Team 1-Page PDF"
+                        >
+                          <FileDown className="h-3.5 w-3.5" />
+                          <span>PDF</span>
+                        </button>
 
                         {isApproved ? (
                           <button
@@ -483,21 +512,32 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
                 <span>AUCTION DATA EVALUATION MATRIX</span>
               </h2>
               <p className="text-xs font-rajdhani text-slate-400">
-                Detailed audit of which team bought which component, purchase prices, and remaining budgets
+                Download 1-page reports per team or the complete tournament master PDF
               </p>
             </div>
 
-            <button
-              onClick={exportJSON}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 px-4 py-2 text-xs font-rajdhani font-bold text-slate-950 shadow-lg shadow-amber-500/20 transition-all self-start sm:self-center"
-            >
-              <Download className="h-4 w-4" />
-              <span>Export Full Dataset (JSON)</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Master PDF Download Button */}
+              <button
+                onClick={handleDownloadOverallPDF}
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 px-4 py-2 text-xs font-rajdhani font-bold text-slate-950 shadow-lg shadow-cyan-500/20 transition-all"
+              >
+                <FileDown className="h-4 w-4" />
+                <span>Download Overall Master PDF</span>
+              </button>
+
+              <button
+                onClick={exportJSON}
+                className="flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2 text-xs font-rajdhani font-bold text-slate-300 transition-colors"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span>JSON</span>
+              </button>
+            </div>
           </div>
 
           <div className="space-y-4">
-            {teamList.map((team, idx) => {
+            {teamList.map((team) => {
               const won = team.players || [];
               const spent = 500 - team.budget;
 
@@ -518,7 +558,7 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
                       <div>
                         <h4 className="font-rajdhani font-bold text-base text-slate-100">{team.name}</h4>
                         <p className="text-[11px] font-rajdhani text-slate-400">
-                          Members: {(team.members || []).join(', ')}
+                          Leader: <strong className="text-slate-200">{team.leader || 'Leader'}</strong> • Roster: {(team.members || []).join(', ')}
                         </p>
                       </div>
                     </div>
@@ -536,6 +576,15 @@ export function AdminPanel({ gameState, teams, adminPass, onLogoutAdmin, showToa
                         <span className="text-slate-400">Remaining Budget: </span>
                         <strong className="text-emerald-400">{team.budget} pts</strong>
                       </div>
+
+                      {/* Individual Team PDF Button */}
+                      <button
+                        onClick={() => handleDownloadTeamPDF(team)}
+                        className="flex items-center gap-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/40 px-3 py-1.5 text-xs font-rajdhani font-bold transition-all ml-2"
+                      >
+                        <FileDown className="h-3.5 w-3.5" />
+                        <span>Download 1-Page PDF</span>
+                      </button>
                     </div>
                   </div>
 

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Trophy, Award, Download, Layers, Users } from 'lucide-react';
+import { Trophy, Award, Download, Layers, Users, FileDown } from 'lucide-react';
+import { downloadTeamReportPDF, downloadAllTeamsPDF } from '../utils/pdfGenerator';
 
 export function LeaderboardView({ teams, soldHistory, unsoldPlayers }) {
   const teamList = Object.values(teams || {}).sort((a, b) => {
@@ -33,31 +34,42 @@ export function LeaderboardView({ teams, soldHistory, unsoldPlayers }) {
         <div>
           <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 border border-amber-500/30 px-3 py-1 text-xs font-mono-code text-amber-300 mb-2">
             <Trophy className="h-3.5 w-3.5 text-amber-400" />
-            <span>Official Auction Standings & Results</span>
+            <span>Official Auction Standings & Evaluation</span>
           </div>
           <h1 className="font-bebas text-3xl sm:text-5xl tracking-wider text-slate-100">
             TEAM SQUAD STANDINGS & INVENTORY
           </h1>
           <p className="text-xs font-rajdhani text-slate-400">
-            Total Completed Sales: <strong className="text-emerald-400 font-mono-code">{(soldHistory || []).length}</strong> • 
+            Completed Sales: <strong className="text-emerald-400 font-mono-code">{(soldHistory || []).length}</strong> • 
             Unsold: <strong className="text-rose-400 font-mono-code">{(unsoldPlayers || []).length}</strong>
           </p>
         </div>
 
-        <button
-          onClick={exportJSON}
-          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 px-4 py-2.5 text-xs font-rajdhani font-bold text-slate-950 shadow-lg shadow-amber-500/20 transition-all self-start sm:self-center"
-        >
-          <Download className="h-4 w-4" />
-          <span>Export Results (JSON)</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3 self-start sm:self-center">
+          {/* Master Overall PDF Download */}
+          <button
+            onClick={() => downloadAllTeamsPDF(teamList, soldHistory, unsoldPlayers)}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 px-4 py-2.5 text-xs font-rajdhani font-bold text-slate-950 shadow-lg shadow-cyan-500/20 transition-all"
+          >
+            <FileDown className="h-4 w-4" />
+            <span>Download Master PDF Report</span>
+          </button>
+
+          <button
+            onClick={exportJSON}
+            className="flex items-center gap-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-2.5 text-xs font-rajdhani font-bold text-slate-300 transition-colors"
+          >
+            <Download className="h-3.5 w-3.5" />
+            <span>JSON</span>
+          </button>
+        </div>
       </div>
 
       {/* Standings Table */}
       <div className="rounded-3xl border border-slate-800 bg-slate-900/90 backdrop-blur-xl p-6 shadow-xl space-y-6">
         <h2 className="font-bebas text-2xl tracking-wider text-slate-100 flex items-center gap-2">
           <Award className="h-5 w-5 text-amber-400" />
-          <span>TEAM LEADERBOARD</span>
+          <span>TEAM LEADERBOARD & INDIVIDUAL REPORTS</span>
         </h2>
 
         {teamList.length === 0 ? (
@@ -105,7 +117,7 @@ export function LeaderboardView({ teams, soldHistory, unsoldPlayers }) {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-6 self-end md:self-center">
+                    <div className="flex flex-wrap items-center gap-4 self-end md:self-center">
                       <div className="text-right">
                         <span className="text-[10px] font-mono-code uppercase text-slate-400">Components Won</span>
                         <div className="font-mono-code font-bold text-lg text-cyan-400">{won.length} items</div>
@@ -120,6 +132,16 @@ export function LeaderboardView({ teams, soldHistory, unsoldPlayers }) {
                         <span className="text-[10px] font-mono-code uppercase text-slate-400">Remaining Budget</span>
                         <div className="font-mono-code font-bold text-lg text-emerald-400">{team.budget} pts</div>
                       </div>
+
+                      {/* Download Individual 1-Page PDF */}
+                      <button
+                        onClick={() => downloadTeamReportPDF(team)}
+                        className="flex items-center gap-1.5 rounded-xl bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/40 px-3 py-2 text-xs font-rajdhani font-bold transition-all ml-2"
+                        title={`Download 1-page PDF for ${team.name}`}
+                      >
+                        <FileDown className="h-3.5 w-3.5" />
+                        <span>1-Page PDF</span>
+                      </button>
                     </div>
                   </div>
 
