@@ -19,6 +19,7 @@ export function AuctionStage({ gameState, teams, currentTeam, showToast, onOpenL
   const currentBidderId = gameState?.currentBidder;
   const currentBidderTeam = currentBidderId && teams ? teams[currentBidderId] : null;
   const isMyTeamLeading = Boolean(currentTeam && currentBidderId === currentTeam.id);
+  const teamList = Object.values(teams || {});
 
   const isApproved = Boolean(currentTeam && currentTeam.verified);
   const isAuctionPhase = gameState?.phase === 'auction';
