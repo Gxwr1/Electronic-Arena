@@ -1184,19 +1184,33 @@ function renderFinishedScreen(teams, soldHistory, unsoldPlayers, resultReview) {
   if (!grid) return;
   grid.innerHTML = '';
 
-  Object.values(teams).forEach((team) => {
+  const standings = (resultReview && resultReview.standings) || [];
+  const standingByTeam = new Map(standings.map((s) => [String(s.teamId), s]));
+
+  const teamList = Object.values(teams || {});
+  teamList.sort((a, b) => {
+    const rankA = standingByTeam.get(String(a.id))?.place || 999;
+    const rankB = standingByTeam.get(String(b.id))?.place || 999;
+    return rankA - rankB;
+  });
+
+  teamList.forEach((team) => {
     const card = document.createElement('div');
     const squad = Array.isArray(team.players) ? team.players : [];
+    const standing = standingByTeam.get(String(team.id));
+    const place = standing?.place;
+    const medal = place === 1 ? '🥇 1st Place (WINNER)' : (place === 2 ? '🥈 2nd Place' : (place === 3 ? '🥉 3rd Place' : (place ? `${place}th Place` : '')));
 
     card.className = 'final-team-card';
-    card.style.borderColor = `${team.color || '#00e5ff'}44`;
+    card.style.borderColor = place === 1 ? 'var(--gold)' : `${team.color || '#00e5ff'}44`;
+    if (place === 1) card.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.25)';
 
     const rows = squad.length
       ? squad.map((player) => `
         <div class="final-player-row">
           <div>
             <div style="font-weight:bold; color:var(--gold);">${escapeHtml(player.name)}</div>
-            <div class="final-player-role">${escapeHtml(player.role)} | ${escapeHtml(player.symbolName || player.symbol || '')}</div>
+            <div class="final-player-role">${escapeHtml(player.role)} ${player.symbolName || player.symbol ? `| ${escapeHtml(player.symbolName || player.symbol)}` : ''}</div>
           </div>
           <div class="final-player-price" style="color:var(--neon-green); font-weight:bold;">${player.soldPrice || player.basePrice} pts</div>
         </div>
@@ -1205,15 +1219,21 @@ function renderFinishedScreen(teams, soldHistory, unsoldPlayers, resultReview) {
 
     card.innerHTML = `
       <div class="final-team-header" style="background:${team.color || '#00e5ff'}20; border-bottom:1px solid ${team.color || '#00e5ff'}33; padding:12px; display:flex; justify-content:space-between; align-items:center;">
-        <div class="final-team-name" style="color:${team.color || '#00e5ff'}; font-weight:bold; font-size:18px;">
-          ${team.short || team.name} - ${escapeHtml(team.name || team.ownerName)}
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${team.logo ? `<img src="${team.logo}" style="width:24px; height:24px; border-radius:50%; object-fit:cover;" />` : ''}
+            <div class="final-team-name" style="color:${team.color || '#00e5ff'}; font-weight:bold; font-size:18px;">
+              ${escapeHtml(team.name || team.short || team.ownerName)}
+            </div>
+          </div>
+          ${medal ? `<div style="font-size:12px; font-weight:bold; color:var(--gold); margin-top:2px;">${medal} ${standing?.score ? `• Score: ${standing.score} pts` : ''}</div>` : ''}
         </div>
         <div class="final-team-budget" style="color:var(--neon-green); font-weight:bold;">
           ${Number(team.budget) || 0} pts left
         </div>
       </div>
       <div class="final-team-players" style="padding:12px;">
-        <div class="final-squad-label" style="font-size:12px; color:var(--neon-cyan); margin-bottom:8px; text-transform:uppercase;">Acquired Circuit Components (${squad.length})</div>
+        <div class="final-squad-label" style="font-size:12px; color:var(--neon-cyan); margin-bottom:8px; text-transform:uppercase;">Acquired Logic Components (${squad.length})</div>
         ${rows}
       </div>
     `;
@@ -1318,7 +1338,12 @@ async function syncStateFromApi() {
 
 function startSyncLoop() {
   if (syncInterval) clearInterval(syncInterval);
-  syncInterval = setInterval(syncStateFromApi, 1000);
+  syncInterval = setInterval(() => {
+    // Only poll as background fallback when socket is disconnected
+    if (!window.socket || !window.socket.connected) {
+      syncStateFromApi();
+    }
+  }, 3000);
   syncStateFromApi();
 }
 

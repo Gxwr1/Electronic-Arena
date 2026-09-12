@@ -331,7 +331,6 @@
         <div class="readonly">Read-only live technical report. Export to CSV or Print as PDF.</div>
       </div>
       <div class="top-actions">
-        <a class="link-btn" href="/simulator.html" target="_blank" style="background: linear-gradient(135deg, #a855f7, #7c3aed);">🧪 Circuit Simulator ↗</a>
         <a class="link-btn" href="/admin-panel.html">Admin 1 Controls</a>
         <a class="link-btn" href="/admin-player.html">Admin 2 Components</a>
         <a class="link-btn" href="/admin-result.html">Admin 3 Results</a>
@@ -399,12 +398,7 @@
 
   <div class="flash" id="flashMsg"></div>
 
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script>
-    if (typeof io === 'undefined') {
-      document.write('<script src="/socket.io/socket.io.js"><\/script>');
-    }
-  </script>
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     const adminPass = localStorage.getItem('adminPass');
     const ROLE_ORDER = [

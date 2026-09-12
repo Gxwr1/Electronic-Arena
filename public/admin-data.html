@@ -50,12 +50,11 @@
         <div class="title">Admin Data</div>
       </div>
       <div class="top-actions">
-        <a class="link-btn" href="/simulator.html" target="_blank" style="background: linear-gradient(135deg, #a855f7, #7c3aed);">🧪 Circuit Simulator ↗</a>
         <a class="link-btn" href="/admin-panel.html">Admin 1</a>
         <a class="link-btn" href="/admin-player.html">Admin 2</a>
         <a class="link-btn" href="/admin-result.html">Admin 3</a>
         <a class="link-btn" href="/admin-report.html">Admin 4</a>
-        <a class="link-btn" href="/audience.html">Audience</a>
+        <a class="link-btn" href="/audience.html" target="_blank">Audience Stage ↗</a>
         <button class="link-btn" onclick="openPasswordModal()">Reset Codes</button>
         <button class="logout-btn" onclick="logout()">Logout</button>
       </div>
@@ -83,12 +82,7 @@
     <a href="/admin.html">Go to Login</a>
   </div>
 
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script>
-    if (typeof io === 'undefined') {
-      document.write('<script src="/socket.io/socket.io.js"><\/script>');
-    }
-  </script>
+  <script src="/socket.io/socket.io.js"></script>
   <!-- password modal -->
   <div id="passwordModal" class="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:10000;align-items:center;justify-content:center;">
     <div style="background:var(--bg-soft);padding:24px;border-radius:12px;max-width:600px;width:90%;color:var(--text);">

@@ -188,9 +188,6 @@
       <div class="trophy-icon">⚡</div>
       <h1 class="title">LOGIC CIRCUIT AUCTION</h1>
       <p class="subtitle">53 DIGITAL LOGIC COMPONENTS • 500 PTS TEAM BUDGET</p>
-      <div style="margin-top: 10px;">
-        <a href="/simulator.html" target="_blank" class="btn-sim-link">🧪 Open Circuit Simulator</a>
-      </div>
     </div>
 
     <div class="join-card">
@@ -279,10 +276,6 @@
 
       <p id="joinedMessage" class="joined-message">Waiting for the administrator to start the live component auction. Get ready!</p>
 
-      <div style="margin: 12px 0;">
-        <a href="/simulator.html" target="_blank" class="btn-sim-link">🧪 Launch Logic Circuit Simulator</a>
-      </div>
-
       <div class="players-gallery-wrap joined-preview-wrap">
         <div id="playersGallery" class="players-gallery"></div>
       </div>
@@ -302,9 +295,6 @@
       <div style="margin-left: 16px; display: flex; align-items: center; gap: 8px; font-weight: bold; color: #FFD700;">
         <span>MY BALANCE:</span>
         <span style="font-size: 18px; color: #00ff88;" id="myBalance">500 pts</span>
-      </div>
-      <div style="margin-left: 12px;">
-        <a href="/simulator.html" target="_blank" class="btn-sim-link" style="padding:4px 10px; font-size:12px;">🧪 Simulator</a>
       </div>
     </div>
     <div class="header-center">
@@ -349,7 +339,6 @@
         <section class="my-squad-panel">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h3 class="feed-title" style="margin-bottom: 0;">MY LOGIC INVENTORY</h3>
-            <a href="/simulator.html" target="_blank" class="btn-sim-link" style="padding: 3px 8px; font-size: 11px;">🧪 SIMULATE</a>
           </div>
           <div id="myPlayersList" class="my-players-list"></div>
         </section>
@@ -414,9 +403,6 @@
     <div class="finished-header">
       <h1>🏆 AUCTION COMPLETE!</h1>
       <p>Final acquired logic components and team circuit inventories</p>
-      <div style="margin-top: 14px;">
-        <a href="/simulator.html" target="_blank" class="btn-sim-link" style="font-size:16px; padding:10px 20px;">🧪 Launch Online Circuit Simulator with Acquired Components</a>
-      </div>
     </div>
     <div id="finalTeams" class="final-teams-grid"></div>
     <button class="btn-reset" onclick="resetGame()">🔄 NEW AUCTION</button>
@@ -425,13 +411,8 @@
 
 <div id="toast" class="toast"></div>
 
-<!-- Socket.IO loaded from CDN with fallback -->
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-<script>
-  if (typeof io === 'undefined') {
-    document.write('<script src="/socket.io/socket.io.js"><\/script>');
-  }
-</script>
+<!-- Local Offline-Ready Socket.IO -->
+<script src="/socket.io/socket.io.js"></script>
 <script src="/js/app.js"></script>
 <script>
   function switchJoinTab(tab) {

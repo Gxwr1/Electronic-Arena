@@ -403,7 +403,6 @@
         <div class="title">Admin 1 - Auction & Dynamic Teams Control</div>
       </div>
       <div class="top-actions">
-        <a class="link-btn" href="/simulator.html" target="_blank" style="background: linear-gradient(135deg, #a855f7, #7c3aed);">🧪 Circuit Simulator ↗</a>
         <a class="link-btn" href="/admin-player.html">Admin 2 Components</a>
         <a class="link-btn" href="/admin-result.html">Admin 3 Results</a>
         <a class="link-btn" href="/admin-report.html">Admin 4 Report</a>
@@ -486,12 +485,7 @@
     </main>
   </div>
 
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script>
-    if (typeof io === 'undefined') {
-      document.write('<script src="/socket.io/socket.io.js"><\/script>');
-    }
-  </script>
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     const adminPass = localStorage.getItem('adminPass');
 
@@ -703,8 +697,11 @@
       if (statePollTimer) return;
       statePollTimer = setInterval(() => {
         if (document.hidden) return;
-        fetchLiveState();
-      }, 800);
+        // Background sync only if socket is not connected
+        if (!socket || !socket.connected) {
+          fetchLiveState();
+        }
+      }, 3000);
       fetchLiveState();
     }
 
@@ -734,7 +731,6 @@
       if (gs) gameState = { ...(gameState || {}), ...gs };
       updateUI();
       addFeed('Auction started.', 'info');
-      fetchLiveState();
     });
 
     socket.on('newPlayer', ({ player, startingBid, remaining }) => {
@@ -757,12 +753,10 @@
 
     socket.on('playerSold', ({ player, teamName, soldPrice }) => {
       addFeed(`${player.name} sold to ${teamName} for ${soldPrice} pts`, 'sold');
-      fetchLiveState();
     });
 
     socket.on('playerUnsold', ({ player }) => {
       addFeed(`${player.name} marked unsold`, 'unsold');
-      fetchLiveState();
     });
 
     socket.on('playerUpdated', ({ player }) => {
@@ -776,14 +770,12 @@
       if (gs) gameState = { ...(gameState || {}), ...gs };
       updateUI();
       addFeed('Auction paused.', 'info');
-      fetchLiveState();
     });
 
     socket.on('auctionResumed', ({ gameState: gs }) => {
       if (gs) gameState = { ...(gameState || {}), ...gs };
       updateUI();
       addFeed('Auction resumed.', 'info');
-      fetchLiveState();
     });
 
     socket.on('auctionFinished', ({ teams }) => {
@@ -792,29 +784,34 @@
       if (teams) gameState.teams = teams;
       updateUI();
       addFeed('Auction finished. Move to Admin Results for validation.', 'info');
-      fetchLiveState();
     });
 
     socket.on('error', (msg) => {
       addFeed(msg, 'unsold');
     });
 
-    // Auction Controls (Dual-Channel REST + Socket)
+    // Auction Controls (Instant Socket Event with REST Fallback)
     function executeAdminAction(endpoint, socketEvent) {
-      if (socket && typeof socket.emit === 'function') {
+      if (socket && typeof socket.emit === 'function' && socket.connected) {
         socket.emit(socketEvent);
+      } else {
+        fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-pass': adminPass,
+          },
+          body: JSON.stringify({ adminPass }),
+        })
+          .then(r => r.json())
+          .then((data) => {
+            if (data && data.gameState) {
+              gameState = { ...(gameState || {}), ...data.gameState };
+              updateUI();
+            }
+          })
+          .catch(() => {});
       }
-      fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-pass': adminPass,
-        },
-        body: JSON.stringify({ adminPass }),
-      })
-        .then(r => r.json())
-        .then(() => fetchLiveState())
-        .catch(() => {});
     }
 
     function startGame() { executeAdminAction('/api/auction/start', 'startAuction'); }

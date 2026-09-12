@@ -407,11 +407,10 @@
     <header class="topbar">
       <div class="title">Admin 3 - Result Validation</div>
       <div class="top-actions">
-        <a class="link-btn" href="/simulator.html" target="_blank" style="background: linear-gradient(135deg, #a855f7, #7c3aed);">🧪 Circuit Simulator ↗</a>
         <a class="link-btn" href="/admin-panel.html">Admin 1 Control</a>
         <a class="link-btn" href="/admin-player.html">Admin 2 Components</a>
         <a class="link-btn" href="/admin-report.html">Admin 4 Report</a>
-        <a class="link-btn" href="/audience.html">Audience</a>
+        <a class="link-btn" href="/audience.html" target="_blank">Audience Stage ↗</a>
         <button class="logout-btn" onclick="logout()">Logout</button>
       </div>
     </header>
@@ -456,23 +455,24 @@
 
       <section class="main-pane">
         <article class="card">
-          <div class="card-head">Standings (Team Formation Efficiency)</div>
+          <div class="card-head">Official Standings & Circuit Component Breakdown</div>
           <div class="table-wrap">
             <table id="standingsTable">
               <thead>
                 <tr>
-                  <th>Place</th>
+                  <th>Rank</th>
                   <th>Team</th>
-                  <th>Owner</th>
-                  <th>Score</th>
-                  <th>XI / Squad</th>
-                  <th>Openers</th>
-                  <th>Fast</th>
-                  <th>Spin</th>
-                  <th>WK</th>
-                  <th>AR</th>
-                  <th>Skill / Perf</th>
-                  <th>Breakdown</th>
+                  <th>Leader / Members</th>
+                  <th>Total Score</th>
+                  <th>Components Won</th>
+                  <th>Inputs</th>
+                  <th>Outputs</th>
+                  <th>Logic Gates</th>
+                  <th>Decoders / MUX</th>
+                  <th>Sequential</th>
+                  <th>Misc / ALU</th>
+                  <th>Budget Left</th>
+                  <th>Score Breakdown</th>
                 </tr>
               </thead>
               <tbody id="standingsBody"></tbody>
@@ -490,12 +490,7 @@
 
   <div class="flash" id="flashMsg"></div>
 
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script>
-    if (typeof io === 'undefined') {
-      document.write('<script src="/socket.io/socket.io.js"><\/script>');
-    }
-  </script>
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     const adminPass = localStorage.getItem('adminPass');
 
@@ -717,7 +712,7 @@
       const standings = (resultsState.resultReview && resultsState.resultReview.standings) || [];
 
       if (!standings.length) {
-        body.innerHTML = '<tr><td colspan="12" class="empty">No standings available yet. Validate after auction completion.</td></tr>';
+        body.innerHTML = '<tr><td colspan="13" class="empty">No standings available yet. Click "Validate Standings" once auction finishes.</td></tr>';
         return;
       }
 
@@ -725,23 +720,33 @@
         const composition = entry.composition || {};
         const financials = entry.financials || {};
         const breakdown = (entry.scoreBreakdown || [])
-          .map((item) => `${escapeHtml(item.label)}: ${item.points}`)
+          .map((item) => `${escapeHtml(item.label)}: +${item.points}`)
           .join(' | ');
 
+        const placeMedal = entry.place === 1 ? '🥇 1st' : (entry.place === 2 ? '🥈 2nd' : (entry.place === 3 ? '🥉 3rd' : `${entry.place}th`));
         const row = document.createElement('tr');
         row.innerHTML = `
-          <td class="place">${entry.place}</td>
-          <td><span style="color:${entry.teamColor || '#ffd700'};font-weight:700;">${escapeHtml(entry.teamShort || entry.teamName)}</span></td>
-          <td>${escapeHtml(entry.ownerName || '--')}</td>
-          <td class="score">${entry.score}</td>
-          <td>${composition.players || 0} / ${composition.squadPlayers || 0}</td>
-          <td>${composition.openers || 0}</td>
-          <td>${composition.fastBowlers || 0}</td>
-          <td>${composition.spinners || 0}</td>
-          <td>${composition.wicketkeepers || 0}</td>
-          <td>${composition.allRounders || 0}</td>
-          <td>${Number(financials.averageSkill || 0).toFixed(1)} / ${Number(financials.averagePerformance || 0).toFixed(1)}</td>
-          <td class="breakdown">${breakdown}</td>
+          <td class="place" style="font-weight:bold; font-size:15px; color:${entry.place === 1 ? 'var(--gold)' : (entry.place === 2 ? '#c0c0c0' : (entry.place === 3 ? '#cd7f32' : 'inherit'))};">${placeMedal}</td>
+          <td>
+            <div style="display:flex; align-items:center; gap:8px;">
+              ${entry.logo ? `<img src="${entry.logo}" style="width:26px; height:26px; border-radius:50%; object-fit:cover; border:1px solid ${entry.teamColor || '#00e5ff'};" />` : '<span style="font-size:18px;">⚡</span>'}
+              <div>
+                <div style="color:${entry.teamColor || '#ffd700'};font-weight:700; font-size:14px;">${escapeHtml(entry.teamName || entry.teamShort)}</div>
+                <div style="font-size:11px; color:var(--muted);">${escapeHtml(entry.teamShort || '')}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-size:12px;">${escapeHtml(entry.leader || entry.ownerName || '--')}${Array.isArray(entry.members) && entry.members.length ? ` <div style="color:var(--muted); font-size:11px;">${entry.members.map(escapeHtml).join(', ')}</div>` : ''}</td>
+          <td class="score" style="color:var(--gold); font-weight:bold; font-size:16px;">${entry.score}</td>
+          <td style="font-weight:bold; color:var(--green); text-align:center;">${entry.totalComponents || composition.totalComponents || 0}</td>
+          <td style="text-align:center;">${entry.inputs || composition.inputs || 0}</td>
+          <td style="text-align:center;">${entry.outputs || composition.outputs || 0}</td>
+          <td style="text-align:center;">${entry.logicGates || composition.logicGates || 0}</td>
+          <td style="text-align:center;">${entry.decoders || composition.decoders || 0}</td>
+          <td style="text-align:center;">${entry.sequential || composition.sequential || 0}</td>
+          <td style="text-align:center;">${entry.misc || composition.misc || 0}</td>
+          <td style="color:var(--green); font-weight:bold; white-space:nowrap;">${financials.budgetLeft !== undefined ? financials.budgetLeft : (entry.budgetLeft || 0)} pts</td>
+          <td class="breakdown" style="font-size:11px; max-width:240px; color:#cbd5e1;">${breakdown}</td>
         `;
         body.appendChild(row);
       });
@@ -761,26 +766,25 @@
 
       teams.forEach((team) => {
         const players = Array.isArray(team.players) ? team.players : [];
-        const names = players.map((player) => `${player.name} (${player.role})`).join(', ');
         const standing = standingByTeam.get(String(team.id));
-        const playingXI = standing && standing.selection && Array.isArray(standing.selection.playingXI)
-          ? standing.selection.playingXI.map((player) => `${player.name} (${player.role})`).join(', ')
-          : '';
-        const substitutes = standing && standing.selection && Array.isArray(standing.selection.substitutes)
-          ? standing.selection.substitutes.map((player) => `${player.name} (${player.role})`).join(', ')
-          : '';
+        const componentBadges = players.length
+          ? players.map((p) => `<span style="display:inline-block; margin:2px 4px; padding:3px 8px; background:rgba(0,229,255,0.1); border:1px solid rgba(0,229,255,0.3); border-radius:4px; font-size:11px; color:#e2e8f0;">${escapeHtml(p.name)} <strong style="color:var(--gold);">${p.soldPrice || p.basePrice} pts</strong></span>`).join(' ')
+          : '<div style="color:var(--muted); font-size:12px; margin-top:4px;">No components acquired.</div>';
+
         const card = document.createElement('div');
         card.className = 'team-card';
+        card.style.borderLeft = `4px solid ${team.color || '#00e5ff'}`;
         card.innerHTML = `
-          <div class="team-head">
-            <span style="color:${team.color || '#ffd700'}">${escapeHtml(team.short || team.name || 'TEAM')}</span>
-            <span>Rs${Number(team.budget) || 0}L</span>
+          <div class="team-head" style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              ${team.logo ? `<img src="${team.logo}" style="width:24px; height:24px; border-radius:50%; object-fit:cover;" />` : ''}
+              <span style="color:${team.color || '#ffd700'}; font-weight:bold; font-size:16px;">${escapeHtml(team.name || team.short)}</span>
+            </div>
+            <span style="color:var(--green); font-weight:bold; font-size:14px;">${Number(team.budget) || 0} pts left</span>
           </div>
-          <div class="team-sub">Owner: ${escapeHtml(team.ownerName || '--')}</div>
-          <div class="team-sub">Players: ${players.length}</div>
-          <div class="team-sub"><strong>Selected XI:</strong> ${escapeHtml(playingXI || 'Generate via validation')}</div>
-          <div class="team-sub"><strong>Subs:</strong> ${escapeHtml(substitutes || 'Generate via validation')}</div>
-          <div class="team-players">${names || 'No players obtained.'}</div>
+          <div class="team-sub" style="margin-top:6px;"><strong>Leader:</strong> ${escapeHtml(team.leader || team.ownerName || '--')}${Array.isArray(team.members) && team.members.length ? ` | <strong>Members:</strong> ${team.members.map(escapeHtml).join(', ')}` : ''}</div>
+          <div class="team-sub"><strong>Acquired Components (${players.length}):</strong> ${standing ? `Score: <strong style="color:var(--gold)">${standing.score}</strong>` : ''}</div>
+          <div class="team-players" style="margin-top:8px;">${componentBadges}</div>
         `;
         panel.appendChild(card);
       });

@@ -498,7 +498,7 @@
         <a class="link-btn" href="/admin-panel.html">Admin 1 Control</a>
         <a class="link-btn" href="/admin-result.html">Admin 3 Results</a>
         <a class="link-btn" href="/admin-report.html">Admin 4 Report</a>
-        <a class="link-btn" href="/audience.html">Audience</a>
+        <a class="link-btn" href="/audience.html" target="_blank">Audience Stage ↗</a>
         <button class="logout-btn" onclick="logout()">Logout</button>
       </div>
     </header>
@@ -702,12 +702,7 @@
 
   <div class="flash" id="flashMsg"></div>
 
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script>
-    if (typeof io === 'undefined') {
-      document.write('<script src="/socket.io/socket.io.js"><\/script>');
-    }
-  </script>
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     const adminPass = localStorage.getItem('adminPass');
 

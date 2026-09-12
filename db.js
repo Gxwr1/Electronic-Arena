@@ -1,170 +1,154 @@
 /**
- * Electronic-Arena Database Layer (db.js)
- * Powered by Convex Cloud Database (https://dapper-akita-326.convex.cloud)
- * with Automatic Offline / Serverless File Storage Fallback.
+ * Electronic-Arena Local Directory Storage Layer (db.js)
+ * 100% Local, Offline & Wi-Fi Ready (Zero Cloud / Database Dependencies)
+ * High-performance In-Memory State Cache + Asynchronous Local File Persistence.
  */
 
-require('dotenv').config();
-const { ConvexHttpClient } = require('convex/browser');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// Resolve Convex URL & State Key from environment variables
-const CONVEX_URL = process.env.CONVEX_URL || process.env.VITE_CONVEX_URL || 'https://dapper-akita-326.convex.cloud';
-const AUCTION_STATE_KEY = process.env.AUCTION_STATE_KEY || 'current_game';
-
-let convexClient = null;
-let api = null;
-let isConvexAvailable = false;
-let lastDbError = null;
-
-try {
-  convexClient = new ConvexHttpClient(CONVEX_URL);
-  const generated = require('./convex/_generated/api');
-  api = generated.api;
-  isConvexAvailable = true;
-  console.log(`[Database] Convex client initialized for: ${CONVEX_URL}`);
-} catch (err) {
-  console.warn('[Database] Convex initialization notice:', err.message);
-  isConvexAvailable = false;
-  lastDbError = err.message;
-}
-
-// Resilient writable file path for fallback
-function getFallbackFilePath(filename = 'auction_state.json') {
+// Resolve local storage directory
+function resolveStorageDir() {
   const localStorageDir = path.join(__dirname, 'storage');
   try {
     if (!fs.existsSync(localStorageDir)) {
       fs.mkdirSync(localStorageDir, { recursive: true });
     }
-    const testFile = path.join(localStorageDir, '.write_test');
-    fs.writeFileSync(testFile, 'ok', 'utf8');
-    fs.unlinkSync(testFile);
-    return path.join(localStorageDir, filename);
+    return localStorageDir;
   } catch (err) {
-    const tmpDir = process.env.TMPDIR || os.tmpdir() || '/tmp';
-    return path.join(tmpDir, filename);
+    const tmpDir = process.env.TMPDIR || os.tmpdir() || path.join(__dirname, 'data');
+    if (!fs.existsSync(tmpDir)) {
+      fs.mkdirSync(tmpDir, { recursive: true });
+    }
+    return tmpDir;
   }
 }
 
-const FALLBACK_STATE_FILE = getFallbackFilePath('auction_state.json');
+const STORAGE_DIR = resolveStorageDir();
+const STATE_FILE_PATH = path.join(STORAGE_DIR, 'auction_state.json');
+
+// In-memory cached state for instant zero-latency access
+let memoryCache = null;
+let saveDebounceTimer = null;
+let isWriting = false;
+let pendingStateToWrite = null;
 
 /**
- * Save complete Auction State to Convex Cloud DB and local fallback
+ * Perform asynchronous, non-blocking atomic write to disk
  */
-async function saveAuctionState(stateData) {
-  // 1. Always save to local/tmp fallback for instant local access
-  try {
-    const dir = path.dirname(FALLBACK_STATE_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(FALLBACK_STATE_FILE, JSON.stringify(stateData, null, 2), 'utf8');
-  } catch (err) {
-    console.warn('[Database] Fallback file save warning:', err.message);
+async function flushStateToDisk(stateData) {
+  if (isWriting) {
+    pendingStateToWrite = stateData;
+    return;
   }
 
-  // 2. Persist to Convex Cloud Database
-  if (isConvexAvailable && convexClient && api && api.auction) {
+  isWriting = true;
+  try {
+    const jsonString = JSON.stringify(stateData, null, 2);
+    const tempFile = `${STATE_FILE_PATH}.tmp.${Date.now()}`;
+    await fs.promises.writeFile(tempFile, jsonString, 'utf8');
+    await fs.promises.rename(tempFile, STATE_FILE_PATH);
+  } catch (err) {
+    // If atomic rename fails (e.g. windows file lock), fallback to direct write
     try {
-      await convexClient.mutation(api.auction.saveAuctionState, {
-        key: AUCTION_STATE_KEY,
-        data: stateData,
-      });
-    } catch (err) {
-      lastDbError = err.message;
-      console.warn('[Database] Convex save warning:', err.message);
+      await fs.promises.writeFile(STATE_FILE_PATH, JSON.stringify(stateData, null, 2), 'utf8');
+    } catch (fallbackErr) {
+      console.error('[LocalStorage] Failed to write state file:', fallbackErr.message);
+    }
+  } finally {
+    isWriting = false;
+    if (pendingStateToWrite) {
+      const nextData = pendingStateToWrite;
+      pendingStateToWrite = null;
+      flushStateToDisk(nextData);
     }
   }
 }
 
 /**
- * Load Auction State from Convex Cloud DB or local fallback
+ * Save complete Auction State to Local Storage
+ * Updates memory instantly and schedules non-blocking disk persistence
+ */
+function saveAuctionState(stateData) {
+  if (!stateData) return;
+  memoryCache = stateData;
+
+  // Debounce rapid saves (e.g. fast bids) to prevent disk thrashing
+  clearTimeout(saveDebounceTimer);
+  saveDebounceTimer = setTimeout(() => {
+    flushStateToDisk(memoryCache);
+  }, 50);
+}
+
+/**
+ * Load Auction State from Local File Storage
  */
 async function loadAuctionState() {
-  // 1. Try Convex first
-  if (isConvexAvailable && convexClient && api && api.auction) {
-    try {
-      const data = await convexClient.query(api.auction.getAuctionState, {
-        key: AUCTION_STATE_KEY,
-      });
-      if (data && typeof data === 'object') {
-        return data;
-      }
-    } catch (err) {
-      lastDbError = err.message;
-      console.warn('[Database] Convex load warning:', err.message);
-    }
+  if (memoryCache) {
+    return memoryCache;
   }
 
-  // 2. Fallback to file storage
   try {
-    if (fs.existsSync(FALLBACK_STATE_FILE)) {
-      const raw = fs.readFileSync(FALLBACK_STATE_FILE, 'utf8');
-      return JSON.parse(raw);
+    if (fs.existsSync(STATE_FILE_PATH)) {
+      const raw = await fs.promises.readFile(STATE_FILE_PATH, 'utf8');
+      memoryCache = JSON.parse(raw);
+      return memoryCache;
     }
   } catch (err) {
-    console.warn('[Database] Fallback file load warning:', err.message);
+    console.warn('[LocalStorage] Notice reading state file:', err.message);
   }
 
   return null;
 }
 
 /**
- * Save or update single team in Convex DB
+ * Save single team locally in state cache
  */
 async function saveTeamToDb(team) {
   if (!team || !team.id) return;
-  if (isConvexAvailable && convexClient && api && api.auction) {
-    try {
-      await convexClient.mutation(api.auction.saveTeam, { team });
-    } catch (err) {
-      console.warn('[Database] Convex saveTeam warning:', err.message);
-    }
+  if (memoryCache && memoryCache.teams) {
+    memoryCache.teams[team.id] = team;
+    saveAuctionState(memoryCache);
   }
 }
 
 /**
- * Delete team from Convex DB
+ * Delete team from local state cache
  */
 async function deleteTeamFromDb(teamId) {
   if (!teamId) return;
-  if (isConvexAvailable && convexClient && api && api.auction) {
-    try {
-      await convexClient.mutation(api.auction.deleteTeam, { teamId });
-    } catch (err) {
-      console.warn('[Database] Convex deleteTeam warning:', err.message);
-    }
+  if (memoryCache && memoryCache.teams) {
+    delete memoryCache.teams[teamId];
+    saveAuctionState(memoryCache);
   }
 }
 
 /**
- * Get all teams from Convex DB
+ * Get all teams from local state
  */
 async function getTeamsFromDb() {
-  if (isConvexAvailable && convexClient && api && api.auction) {
-    try {
-      const teams = await convexClient.query(api.auction.getTeams, {});
-      return Array.isArray(teams) ? teams : [];
-    } catch (err) {
-      console.warn('[Database] Convex getTeams warning:', err.message);
-    }
+  if (memoryCache && memoryCache.teams) {
+    return Object.values(memoryCache.teams);
+  }
+  const loaded = await loadAuctionState();
+  if (loaded && loaded.teams) {
+    return Object.values(loaded.teams);
   }
   return [];
 }
 
 /**
- * Get Database Connection Diagnostics
+ * Get Storage Health & Diagnostics
  */
 function getDbHealth() {
   return {
-    connected: isConvexAvailable,
-    storageType: 'convex-cloud-database',
-    provider: 'Convex',
-    url: CONVEX_URL,
-    fallbackFilePath: FALLBACK_STATE_FILE,
-    lastError: lastDbError,
+    connected: true,
+    storageType: 'local-file-system',
+    provider: 'Local Storage (JSON)',
+    storagePath: STATE_FILE_PATH,
+    storageDir: STORAGE_DIR,
+    lastError: null,
   };
 }
 
@@ -175,7 +159,6 @@ module.exports = {
   deleteTeamFromDb,
   getTeamsFromDb,
   getDbHealth,
-  getFallbackFilePath,
-  FALLBACK_STATE_FILE,
-  CONVEX_URL,
+  getFallbackFilePath: () => STATE_FILE_PATH,
+  FALLBACK_STATE_FILE: STATE_FILE_PATH,
 };

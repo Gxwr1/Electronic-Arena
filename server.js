@@ -1281,7 +1281,15 @@ function evaluateTeamForResults(team) {
     xiPlayers = selection.playingXI;
   }
   
-  const composition = selection.composition;
+  const composition = selection.composition || {};
+
+  let inputs = 0;
+  let outputs = 0;
+  let logicGates = 0;
+  let decoders = 0;
+  let sequential = 0;
+  let annotation = 0;
+  let misc = 0;
 
   let totalBasePrice = 0;
   let totalSpent = 0;
@@ -1291,7 +1299,26 @@ function evaluateTeamForResults(team) {
     const soldPrice = Number(player && player.soldPrice);
     totalBasePrice += basePrice;
     totalSpent += Number.isFinite(soldPrice) ? soldPrice : basePrice;
+
+    const r = String(player && player.role || '').toLowerCase();
+    if (r.includes('input') || r.includes('switch') || r.includes('button') || r.includes('power') || r.includes('ground') || r.includes('constant')) {
+      inputs++;
+    } else if (r.includes('output') || r.includes('led') || r.includes('display') || r.includes('buzzer') || r.includes('probe')) {
+      outputs++;
+    } else if (r.includes('gate') || r.includes('and') || r.includes('or') || r.includes('not') || r.includes('nand') || r.includes('nor') || r.includes('xor') || r.includes('buffer')) {
+      logicGates++;
+    } else if (r.includes('decoder') || r.includes('mux') || r.includes('selector') || r.includes('demux') || r.includes('encoder')) {
+      decoders++;
+    } else if (r.includes('sequential') || r.includes('flip') || r.includes('flop') || r.includes('latch') || r.includes('counter') || r.includes('register') || r.includes('clock')) {
+      sequential++;
+    } else if (r.includes('annotation') || r.includes('text') || r.includes('label')) {
+      annotation++;
+    } else {
+      misc++;
+    }
   });
+
+  const categoryDiversity = [inputs > 0, outputs > 0, logicGates > 0, decoders > 0, sequential > 0, misc > 0, annotation > 0].filter(Boolean).length;
 
   let xiSkillSum = 0;
   let xiPerformanceSum = 0;
@@ -1303,69 +1330,64 @@ function evaluateTeamForResults(team) {
   const averageSkill = xiPlayers.length ? (xiSkillSum / xiPlayers.length) : 0;
   const averagePerformance = xiPlayers.length ? (xiPerformanceSum / xiPlayers.length) : 0;
 
-  const squadCompletionScore = scoreByRange(composition.squadPlayers, MAX_SQUAD_SIZE, MAX_SQUAD_SIZE, 10, 5);
-  const xiSizeScore = scoreByRange(composition.players, PLAYING_XI_SIZE, PLAYING_XI_SIZE, 8, 8);
-  const mcuScore = scoreByRange(composition.microcontrollers, 1, 1, 16, 16);
-  const sensorScore = scoreByRange(composition.sensors, 2, 4, 16, 8);
-  const commScore = scoreByRange(composition.communications, 2, 4, 14, 6);
-  const icScore = scoreByRange(composition.icLogics, 2, 4, 14, 6);
-  const displayScore = scoreByRange(composition.displayActuators, 1, 3, 12, 6);
-  const roleBalanceScore = (
-    squadCompletionScore
-    + xiSizeScore
-    + mcuScore
-    + sensorScore
-    + commScore
-    + icScore
-    + displayScore
-  );
-
-  const skillScore = Math.round((averageSkill / 10) * 15);
-  const performanceScore = Math.round((averagePerformance / 10) * 15);
-  const playerValueScore = skillScore + performanceScore;
+  const squadCompletionScore = scoreByRange(players.length, 5, MAX_SQUAD_SIZE, 20, 2);
+  const gateScore = scoreByRange(logicGates, 2, 8, 15, 3);
+  const inputScore = scoreByRange(inputs, 1, 5, 12, 3);
+  const outputScore = scoreByRange(outputs, 1, 5, 12, 3);
+  const decoderScore = scoreByRange(decoders, 1, 4, 12, 3);
+  const sequentialScore = scoreByRange(sequential, 1, 4, 12, 3);
+  const diversityBonus = categoryDiversity * 5;
 
   const budgetLeft = Number(team && team.budget) || 0;
-  const missing = {
-    squadPlayers: Math.max(0, MAX_SQUAD_SIZE - composition.squadPlayers),
-    microcontrollers: Math.max(0, 1 - composition.microcontrollers),
-    sensors: Math.max(0, 2 - composition.sensors),
-    communications: Math.max(0, 2 - composition.communications),
-    icLogics: Math.max(0, 2 - composition.icLogics),
-    displayActuators: Math.max(0, 1 - composition.displayActuators),
-    // backwards-compat
-    wicketkeepers: Math.max(0, 1 - (composition.displayActuators || 0)),
-    openers: Math.max(0, 1 - (composition.microcontrollers || 0)),
-    fastBowlers: Math.max(0, 2 - (composition.sensors || 0)),
-    spinners: Math.max(0, 2 - (composition.communications || 0)),
-    allRounders: Math.max(0, 1 - (composition.icLogics || 0)),
-  };
+  const budgetEfficiencyScore = Math.min(15, Math.round(budgetLeft / 25));
 
   const scoreBreakdown = [
-    { label: '15-Component Inventory Completion', points: squadCompletionScore },
-    { label: '11-Component Project Kit Completion', points: xiSizeScore },
-    { label: 'Microcontroller (1 Required)', points: mcuScore },
-    { label: 'Sensors (Min 2)', points: sensorScore },
-    { label: 'Communication Modules (Min 2)', points: commScore },
-    { label: 'IC & Logic / Drivers (Min 2)', points: icScore },
-    { label: 'Displays & Actuators (Min 1)', points: displayScore },
-    { label: 'Hardware Spec Rating', points: skillScore },
-    { label: 'Market Performance Value', points: performanceScore },
+    { label: 'Total Components Acquired', points: squadCompletionScore },
+    { label: 'Category Diversity (7-Types)', points: diversityBonus },
+    { label: 'Logic Gates Assembly', points: gateScore },
+    { label: 'Inputs & Terminals', points: inputScore },
+    { label: 'Outputs & Displays', points: outputScore },
+    { label: 'Decoders & MUX Selectors', points: decoderScore },
+    { label: 'Sequential & Clocking Elements', points: sequentialScore },
+    { label: 'Budget Efficiency & Balance', points: budgetEfficiencyScore },
   ];
 
-  const score = roleBalanceScore + playerValueScore;
+  const score = squadCompletionScore + diversityBonus + gateScore + inputScore + outputScore + decoderScore + sequentialScore + budgetEfficiencyScore;
+
+  composition.inputs = inputs;
+  composition.outputs = outputs;
+  composition.logicGates = logicGates;
+  composition.decoders = decoders;
+  composition.sequential = sequential;
+  composition.annotation = annotation;
+  composition.misc = misc;
+  composition.categoryDiversity = categoryDiversity;
+  composition.totalComponents = players.length;
 
   return {
     teamId: team && team.id ? team.id : null,
     teamName: team && team.name ? team.name : 'Unknown Team',
     teamShort: team && team.short ? team.short : 'TEAM',
-    teamColor: team && team.color ? team.color : '#888888',
+    teamColor: team && team.color ? team.color : '#00e5ff',
+    logo: team && team.logo ? team.logo : null,
+    leader: team && team.leader ? team.leader : (team && team.ownerName ? team.ownerName : 'Leader'),
+    members: Array.isArray(team && team.members) ? team.members : [],
     ownerName: team && team.ownerName ? team.ownerName : 'Unknown',
     score,
     scoreBreakdown,
+    totalComponents: players.length,
+    inputs,
+    outputs,
+    logicGates,
+    decoders,
+    sequential,
+    annotation,
+    misc,
+    categoryDiversity,
     composition,
     efficiency: {
-      roleBalanceScore,
-      playerValueScore,
+      roleBalanceScore: score,
+      playerValueScore: squadCompletionScore + diversityBonus,
       averageSkill: Number(averageSkill.toFixed(2)),
       averagePerformance: Number(averagePerformance.toFixed(2)),
     },
@@ -1376,6 +1398,15 @@ function evaluateTeamForResults(team) {
       averageSkill: Number(averageSkill.toFixed(2)),
       averagePerformance: Number(averagePerformance.toFixed(2)),
     },
+    players: players.map((player) => ({
+      id: player.id,
+      name: player.name,
+      role: player.role,
+      symbol: player.symbol || player.symbolName || '',
+      basePrice: Number(player.basePrice) || 0,
+      soldPrice: Number(player.soldPrice) || Number(player.basePrice) || 0,
+      image: player.image || '',
+    })),
     selection: {
       playingXI: xiPlayers.map((player) => ({
         id: player.id,
@@ -1385,7 +1416,7 @@ function evaluateTeamForResults(team) {
         isCapped: Boolean(player.isCapped),
         soldPrice: Number(player.soldPrice) || Number(player.basePrice) || 0,
       })),
-      substitutes: selection.substitutes.map((player) => ({
+      substitutes: (selection && Array.isArray(selection.substitutes) ? selection.substitutes : []).map((player) => ({
         id: player.id,
         name: player.name,
         role: player.role,
@@ -1395,18 +1426,20 @@ function evaluateTeamForResults(team) {
       constraints: {
         required: {
           squadPlayers: MAX_SQUAD_SIZE,
-          microcontrollers: 1,
-          sensors: 2,
-          communications: 2,
-          icLogics: 2,
-          displayActuators: 1,
-          wicketkeepers: 1,
-          openers: 1,
-          fastBowlers: 2,
-          spinners: 2,
-          allRounders: 1,
+          inputs: 1,
+          outputs: 1,
+          logicGates: 2,
+          decoders: 1,
+          sequential: 1,
         },
-        missing,
+        missing: {
+          squadPlayers: Math.max(0, 5 - players.length),
+          inputs: Math.max(0, 1 - inputs),
+          outputs: Math.max(0, 1 - outputs),
+          logicGates: Math.max(0, 2 - logicGates),
+          decoders: Math.max(0, 1 - decoders),
+          sequential: Math.max(0, 1 - sequential),
+        },
       },
     },
   };
@@ -1418,16 +1451,12 @@ function calculateResultStandings(teamsMap) {
 
   evaluated.sort((a, b) => {
     if (b.score !== a.score) return b.score - a.score;
-    if ((b.efficiency && b.efficiency.roleBalanceScore) !== (a.efficiency && a.efficiency.roleBalanceScore)) {
-      return (b.efficiency && b.efficiency.roleBalanceScore) - (a.efficiency && a.efficiency.roleBalanceScore);
+    if (b.totalComponents !== a.totalComponents) return b.totalComponents - a.totalComponents;
+    if (b.categoryDiversity !== a.categoryDiversity) return b.categoryDiversity - a.categoryDiversity;
+    if ((b.financials && b.financials.budgetLeft) !== (a.financials && a.financials.budgetLeft)) {
+      return (b.financials && b.financials.budgetLeft) - (a.financials && a.financials.budgetLeft);
     }
-    if ((b.efficiency && b.efficiency.averagePerformance) !== (a.efficiency && a.efficiency.averagePerformance)) {
-      return (b.efficiency && b.efficiency.averagePerformance) - (a.efficiency && a.efficiency.averagePerformance);
-    }
-    if ((b.efficiency && b.efficiency.averageSkill) !== (a.efficiency && a.efficiency.averageSkill)) {
-      return (b.efficiency && b.efficiency.averageSkill) - (a.efficiency && a.efficiency.averageSkill);
-    }
-    return a.teamShort.localeCompare(b.teamShort);
+    return (a.teamName || '').localeCompare(b.teamName || '');
   });
 
   return evaluated.map((entry, index) => ({
@@ -2403,8 +2432,8 @@ app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
 
-app.get('/simulator', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'simulator.html'));
+app.get(['/simulator', '/simulator.html'], (req, res) => {
+  res.redirect('/');
 });
 
 app.get('/audience', (req, res) => {
@@ -3736,10 +3765,40 @@ app.post('/api/reset', requireAdmin, (req, res) => {
   return res.json({ success: true });
 });
 
+function getLocalIpAddresses() {
+  const os = require('os');
+  const interfaces = os.networkInterfaces();
+  const addresses = [];
+  for (const k of Object.keys(interfaces)) {
+    for (const iface of interfaces[k]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        addresses.push(iface.address);
+      }
+    }
+  }
+  return addresses;
+}
+
 const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Electro Auction (ECE Components) server running on http://localhost:${PORT}`);
+    const localIps = getLocalIpAddresses();
+    console.log('\n===============================================================');
+    console.log('⚡ LOGIC CIRCUIT AUCTION — LOCAL WI-FI MULTIPLAYER SERVER ⚡');
+    console.log('===============================================================');
+    console.log(`🌐 Localhost:         http://localhost:${PORT}`);
+    localIps.forEach(ip => {
+      console.log(`📶 Same Wi-Fi LAN:    http://${ip}:${PORT}`);
+    });
+    console.log('---------------------------------------------------------------');
+    console.log(`📱 Participant Arena: http://localhost:${PORT}`);
+    if (localIps.length > 0) {
+      console.log(`   (Phones on Wi-Fi): http://${localIps[0]}:${PORT}`);
+    }
+    console.log(`🔐 Admin Suite:       http://localhost:${PORT}/admin.html (Pass: ${ADMIN_PASSWORD})`);
+    console.log(`📺 Audience Stage:    http://localhost:${PORT}/audience.html`);
+    console.log(`🏆 Live Results:      http://localhost:${PORT}/admin-result.html`);
+    console.log('===============================================================\n');
   });
 } else if (process.env.VERCEL) {
   server.listen(PORT);

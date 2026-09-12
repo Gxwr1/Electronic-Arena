@@ -891,9 +891,6 @@
       </div>
 
       <div class="hud-actions">
-        <a href="/simulator" target="_blank" class="btn-action-hud btn-simulator-glow">
-          <span>🔬</span> CIRCUIT SIMULATOR
-        </a>
         <button class="btn-action-hud btn-register-glow" onclick="openRegisterModal()">
           <span>➕</span> REGISTER TEAM
         </button>
@@ -1082,21 +1079,13 @@
           <a href="/" class="btn-action-hud btn-register-glow" style="flex:1; justify-content:center;">
             Go to Bidding Portal
           </a>
-          <a href="/simulator" target="_blank" class="btn-action-hud btn-simulator-glow" style="flex:1; justify-content:center;">
-            Open Simulator
-          </a>
         </div>
       </div>
     </div>
   </div>
 
   <!-- SOUND FX & SOCKET SCRIPT -->
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script>
-    if (typeof io === 'undefined') {
-      document.write('<script src="/socket.io/socket.io.js"><\/script>');
-    }
-  </script>
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     const isVercelHost = typeof window !== 'undefined' && (window.location.hostname.includes('vercel.app') || window.location.hostname.includes('now.sh'));
     const socket = typeof io !== 'undefined'
@@ -1410,6 +1399,89 @@
       document.getElementById('phasePill').style.color = 'var(--neon-green)';
       logFeed('▶️ Auction resumed', 'info');
     });
+
+    socket.on('auctionFinished', ({ teams, resultReview }) => {
+      document.getElementById('phasePill').textContent = '🏆 AUCTION COMPLETE';
+      document.getElementById('phasePill').style.borderColor = 'var(--neon-amber)';
+      document.getElementById('phasePill').style.color = 'var(--neon-amber)';
+      logFeed('🏆 Auction completed! Standings & winners revealed.', 'info');
+      AudioFX.sold();
+      if (resultReview) {
+        renderAudienceResults(resultReview, teams);
+      }
+    });
+
+    socket.on('resultUpdate', ({ resultReview }) => {
+      if (resultReview) {
+        renderAudienceResults(resultReview, currentGameState.teams);
+      }
+    });
+
+    socket.on('gameReset', () => {
+      document.getElementById('phasePill').textContent = 'LOBBY ARENA';
+      document.getElementById('phasePill').style.borderColor = 'var(--neon-cyan)';
+      document.getElementById('phasePill').style.color = 'var(--neon-cyan)';
+      logFeed('🔄 Auction reset by administrator', 'info');
+      syncAudienceState();
+    });
+
+    function renderAudienceResults(resultReview, teams) {
+      const spotlight = document.getElementById('spotlightArea');
+      const biddingHud = document.getElementById('biddingHud');
+      if (biddingHud) biddingHud.style.display = 'none';
+      if (!spotlight) return;
+
+      const standings = (resultReview && resultReview.standings) || [];
+      const revealedPlaces = (resultReview && resultReview.revealedPlaces) || { 1: true, 2: true, 3: true };
+
+      if (!standings.length) {
+        spotlight.innerHTML = `
+          <div style="text-align:center; padding:40px 20px; background:rgba(0,229,255,0.05); border-radius:12px; border:1px solid var(--neon-cyan);">
+            <div style="font-size:48px; margin-bottom:8px;">🏆</div>
+            <h2 style="font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--neon-amber); letter-spacing:2px;">AUCTION CONCLUDED</h2>
+            <p style="color:#94a3b8; font-size:14px; margin-top:6px;">Administrator is validating final results...</p>
+          </div>
+        `;
+        return;
+      }
+
+      const top3 = standings.slice(0, 3);
+      const podiumHtml = top3.map((team, idx) => {
+        const place = idx + 1;
+        const medal = place === 1 ? '🥇 1st Place (WINNER)' : (place === 2 ? '🥈 2nd Place' : '🥉 3rd Place');
+        const borderColor = place === 1 ? 'var(--neon-amber)' : (place === 2 ? '#cbd5e1' : '#cd7f32');
+        const isShown = revealedPlaces[place] !== false;
+
+        return `
+          <div style="padding:14px 18px; background:rgba(15,23,42,0.9); border:2px solid ${borderColor}; border-radius:12px; text-align:center; box-shadow:0 0 20px ${borderColor}33;">
+            <div style="font-size:24px; margin-bottom:4px;">${place === 1 ? '🏆' : (place === 2 ? '🥈' : '🥉')}</div>
+            <div style="font-size:11px; font-weight:bold; color:${borderColor}; text-transform:uppercase; letter-spacing:1px;">${medal}</div>
+            ${isShown ? `
+              <div style="display:flex; align-items:center; justify-content:center; gap:8px; margin:8px 0;">
+                ${team.logo ? `<img src="${team.logo}" style="width:28px; height:28px; border-radius:50%; object-fit:cover;" />` : ''}
+                <strong style="font-size:18px; color:#fff;">${escapeHtml(team.teamName || team.teamShort)}</strong>
+              </div>
+              <div style="font-size:12px; color:#94a3b8;">Leader: ${escapeHtml(team.leader || team.ownerName || '--')}</div>
+              <div style="font-size:14px; color:var(--neon-green); font-weight:bold; margin-top:6px;">${team.totalComponents || 0} Components • ${team.score} Pts</div>
+            ` : `
+              <div style="font-size:16px; color:#64748b; margin-top:12px; font-style:italic;">Awaiting Reveal...</div>
+            `}
+          </div>
+        `;
+      }).join('');
+
+      spotlight.innerHTML = `
+        <div style="padding:20px; background:rgba(7,13,24,0.95); border-radius:14px; border:1px solid var(--neon-amber);">
+          <div style="text-align:center; margin-bottom:18px;">
+            <h2 style="font-family:'Bebas Neue',sans-serif; font-size:36px; color:var(--neon-amber); letter-spacing:2px; margin-bottom:4px;">🏆 FINAL CHAMPIONSHIP PODIUM</h2>
+            <p style="color:var(--neon-cyan); font-size:13px; letter-spacing:1px;">DIGITAL LOGIC CIRCUIT AUCTION STANDINGS</p>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:18px;">
+            ${podiumHtml}
+          </div>
+        </div>
+      `;
+    }
 
     // RENDER FUNCTIONS
     function renderState(gs) {
